@@ -136,6 +136,22 @@ def predict_cost_endpoint():
     return jsonify(result)
 
 
+# --------------------------------------------------------------- smart plan
+@app.post("/smart-plan")
+def smart_plan():
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("text", "")).strip()
+    if not text:
+        return jsonify({"error": "Tell me about your trip."}), 400
+    style = str(data.get("travel_style", "mid-range")).lower()
+    if style not in VALID_STYLES:
+        style = "mid-range"
+    from ml.bot.smartplan import plan
+    result = plan(text[:500], travel_style=style)
+    result["status"] = "error" if "error" in result else "ok"
+    return jsonify(result)
+
+
 # --------------------------------------------------------------- chatbot
 @app.post("/chat")
 def chat_endpoint():

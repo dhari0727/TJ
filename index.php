@@ -76,6 +76,60 @@ $ed2 = $imgs['mountains'] ?? $ed1;
 
 <hr class="ja-rule">
 
+<!-- ============ HOW IT WORKS (guide) ============ -->
+<section class="ja-section" id="how">
+  <div class="ja-container">
+    <div style="text-align:center;max-width:640px;margin:0 auto 44px">
+      <div class="ja-eyebrow reveal" style="color:var(--ja-teal)">How it works</div>
+      <h2 class="reveal" style="font-size:clamp(2rem,4vw,3rem)">Plan a whole trip in three steps.</h2>
+      <p class="reveal" style="color:var(--text-dim);font-size:1.1rem">No forms to wrestle with — just say what you want.</p>
+    </div>
+    <div class="ja-grid cols-3 stagger">
+      <div class="ja-card ja-feature">
+        <div class="ic"><?= ja_icon('user',24) ?></div>
+        <h3>1 · Create an account</h3>
+        <p>Sign up free in seconds. Your trips, saved routes and journal live in one place.</p>
+      </div>
+      <div class="ja-card ja-feature">
+        <div class="ic"><?= ja_icon('search',24) ?></div>
+        <h3>2 · Say it in one line</h3>
+        <p>“Weekend from Ahmedabad, temples &amp; food.” JourneyAI understands and plans instantly.</p>
+      </div>
+      <div class="ja-card ja-feature">
+        <div class="ic"><?= ja_icon('compass',24) ?></div>
+        <h3>3 · Get a complete trip</h3>
+        <p>Real places, a mapped route, where to eat, day-by-day itinerary and realistic costs — ready to save.</p>
+      </div>
+    </div>
+    <div class="reveal" style="text-align:center;margin-top:34px">
+      <a href="register.php" class="ja-btn ja-btn-primary ja-btn-lg" data-magnetic>Create free account <?= ja_icon('arrow',18) ?></a>
+      <a href="login.php" class="ja-btn ja-btn-ghost ja-btn-lg" style="margin-left:10px">Log in</a>
+    </div>
+  </div>
+</section>
+
+<hr class="ja-rule">
+
+<!-- ============ WHAT YOU CAN DO (features) ============ -->
+<section class="ja-section">
+  <div class="ja-container">
+    <div style="text-align:center;max-width:640px;margin:0 auto 44px">
+      <div class="ja-eyebrow reveal" style="color:var(--ja-teal)">Everything in one place</div>
+      <h2 class="reveal" style="font-size:clamp(2rem,4vw,3rem)">Your complete travel companion.</h2>
+    </div>
+    <div class="ja-grid cols-3 stagger">
+      <div class="ja-card ja-feature"><div class="ic"><?= ja_icon('compass',24) ?></div><h3>Instant trip planner</h3><p>One sentence → places, route, cost. Day trips to week-long journeys.</p></div>
+      <div class="ja-card ja-feature"><div class="ic"><?= ja_icon('map-pin',24) ?></div><h3>Real nearby places</h3><p>Genuine spots around any town — temples, food, gardens, hidden gems — with live maps.</p></div>
+      <div class="ja-card ja-feature"><div class="ic"><?= ja_icon('star',24) ?></div><h3>Smart recommendations</h3><p>Budget-aware, explainable destination picks from real travel journals.</p></div>
+      <div class="ja-card ja-feature"><div class="ic"><?= ja_icon('calendar',24) ?></div><h3>Day-by-day itineraries</h3><p>Morning-to-evening plans with attractions, meals, stays and per-day cost.</p></div>
+      <div class="ja-card ja-feature"><div class="ic"><?= ja_icon('book',24) ?></div><h3>Travel journal</h3><p>Record your trips with photos — and improve everyone's recommendations.</p></div>
+      <div class="ja-card ja-feature"><div class="ic"><?= ja_icon('sparkle',24) ?></div><h3>AI assistant</h3><p>Chat: “ice cream near me”, “3 days on a budget” — it just answers.</p></div>
+    </div>
+  </div>
+</section>
+
+<hr class="ja-rule">
+
 <!-- ============ EDITORIAL: near me / seasons ============ -->
 <section class="ja-section">
   <div class="ja-container">

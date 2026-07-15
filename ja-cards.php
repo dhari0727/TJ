@@ -30,6 +30,24 @@ function ja_has_user_entry($destination) {
     return isset($cache[$destination]);
 }
 
+/** Aggregate rating (avg + count) per destination, one query for the whole grid. */
+function ja_dest_rating($destination) {
+    static $cache = null;
+    if ($cache === null) {
+        $cache = [];
+        if (isset($GLOBALS['conn'])) {
+            $res = mysqli_query($GLOBALS['conn'],
+                "SELECT destination, AVG(rating) avg_r, COUNT(*) n FROM interactions
+                 WHERE interaction_type='rating' AND rating IS NOT NULL
+                 GROUP BY destination");
+            if ($res) while ($r = mysqli_fetch_assoc($res)) {
+                $cache[$r['destination']] = ['avg' => (float)$r['avg_r'], 'n' => (int)$r['n']];
+            }
+        }
+    }
+    return $cache[$destination] ?? null;
+}
+
 function ja_render_cards($recs) {
     if (empty($recs)) {
         echo '<div class="ja-empty">No destinations matched. Try widening your budget or interests.</div>';
@@ -55,6 +73,7 @@ function ja_render_cards($recs) {
         $isIntl = ($distLbl === 'International');
         $img    = ja_dest_image($r['destination']);
         $userEntry = ja_has_user_entry($r['destination']);
+        $rating = ja_dest_rating($r['destination']);
         $fitCls = ($fit === 'within') ? 'within' : 'stretch';
         $bdJson = htmlspecialchars(json_encode(array_values($bd)), ENT_QUOTES);
         $bdLbls = htmlspecialchars(json_encode(array_map('ucfirst', array_keys($bd))), ENT_QUOTES);
@@ -70,6 +89,22 @@ function ja_render_cards($recs) {
             <div class="ja-reco-row">
               <div class="ja-cost">₹<span data-countup="<?= $cost ?>">0</span><br><small><?= number_format($low) ?>–<?= number_format($high) ?> range</small></div>
               <span class="ja-fit <?= $fitCls ?>"><?= $fit ?> budget</span>
+            </div>
+
+            <div class="ja-dest-rating" data-dest="<?= $dest ?>" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px;font-size:.82rem">
+              <span class="ja-dest-rating-avg" style="color:var(--text-mut)">
+                <?php if ($rating): ?>
+                  <span style="color:var(--ja-coral);font-weight:700">★ <?= number_format($rating['avg'], 1) ?></span>
+                  (<?= $rating['n'] ?> rating<?= $rating['n']==1?'':'s' ?>)
+                <?php else: ?>
+                  <span style="color:var(--text-mut)">No ratings yet</span>
+                <?php endif; ?>
+              </span>
+              <span class="ja-star-widget" data-dest="<?= $dest ?>" style="display:flex;gap:2px;cursor:pointer;line-height:1">
+                <?php for ($s = 1; $s <= 5; $s++): ?>
+                  <span class="ja-star-pick" data-val="<?= $s ?>" style="color:var(--brd);font-size:1.05rem;transition:color .12s">★</span>
+                <?php endfor; ?>
+              </span>
             </div>
 
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin:2px 0 12px">
@@ -136,6 +171,46 @@ function ja_render_cards($recs) {
       if(document.readyState!=='loading')draw();else document.addEventListener('DOMContentLoaded',draw);
       setTimeout(draw,600);
       if(window.jaInit)window.jaInit();
+    })();
+    (function(){
+      function paint(widget, hoverVal){
+        var stars = widget.querySelectorAll('.ja-star-pick');
+        var val = hoverVal || parseInt(widget.getAttribute('data-my-rating') || '0', 10);
+        stars.forEach(function(st){
+          st.style.color = (parseInt(st.getAttribute('data-val'),10) <= val) ? 'var(--ja-coral)' : 'var(--brd)';
+        });
+      }
+      function wire(widget){
+        if (widget.__wired) return; widget.__wired = true;
+        var dest = widget.getAttribute('data-dest');
+        widget.addEventListener('mouseover', function(e){
+          var st = e.target.closest('.ja-star-pick'); if (!st) return;
+          paint(widget, parseInt(st.getAttribute('data-val'),10));
+        });
+        widget.addEventListener('mouseleave', function(){ paint(widget); });
+        widget.addEventListener('click', function(e){
+          var st = e.target.closest('.ja-star-pick'); if (!st) return;
+          var val = parseInt(st.getAttribute('data-val'), 10);
+          widget.setAttribute('data-my-rating', val);
+          paint(widget);
+          var fd = new FormData();
+          fd.append('destination', dest);
+          fd.append('rating', val);
+          fetch('rate-destination.php', {method:'POST', body: fd, credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+              if (!data || !data.ok) return;
+              var row = widget.closest('.ja-dest-rating');
+              if (!row) return;
+              var avgEl = row.querySelector('.ja-dest-rating-avg');
+              if (avgEl && typeof data.avg === 'number') {
+                avgEl.innerHTML = '<span style="color:var(--ja-coral);font-weight:700">★ ' + data.avg.toFixed(1) + '</span> (' + data.n + ' rating' + (data.n==1?'':'s') + ')';
+              }
+            })
+            .catch(function(){ /* silent — optimistic UI already applied */ });
+        });
+      }
+      document.querySelectorAll('.ja-star-widget').forEach(wire);
     })();
     </script>
     <?php

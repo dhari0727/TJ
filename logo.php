@@ -1,1 +1,0 @@
-<div class="logo-wrapper"><a href="das.php"><img class="blur-up lazyloaded" src="../assets/images/dashboard/multikart-logo.png" alt=""></a></div>

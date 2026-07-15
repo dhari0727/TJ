@@ -1,77 +1,49 @@
 <?php
-
-
-require 'PHPMailer-master/PHPMailerAutoload.php';
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $userEmail = $_POST["email"]; // Get user's email address
-    $password = getPasswordFromDatabase($userEmail);
-
-    if ($password !== false) {
-        $mail = new PHPMailer;
-
-        // SMTP credentials come from environment variables — never hardcode secrets.
-        // Set JOURNEYAI_SMTP_USER / JOURNEYAI_SMTP_PASS / JOURNEYAI_SMTP_FROM before use.
-        $smtpUser = getenv('JOURNEYAI_SMTP_USER') ?: '';
-        $smtpPass = getenv('JOURNEYAI_SMTP_PASS') ?: '';
-        $smtpFrom = getenv('JOURNEYAI_SMTP_FROM') ?: $smtpUser;
-
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->Port = 587;
-        $mail->SMTPSecure = 'tls';
-        $mail->SMTPAuth = true;
-        $mail->Username = $smtpUser;
-        $mail->Password = $smtpPass;
-
-        $mail->setFrom($smtpFrom, 'JourneyAI');
-        $mail->addAddress($userEmail);
-        $mail->addReplyTo($smtpFrom, 'JourneyAI');
-
-        $mail->isHTML(true);
-        $mail->Subject = 'JourneyAI — password reset';
-        // NOTE: passwords are hashed and cannot be recovered. This is a stub; a
-        // production reset flow would email a one-time reset link instead.
-        $mail->Body = "A password reset was requested for your JourneyAI account.";
-
-        if ($mail->send()) {
-            echo 'Password sent to your email address.';
-        } else {
-            echo 'Unable to send password. Please try again later.';
-        }
-    } else {
-        echo 'No password found for the provided email address.';
-    }
+/**
+ * JourneyAI — password reset email helper.
+ * Included by forgot-pswd.php; call send_reset_email($email, $token) to
+ * deliver a one-time reset link (see reset-password.php for the consumer).
+ */
+$ja_phpmailer_path = __DIR__ . '/PHPMailer-master/PHPMailerAutoload.php';
+if (is_file($ja_phpmailer_path)) {
+    require_once $ja_phpmailer_path;
 }
 
-function getPasswordFromDatabase($email) {
-    // Replace these database connection details with your actual values
-    $server = "localhost";
-    $user = "root";
-    $pass = "";
-    $db = "project";
-
-        $conn = mysqli_connect($server,$user,$pass,$db);
-
-        if($conn){
-            
-        }
-        else{
-            echo "unsuccesfull!";
-        }
-    // Fetch password from the database
-    $sql = "SELECT psw FROM signup WHERE eml = '$email'";
-    $result = $conn->query($sql);
-
-    if ($result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        $databasePassword = $row["psw"];
-        $conn->close();
-        return $databasePassword;
-    } else {
-        $conn->close();
-        return false;
+function send_reset_email($userEmail, $token) {
+    if (!class_exists('PHPMailer')) {
+        return false; // PHPMailer vendor library not installed in this checkout
     }
-}
+    $mail = new PHPMailer;
 
-?>
+    // SMTP credentials come from environment variables — never hardcode secrets.
+    // Set JOURNEYAI_SMTP_USER / JOURNEYAI_SMTP_PASS / JOURNEYAI_SMTP_FROM before use.
+    $smtpUser = getenv('JOURNEYAI_SMTP_USER') ?: '';
+    $smtpPass = getenv('JOURNEYAI_SMTP_PASS') ?: '';
+    $smtpFrom = getenv('JOURNEYAI_SMTP_FROM') ?: $smtpUser;
+
+    $mail->isSMTP();
+    $mail->Host = 'smtp.gmail.com';
+    $mail->Port = 587;
+    $mail->SMTPSecure = 'tls';
+    $mail->SMTPAuth = true;
+    $mail->Username = $smtpUser;
+    $mail->Password = $smtpPass;
+
+    $mail->setFrom($smtpFrom, 'JourneyAI');
+    $mail->addAddress($userEmail);
+    $mail->addReplyTo($smtpFrom, 'JourneyAI');
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $base = dirname($_SERVER['SCRIPT_NAME'] ?? '/');
+    $resetUrl = "$scheme://$host$base/reset-password.php?token=" . urlencode($token);
+
+    $mail->isHTML(true);
+    $mail->Subject = 'JourneyAI — reset your password';
+    $mail->Body = "We received a request to reset your JourneyAI password.<br><br>"
+        . "<a href=\"$resetUrl\">Click here to choose a new password</a><br><br>"
+        . "This link expires in 1 hour. If you didn't request this, you can ignore this email.";
+    $mail->AltBody = "Reset your JourneyAI password: $resetUrl (expires in 1 hour)";
+
+    return $mail->send();
+}

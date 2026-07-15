@@ -78,6 +78,7 @@ $img = ja_local_images()['maldives'] ?? (ja_local_images()['goa'] ?? '');
         <div class="ja-field"><label>Password</label><input class="ja-input" type="password" name="password" required></div>
         <button class="ja-btn ja-btn-primary" type="submit" name="lgn" data-magnetic style="width:100%">Log in</button>
       </form>
+      <p class="ja-auth-alt"><a href="forgot-pswd.php">Forgot your password?</a></p>
       <p class="ja-auth-alt">New here? <a href="register.php">Create an account</a></p>
     </div>
   </div>

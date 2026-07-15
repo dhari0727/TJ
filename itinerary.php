@@ -16,10 +16,11 @@ $it = $dest ? ml_itinerary([
 
 $hero = $dest ? ja_image_for($dest) : '';
 $hasError = !empty($it['__error']) || ($it['status'] ?? '') === 'error';
+$ja_saved_flag = !empty($_GET['saved']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css"></head>
 <body class="ja">
 
 <?php if ($hasError): ?>
@@ -103,6 +104,24 @@ $hasError = !empty($it['__error']) || ($it['status'] ?? '') === 'error';
             <select name="style" class="ja-select" style="flex:1"><?php foreach($STYLES as $s):?><option value="<?=$s?>" <?=$s==$style?'selected':''?>><?=ucfirst($s)?></option><?php endforeach;?></select>
             <button class="ja-btn ja-btn-primary" style="width:100%">Rebuild</button>
           </form>
+        </div>
+
+        <div class="ja-card" style="margin-top:20px">
+          <h3><?= ja_icon('heart',16) ?> Save this plan</h3>
+          <?php if ($ja_saved_flag): ?>
+            <p style="color:var(--ja-teal);font-size:.9rem;margin:8px 0 4px;font-weight:600"><?= ja_icon('check',14) ?> Saved to My Plans.</p>
+          <?php else: ?>
+            <p style="color:var(--text-dim);font-size:.9rem;margin:8px 0 16px">Keep this itinerary and get an auto-generated packing checklist.</p>
+          <?php endif; ?>
+          <form method="post" action="save-itinerary.php">
+            <input type="hidden" name="dest" value="<?= htmlspecialchars($dest) ?>">
+            <input type="hidden" name="days" value="<?= (int)$days ?>">
+            <input type="hidden" name="style" value="<?= htmlspecialchars($style) ?>">
+            <input type="hidden" name="month" value="<?= (int)($month ?? 0) ?>">
+            <input type="hidden" name="party" value="<?= (int)$party ?>">
+            <button class="ja-btn ja-btn-primary" style="width:100%"><?= ja_icon('heart',15) ?> Save this plan</button>
+          </form>
+          <button class="ja-btn ja-btn-ghost" style="width:100%;margin-top:10px" onclick="window.print()"><?= ja_icon('book',15) ?> Print / Save as PDF</button>
         </div>
       </aside>
     </div>
