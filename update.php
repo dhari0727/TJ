@@ -9,14 +9,16 @@ $saved = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = mysqli_prepare($conn,
-      "UPDATE db SET Title=?, Description=?, Country=?, City=?, hn=?, address=?, ptv=?, tv=?
+      "UPDATE db SET Title=?, Description=?, Country=?, City=?, hn=?, address=?, ptv=?, tv=?, budget_target=?
        WHERE entry_id=? AND eml=?");
     $vals = [
       trim($_POST['title'] ?? ''), $_POST['desc'] ?? '', $_POST['coun'] ?? '',
       $_POST['city'] ?? '', $_POST['hn'] ?? '', $_POST['ad'] ?? '',
       $_POST['ptv'] ?? '', $_POST['tv'] ?? '',
     ];
-    mysqli_stmt_bind_param($stmt, 'ssssssssis', $vals[0],$vals[1],$vals[2],$vals[3],$vals[4],$vals[5],$vals[6],$vals[7], $id, $em);
+    $budgetTarget = trim($_POST['budget_target'] ?? '');
+    $budgetTargetVal = $budgetTarget === '' ? null : (float)$budgetTarget;
+    mysqli_stmt_bind_param($stmt, 'ssssssssdis', $vals[0],$vals[1],$vals[2],$vals[3],$vals[4],$vals[5],$vals[6],$vals[7], $budgetTargetVal, $id, $em);
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
     $saved = true;
@@ -51,10 +53,10 @@ function v($x){ return htmlspecialchars($x ?? ''); }
       <div class="ja-field"><label>Address</label><input class="ja-input" name="ad" value="<?= v($e['address']) ?>"></div>
       <div class="ja-field"><label>Places to visit</label><textarea class="ja-input" name="ptv" rows="2"><?= v($e['ptv']) ?></textarea></div>
       <div class="ja-field"><label>Travel mode</label><input class="ja-input" name="tv" value="<?= v($e['tv']) ?>"></div>
+      <div class="ja-field"><label>Budget for this trip <span style="color:var(--text-mut);font-weight:400">(₹, target total, optional)</span></label>
+        <input class="ja-input" type="number" name="budget_target" min="0" step="0.01" value="<?= v($e['budget_target']) ?>" placeholder="e.g. 25000"></div>
       <button class="ja-btn ja-btn-primary" type="submit" data-magnetic>Save changes</button>
     </form>
   </div>
 </section>
-<footer class="ja-footer"><div class="ja-container">JourneyAI</div></footer>
-</body>
-</html>
+<?php include 'ja-footer.php'; ?>

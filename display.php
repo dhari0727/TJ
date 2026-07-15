@@ -21,6 +21,17 @@ $breakdown = [
   'Accommodation' => (float)$e['accommodation_total'], 'Shopping' => (float)$e['shopping_total'],
   'Fees & misc' => (float)$e['fees_misc_total'],
 ];
+
+// budget_target lives on db (not exposed by the journals view) — fetch separately
+$stmt = mysqli_prepare($conn, "SELECT budget_target FROM db WHERE entry_id = ? AND eml = ? LIMIT 1");
+mysqli_stmt_bind_param($stmt, 'is', $id, $em);
+mysqli_stmt_execute($stmt);
+$budgetRow = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_close($stmt);
+$budget = ($budgetRow && $budgetRow['budget_target'] !== null) ? (float)$budgetRow['budget_target'] : null;
+$actual = (float)$e['true_total'];
+$budgetPct = ($budget && $budget > 0) ? min(100, round($actual / $budget * 100)) : 0;
+$overBudget = ($budget !== null && $actual > $budget);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -72,6 +83,31 @@ $breakdown = [
             (Legacy stored total: ₹<?= number_format((float)$e['legacy_grand']) ?> — excludes accommodation; JourneyAI shows the true total.)
           </div>
         <?php endif; ?>
+
+        <?php if ($budget !== null): ?>
+          <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--brd)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <h3 style="margin:0">Budget</h3>
+              <span class="ja-fit <?= $overBudget ? 'stretch' : 'within' ?>"><?= $overBudget ? 'Over budget' : 'Within budget' ?></span>
+            </div>
+            <div class="ja-score-bar">
+              <div class="ja-score-fill" style="width:<?= $budgetPct ?>%;background:<?= $overBudget ? 'var(--grad-coral)' : 'var(--grad-aqua)' ?>"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.85rem;color:var(--text-mut)">
+              <span>₹<?= number_format($actual) ?> spent</span>
+              <span>of ₹<?= number_format($budget) ?> budget</span>
+            </div>
+            <?php if ($overBudget): ?>
+              <div style="margin-top:6px;font-size:.8rem;color:var(--ja-coral)">₹<?= number_format($actual - $budget) ?> over budget</div>
+            <?php else: ?>
+              <div style="margin-top:6px;font-size:.8rem;color:var(--ja-teal)">₹<?= number_format($budget - $actual) ?> remaining</div>
+            <?php endif; ?>
+          </div>
+        <?php else: ?>
+          <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--brd);font-size:.85rem;color:var(--text-mut)">
+            No budget set. <a href="update.php?id=<?= $id ?>" style="color:var(--ja-teal);font-weight:600">Add one →</a>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -92,5 +128,4 @@ document.addEventListener('DOMContentLoaded',function(){
     options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.label+': ₹'+c.raw.toLocaleString('en-IN')}}},cutout:'58%'}});
 });
 </script>
-</body>
-</html>
+<?php include 'ja-footer.php'; ?>

@@ -38,6 +38,4 @@ $result = ml_recommend([
   </div>
 </section>
 
-<footer class="ja-footer"><div class="ja-container">JourneyAI · explainable travel recommendations</div></footer>
-</body>
-</html>
+<?php include 'ja-footer.php'; ?>

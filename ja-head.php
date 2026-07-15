@@ -33,10 +33,45 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 <script src="js/journeyai.js" defer></script>
 
-<?php // ---- render the aurora background + navbar ---- ?>
+<?php // ---- render the aurora background ---- ?>
 <div class="ja-aurora"></div>
 <div class="ja-grain"></div>
 
+<?php
+// Logged-in users get the fixed SIDEBAR shell on every page (unless a page opts
+// out with $ja_no_shell, e.g. the cinematic landing). Logged-out users get the
+// top navbar. This keeps the whole app consistent without rewriting each page.
+$ja_use_sidebar = $ja_logged_in && empty($ja_no_shell) && empty($ja_nav_overlay);
+if ($ja_use_sidebar):
+  $ja_side_nav = [
+    ['dashboard','dashboard.php','home','Dashboard'],
+    ['explore','explore.php','compass','Explore'],
+    ['plan','plan-trip.php','search','Plan a Trip'],
+    ['recs','recommendations.php','star','For You'],
+    ['feed','feed.php','heart','Feed'],
+    ['routes','my-routes.php','map-pin','My Routes'],
+    ['plans','my-plans.php','wallet','My Plans'],
+    ['entries','my-entries.php','book','My Journal'],
+    ['analytics','analytics.php','chart','Analytics'],
+  ];
+?>
+<aside class="ja-sidebar" id="jaSidebar">
+  <a class="ja-side-brand" href="dashboard.php"><img src="images/journeyai-logo.svg" class="ja-logo-mark" alt=""> <span>JourneyAI</span></a>
+  <nav class="ja-side-nav">
+    <?php foreach ($ja_side_nav as [$k,$href,$ic,$lbl]): ?>
+      <a href="<?= $href ?>" class="<?= $k===$ja_active?'active':'' ?>"><?= ja_icon($ic,20) ?><span><?= $lbl ?></span></a>
+    <?php endforeach; ?>
+  </nav>
+  <div class="ja-side-bottom">
+    <a href="new-entry.php" class="ja-btn ja-btn-primary ja-side-new"><?= ja_icon('pen',16) ?><span>New Journal</span></a>
+    <button class="ja-theme-toggle ja-side-theme" data-ja-theme-toggle title="Toggle theme" style="width:auto;justify-content:flex-start;gap:12px;padding:11px 14px;border:none;background:none;color:var(--text-dim);font-weight:500;font-size:.95rem;display:flex;align-items:center"><?= ja_icon('sun',20) ?><span>Theme</span></button>
+    <a href="profile.php" class="<?= $ja_active==='profile'?'active':'' ?>"><?= ja_icon('user',20) ?><span><?= htmlspecialchars($_SESSION['fname'] ?? 'Profile') ?></span></a>
+    <a href="login.php?logout=1"><?= ja_icon('logout',20) ?><span>Log out</span></a>
+  </div>
+</aside>
+<button class="ja-side-toggle" id="jaSideToggle" aria-label="Menu"><?= ja_icon('compass',22) ?></button>
+<div class="ja-app-main"><div class="ja-app-content">
+<?php else: ?>
 <nav class="ja-nav<?= !empty($ja_nav_overlay) ? ' overlay' : '' ?>" id="jaNav">
   <div class="inner">
     <a class="ja-brand" href="<?= $ja_logged_in ? 'dashboard.php' : 'index.php' ?>">
@@ -46,14 +81,6 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
       <?php if ($ja_logged_in): ?>
         <a href="dashboard.php" class="<?= ja_nav_class('dashboard',$ja_active) ?>">Dashboard</a>
         <a href="explore.php" class="<?= ja_nav_class('explore',$ja_active) ?>">Explore</a>
-        <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan</a>
-        <a href="feed.php" class="<?= ja_nav_class('feed',$ja_active) ?>">Feed</a>
-        <a href="my-routes.php" class="<?= ja_nav_class('routes',$ja_active) ?>">Routes</a>
-        <a href="my-plans.php" class="<?= ja_nav_class('plans',$ja_active) ?>">Plans</a>
-        <a href="my-entries.php" class="<?= ja_nav_class('entries',$ja_active) ?>">Journal</a>
-        <a href="analytics.php" class="<?= ja_nav_class('analytics',$ja_active) ?>">Analytics</a>
-        <a href="new-entry.php" class="ja-btn ja-btn-primary" style="padding:9px 18px;font-size:.9rem">+ New</a>
-        <a href="profile.php" class="ja-theme-toggle" title="Profile" style="text-decoration:none"><?= ja_icon('user',18) ?></a>
         <a href="login.php?logout=1" class="ja-theme-toggle" title="Logout" style="text-decoration:none"><?= ja_icon('logout',18) ?></a>
       <?php else: ?>
         <a href="index.php" class="<?= ja_nav_class('home',$ja_active) ?>">Home</a>
@@ -67,3 +94,4 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
     </div>
   </div>
 </nav>
+<?php endif; /* end sidebar-vs-topnav */ ?>

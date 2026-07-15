@@ -40,7 +40,7 @@ function ja_save_hashtags($conn, $media_id, $tags) {
  * Returns [media_id, error]. Skips silently if no file provided.
  */
 function ja_handle_upload($conn, $file, $eml, $entry_id = null, $caption = '',
-                          $destination = null, $is_public = 1) {
+                          $destination = null, $is_public = 1, $lat = null, $lon = null) {
     global $JA_ALLOWED;
     if (empty($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return [null, null];  // nothing uploaded — fine
@@ -60,11 +60,16 @@ function ja_handle_upload($conn, $file, $eml, $entry_id = null, $caption = '',
     if (!move_uploaded_file($file['tmp_name'], $dest)) return [null, 'Could not save file.'];
     $rel = 'uploads/' . $safe;
 
+    // Coordinates are optional/best-effort (browser geolocation). Normalize blanks to NULL
+    // and clamp to valid ranges so a bad client value can't corrupt the column.
+    $lat = ($lat === null || $lat === '') ? null : max(-90, min(90, (float)$lat));
+    $lon = ($lon === null || $lon === '') ? null : max(-180, min(180, (float)$lon));
+
     $tags = ja_extract_hashtags($caption);
     $s = mysqli_prepare($conn,
-        "INSERT INTO media (entry_id, eml, kind, filepath, caption, destination, is_public)
-         VALUES (?,?,?,?,?,?,?)");
-    mysqli_stmt_bind_param($s, 'isssssi', $entry_id, $eml, $kind, $rel, $caption, $destination, $is_public);
+        "INSERT INTO media (entry_id, eml, kind, filepath, caption, destination, lat, lon, is_public)
+         VALUES (?,?,?,?,?,?,?,?,?)");
+    mysqli_stmt_bind_param($s, 'isssssddi', $entry_id, $eml, $kind, $rel, $caption, $destination, $lat, $lon, $is_public);
     mysqli_stmt_execute($s);
     $mid = mysqli_insert_id($conn);
     mysqli_stmt_close($s);

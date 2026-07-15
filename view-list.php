@@ -53,6 +53,4 @@ mysqli_stmt_close($stmt);
     <?php endif; ?>
   </div>
 </section>
-<footer class="ja-footer"><div class="ja-container">JourneyAI</div></footer>
-</body>
-</html>
+<?php include 'ja-footer.php'; ?>

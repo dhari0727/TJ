@@ -175,7 +175,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <script>
 (function(){
-  var drop=document.getElementById('mediaDrop'),input=document.getElementById('mediaInput'),prev=document.getElementById('mediaPreview');
+  // Best-effort geolocation capture: tag uploaded photos with where they were taken.
+  // Purely optional — never blocks the form, silently no-ops if denied/unsupported.
+  var latF=document.getElementById('mediaLat'),lonF=document.getElementById('mediaLon'),
+      geoStatus=document.getElementById('mediaGeoStatus');
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      latF.value=pos.coords.latitude;lonF.value=pos.coords.longitude;
+      if(geoStatus)geoStatus.textContent='Location captured — your photos will be pinned on the map.';
+    },function(){
+      if(geoStatus)geoStatus.textContent='';
+    },{maximumAge:300000,timeout:8000});
+  }
+})();
+(function(){
+  var drop=document.getElementById('mediaDrop'),input=document.getElementById('mediaInput'),prev=document.getElementById('mediaPreview'),hint=document.getElementById('mediaCaptionHint');
   if(!drop)return;
   drop.addEventListener('click',function(){input.click();});
   drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('drag');});
@@ -183,12 +197,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('drag');input.files=e.dataTransfer.files;render();});
   input.addEventListener('change',render);
   function render(){
+    // remember captions already typed (by index) so re-render (e.g. re-drop) doesn't wipe them
+    var prevCaptions=Array.prototype.map.call(prev.querySelectorAll('.ja-media-cap-input'),function(i){return i.value;});
     prev.innerHTML='';
-    Array.prototype.forEach.call(input.files,function(f){
+    var files=input.files;
+    if(hint) hint.style.display = files.length ? '' : 'none';
+    Array.prototype.forEach.call(files,function(f,i){
       var url=URL.createObjectURL(f),el;
       if(f.type.indexOf('video')===0){el=document.createElement('video');el.src=url;el.muted=true;}
       else{el=document.createElement('img');el.src=url;}
-      el.className='ja-media-thumb';prev.appendChild(el);
+      el.className='ja-media-thumb';
+
+      var cap=document.createElement('input');
+      cap.type='text';
+      cap.className='ja-input ja-media-cap-input';
+      cap.name='media_caption[]';
+      cap.placeholder='Caption #tags';
+      cap.value=prevCaptions[i]||'';
+      cap.title=f.name;
+
+      var item=document.createElement('div');
+      item.className='ja-media-item';
+      item.appendChild(el);
+      item.appendChild(cap);
+      prev.appendChild(item);
     });
   }
 })();

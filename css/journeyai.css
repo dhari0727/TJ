@@ -487,8 +487,10 @@ textarea.ja-input{resize:vertical;font-family:var(--font-body)}
 .ja-media-drop{border:2px dashed var(--brd);border-radius:var(--radius-sm);padding:32px;text-align:center;
   cursor:pointer;color:var(--text-mut);transition:.25s var(--ease)}
 .ja-media-drop:hover,.ja-media-drop.drag{border-color:var(--ja-aqua);background:var(--surface);color:var(--ja-teal)}
-.ja-media-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.ja-media-preview{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
 .ja-media-thumb{width:110px;height:110px;object-fit:cover;border-radius:12px;border:1px solid var(--brd)}
+.ja-media-item{width:110px}
+.ja-media-item .ja-input{width:110px;padding:8px 10px;font-size:.75rem;margin-top:6px}
 /* media on entry / feed */
 .ja-media-gallery{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin-top:16px}
 .ja-media-gallery img,.ja-media-gallery video{width:100%;height:200px;object-fit:cover;border-radius:14px;border:1px solid var(--brd)}

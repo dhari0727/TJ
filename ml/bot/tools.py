@@ -272,7 +272,45 @@ def find_user_media(place, limit=12):
 
 
 # --------------------------------------------------------------------------- #
-# 7. booking_links
+# 7. get_my_journal_history
+# --------------------------------------------------------------------------- #
+def get_my_journal_history(user_eml=None, limit=10):
+    """The logged-in user's OWN past trips (from journals + journal_features),
+    most recent first. No eml / no rows -> graceful empty result, never an error."""
+    limit = int(limit) if limit not in (None, "") else 10
+    if not user_eml:
+        return {"trips": [], "count": 0,
+                "note": "No logged-in user, so no journal history is available."}
+
+    rows = fetch_all(
+        "SELECT j.Title, j.Country, j.City, j.duration_days, j.true_total, "
+        "       jf.budget_bucket, jf.travel_style, jf.sentiment_label, j.dv "
+        "FROM journals j "
+        "LEFT JOIN journal_features jf ON jf.entry_id = j.entry_id "
+        "WHERE j.eml = %s "
+        "ORDER BY j.dv DESC, j.entry_id DESC "
+        "LIMIT %s",
+        (user_eml, limit),
+    )
+    trips = [{
+        "title": r.get("Title"),
+        "country": r.get("Country"),
+        "city": r.get("City"),
+        "duration_days": r.get("duration_days"),
+        "true_total": r.get("true_total"),
+        "budget_bucket": r.get("budget_bucket"),
+        "travel_style": r.get("travel_style"),
+        "sentiment_label": r.get("sentiment_label"),
+    } for r in rows]
+
+    if not trips:
+        return {"trips": [], "count": 0,
+                "note": "This user hasn't logged any trips yet."}
+    return {"trips": trips, "count": len(trips)}
+
+
+# --------------------------------------------------------------------------- #
+# 8. booking_links
 # --------------------------------------------------------------------------- #
 def booking_links(origin=None, destination=None, days=None):
     """Ready-to-use booking deep-links (no API calls)."""
@@ -297,7 +335,7 @@ def booking_links(origin=None, destination=None, days=None):
 
 
 # --------------------------------------------------------------------------- #
-# 8. web_search  (dependency-free; urllib only)
+# 9. web_search  (dependency-free; urllib only)
 # --------------------------------------------------------------------------- #
 def web_search(query, max_results=5):
     """Lightweight web search. Tries DuckDuckGo's HTML endpoint for snippets;
@@ -501,6 +539,26 @@ TOOL_DECLARATIONS = [
         },
     },
     {
+        "name": "get_my_journal_history",
+        "description": (
+            "Look up the LOGGED-IN USER'S OWN past trips (from their journal "
+            "entries), most recent first — title, country/city, duration, actual "
+            "amount spent, budget bucket, travel style and sentiment. Call this "
+            "when the user references their own past trips ('my Goa trip'), asks "
+            "for budget comparisons to a previous trip, asks what they spent, or "
+            "wants a new plan similar to / cheaper than something they did before. "
+            "Do NOT pass user_eml — it is filled in automatically from the session."
+        ),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "limit": {"type": "NUMBER",
+                          "description": "Max past trips to return (default 10)."},
+            },
+            "required": [],
+        },
+    },
+    {
         "name": "booking_links",
         "description": (
             "Get ready-to-use deep-links to search flights (Google Flights), hotels "
@@ -545,6 +603,7 @@ _TOOLS = {
     "estimate_cost": estimate_cost,
     "build_trip_route": build_trip_route,
     "find_user_media": find_user_media,
+    "get_my_journal_history": get_my_journal_history,
     "booking_links": booking_links,
     "web_search": web_search,
 }

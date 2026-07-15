@@ -12,6 +12,18 @@ mysqli_stmt_bind_param($stmt, 's', $em);
 mysqli_stmt_execute($stmt);
 $rows = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 mysqli_stmt_close($stmt);
+
+// Located photos (best-effort geolocation captured at upload time) -> map pins.
+// Most existing media predates this feature and has NULL lat/lon, so this can be empty.
+$stmt = mysqli_prepare($conn,
+  "SELECT m.media_id, m.entry_id, m.filepath, m.lat, m.lon, j.Title, j.City, j.Country
+   FROM media m JOIN journals j ON j.entry_id = m.entry_id
+   WHERE m.eml = ? AND m.lat IS NOT NULL AND m.lon IS NOT NULL
+   ORDER BY m.media_id DESC");
+mysqli_stmt_bind_param($stmt, 's', $em);
+mysqli_stmt_execute($stmt);
+$pins = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+mysqli_stmt_close($stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,6 +45,18 @@ mysqli_stmt_close($stmt);
 
 <main class="ja-main">
   <div class="ja-container">
+    <div class="ja-card" style="margin-bottom:28px">
+      <h3><?= ja_icon('map-pin',18) ?> Map view</h3>
+      <?php if ($pins): ?>
+        <p style="color:var(--text-mut);font-size:.85rem;margin:2px 0 10px">
+          <?= count($pins) ?> photo<?= count($pins)===1?'':'s' ?> with a known location.</p>
+        <div id="entriesMap" style="height:340px;border-radius:14px;overflow:hidden"></div>
+      <?php else: ?>
+        <div class="ja-empty" style="padding:34px 20px">
+          <p style="margin:0">No located photos yet. Allow location access next time you add photos in <a href="new-entry.php" style="color:var(--ja-teal)">New Entry</a> to see them pinned here.</p>
+        </div>
+      <?php endif; ?>
+    </div>
     <?php if (!$rows): ?>
       <div class="ja-empty" style="padding:60px 30px">
         <div style="margin-bottom:12px;color:var(--ja-aqua)"><?= ja_icon('book',40) ?></div>
@@ -64,5 +88,20 @@ mysqli_stmt_close($stmt);
     <?php endif; ?>
   </div>
 </main>
+
+<?php if ($pins): ?>
+<script>
+window.__entriesMapData = <?= json_encode(array_map(function($p){
+  return [
+    'lat' => (float)$p['lat'], 'lon' => (float)$p['lon'],
+    'title' => $p['Title'], 'city' => trim(($p['City']?:'').(($p['City']&&$p['Country'])?', ':'').($p['Country']?:'')),
+    'img' => $p['filepath'], 'entry_id' => (int)$p['entry_id'],
+  ];
+}, $pins)) ?>;
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/entries-map.js" defer></script>
+<?php endif; ?>
 
 <?php include 'ja-footer.php'; ?>

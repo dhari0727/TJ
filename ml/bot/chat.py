@@ -20,6 +20,7 @@ Rules:
 - For "near me" / "nearby" / "1 day" style queries, call find_nearby_places (trip_type='day'). Use interests to focus (e.g. ["temples"], ["food"]). For "ice cream" pass interests=["food"] and keyword="ice cream".
 - For "where should I go" with a budget/days, call recommend_destinations, then optionally plan_itinerary and estimate_cost for the chosen place.
 - When the user asks to eat, include food places. When they ask for photos/videos of a place, call find_user_media.
+- When the user references their OWN past trips ("my Goa trip"), asks what they spent before, wants a budget comparison to a previous trip, or wants a new plan similar to / cheaper than something they did before, call get_my_journal_history first to ground your answer in their real trip data.
 - For flights/hotels/booking, call booking_links (these are deep links, not live bookings).
 - Keep replies short and helpful. Refer to results naturally; the UI will also show cards. Use **bold** for names and [text](url) for links sparingly.
 - If a tool returns nothing, say so briefly and suggest an alternative.
@@ -66,6 +67,16 @@ def _cards_from_tool(name, result):
             cards.append({"type": "media", "kind": m.get("kind", "photo"),
                           "image": m.get("filepath", ""), "title": m.get("caption", "User post"),
                           "subtitle": ("♥ " + str(m.get("likes", 0)))})
+    elif name == "get_my_journal_history":
+        for t in (result.get("trips") or [])[:8]:
+            loc = ", ".join(x for x in [t.get("city"), t.get("country")] if x)
+            spend = t.get("true_total")
+            cards.append({
+                "type": "past_trip", "title": t.get("title", "Trip"),
+                "subtitle": loc,
+                "meta": ("₹" + format(int(spend), ",") if spend else "") +
+                        (" · " + str(t.get("duration_days")) + "d" if t.get("duration_days") else ""),
+            })
     elif name == "booking_links":
         for label, key in [("Flights", "google_flights"), ("Hotels", "hotels"), ("MakeMyTrip", "makemytrip")]:
             if result.get(key):
@@ -108,9 +119,12 @@ def chat(message, history=None, user_eml=None, user_location=None):
             contents.append({"role": "model", "parts": model_parts})
             resp_parts = []
             for c in calls:
-                if user_eml and c["name"] == "find_user_media" and "eml" not in c["args"]:
-                    pass
-                result = dispatch(c["name"], c["args"])
+                args = c["args"]
+                if c["name"] == "get_my_journal_history":
+                    # user_eml comes from the session (chat.php), never from Gemini.
+                    args = dict(args)
+                    args["user_eml"] = user_eml
+                result = dispatch(c["name"], args)
                 all_cards.extend(_cards_from_tool(c["name"], result))
                 resp_parts.append({"functionResponse": {
                     "name": c["name"],
