@@ -27,7 +27,10 @@ mysqli_stmt_close($stmt);
 // personalised picks (small set)
 $reco = ml_recommend(['eml'=>$em,'budget'=>null,'duration_days'=>5,'interests'=>[],'top_n'=>3]);
 ?>
-<?php include 'ja-shell.php'; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head><?php include 'ja-head.php'; ?></head>
+<body class="ja">
 
 <div class="ja-explore-hero" style="text-align:left;max-width:none;padding-top:4px">
   <div class="ja-eyebrow" style="color:var(--ja-teal)"><?= ja_icon('sparkle',14) ?> Welcome back, <?= htmlspecialchars($fname) ?></div>
@@ -205,4 +208,4 @@ $reco = ml_recommend(['eml'=>$em,'budget'=>null,'duration_days'=>5,'interests'=>
     </div>
 </main>
 
-<?php include 'ja-shell-end.php'; ?>
+<?php include 'ja-footer.php'; ?>

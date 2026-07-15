@@ -3,8 +3,11 @@ $ja_title = "Explore"; $ja_active = "explore";
 session_start();
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 require 'ml_client.php';
-include 'ja-shell.php';
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head><?php include 'ja-head.php'; ?></head>
+<body class="ja">
 <div class="ja-explore-hero">
   <div class="ja-eyebrow" style="color:var(--ja-teal)"><?= ja_icon('sparkle',14) ?> One line. A whole trip.</div>
   <h1>Where to next, <?= htmlspecialchars($_SESSION['fname'] ?? '') ?>?</h1>
@@ -30,5 +33,5 @@ include 'ja-shell.php';
 
 <div id="smartResults" class="ja-smart-results"></div>
 
-<?php include 'ja-shell-end.php'; ?>
 <script src="js/explore.js" defer></script>
+<?php include 'ja-footer.php'; ?>

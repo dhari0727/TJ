@@ -65,6 +65,38 @@ def _slot_text(rng, activity, attractions_pool):
     return t
 
 
+def _dynamic_destination(place):
+    """Build a catalog-like destination dict for ANY place using real nearby
+    POIs (Geoapify/OSM) — so itineraries work beyond the 93 curated places."""
+    try:
+        from ml.geo.places import nearby_places
+        near = nearby_places(place, mode="day", interests=None, limit=20)
+        if "error" in near or not near.get("places"):
+            return None
+        pois = near["places"]
+        attractions = [p["name"] for p in pois][:10] or [place.split(",")[0]]
+        # derive activity tags from the categories present
+        catmap = {"religious": "temples", "heritage": "history", "garden": "nature",
+                  "nature": "nature", "museum": "museums", "funpark": "adventure",
+                  "beach": "beach", "food": "food"}
+        acts = []
+        for p in pois:
+            a = catmap.get(p["category"])
+            if a and a not in acts:
+                acts.append(a)
+        acts = acts or ["nature", "food", "history"]
+        city = place.split(",")[0].strip()
+        return {
+            "name": place, "city": city,
+            "country": (place.split(",")[1].strip() if "," in place else "India"),
+            "region": "India", "tier": "lesser_known", "base_daily_inr": 2200,
+            "activities": acts, "styles": ["mid-range", "budget"],
+            "season_peak": [10, 11, 12, 1, 2], "attractions": attractions,
+        }
+    except Exception:
+        return None
+
+
 def generate(destination, days=5, travel_style="mid-range", month=None,
              party_size=1, seed=None):
     d = by_name(destination)
@@ -73,6 +105,10 @@ def generate(destination, days=5, travel_style="mid-range", month=None,
         for x in get_destinations():
             if x["city"].lower() == str(destination).split(",")[0].strip().lower():
                 d = x; break
+    if d is None:
+        # Not in our catalog — build one on the fly from REAL nearby places
+        # (works for any place: Matheran, Lonavala, etc.).
+        d = _dynamic_destination(destination)
     if d is None:
         return {"error": f"Unknown destination: {destination}"}
 

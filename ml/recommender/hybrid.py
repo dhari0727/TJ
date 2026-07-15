@@ -159,11 +159,15 @@ class Recommender:
         use_prox = bool(origin_region)
         base = W_CONTENT * content + W_SEMANTIC * semantic + W_COLLAB * collab
 
+        # Predict cost for ALL destinations in ONE batched model pass (fast).
+        from ml.cost.predict import predict_cost_batch
+        cost_map = predict_cost_batch(self.dest_names, duration_days=duration_days,
+                                      travel_style=travel_style, month=month,
+                                      party_size=party_size)
+
         results = []
         for i, dest in enumerate(self.dest_names):
-            cost = predict_cost(dest, duration_days=duration_days,
-                                travel_style=travel_style, month=month,
-                                party_size=party_size)
+            cost = cost_map[dest]
             predicted = cost["predicted_cost"]
 
             # budget-fit factor in [0,1] — NEVER hard-drop; over-budget just scores lower

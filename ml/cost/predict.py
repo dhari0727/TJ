@@ -46,6 +46,46 @@ def _row(dest, duration_days, style, season, party_size, region):
     }])
 
 
+def predict_cost_batch(destinations, duration_days=5, travel_style="mid-range",
+                       season=None, month=None, party_size=1):
+    """Predict cost for MANY destinations in ONE model pass (fast).
+    Returns {destination: cost_dict}. Used by the recommender to avoid 93
+    separate calls (~1.7s -> ~0.05s)."""
+    import pandas as pd
+    b = _load()
+    if season is None:
+        season = month_to_season(month) if month is not None else "winter"
+    duration_days = max(1, int(duration_days))
+    party_size = max(1, int(party_size))
+
+    rows = [{"dest": d, "region": (_DEST_REGION or {}).get(d) or "unknown",
+             "style": travel_style, "season": season,
+             "duration_days": duration_days, "party_size": party_size}
+            for d in destinations]
+    X = pd.DataFrame(rows)
+    daily = b["model"].predict(X)
+    daily_lo = b["lo"].predict(X)
+    daily_hi = b["hi"].predict(X)
+
+    scale = party_size ** 0.85 if party_size > 1 else 1.0
+    out = {}
+    for i, d in enumerate(destinations):
+        total = float(daily[i]) * duration_days * scale
+        low = max(0.0, float(daily_lo[i]) * duration_days * scale)
+        high = max(total, float(daily_hi[i]) * duration_days * scale)
+        ratios = b["ratios"].get(d, b["global_ratio"])
+        breakdown = {k: round(total * v) for k, v in ratios.items()}
+        if breakdown:
+            drift = round(total) - sum(breakdown.values())
+            breakdown[max(breakdown, key=breakdown.get)] += drift
+        out[d] = {"destination": d, "predicted_cost": round(total),
+                  "low": round(low), "high": round(high),
+                  "per_day": round(total / duration_days),
+                  "duration_days": duration_days, "cost_breakdown": breakdown,
+                  "currency": "INR"}
+    return out
+
+
 def predict_cost(destination, duration_days=5, travel_style="mid-range",
                  season=None, month=None, party_size=1):
     """
