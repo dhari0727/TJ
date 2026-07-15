@@ -136,6 +136,24 @@ def predict_cost_endpoint():
     return jsonify(result)
 
 
+# --------------------------------------------------------------- chatbot
+@app.post("/chat")
+def chat_endpoint():
+    data = request.get_json(silent=True) or {}
+    message = str(data.get("message", "")).strip()
+    if not message:
+        return jsonify({"reply": "Ask me anything about your trip!", "cards": []})
+    history = data.get("history") or []
+    if not isinstance(history, list):
+        history = []
+    user_eml = data.get("eml")
+    user_location = data.get("location")
+    from ml.bot.chat import chat as run_chat
+    result = run_chat(message[:2000], history=history[-10:],
+                      user_eml=user_eml, user_location=user_location)
+    return jsonify(result)
+
+
 # --------------------------------------------------------------- nearby (OSM)
 @app.post("/nearby")
 def nearby():

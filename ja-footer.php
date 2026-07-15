@@ -36,5 +36,7 @@
     </div>
   </div>
 </footer>
+<?php include __DIR__ . '/ja-chat.php'; ?>
+<script src="js/ja-chat.js" defer></script>
 </body>
 </html>

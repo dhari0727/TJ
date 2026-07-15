@@ -31,7 +31,7 @@ GEOAPIFY_CATS = {
     "history":     "tourism.sights,heritage.unesco",
     "gardens":     "leisure.park,national_park",
     "nature":      "natural,tourism.attraction.viewpoint",
-    "food":        "catering.restaurant,catering.cafe",
+    "food":        "catering.restaurant,catering.cafe,catering.fast_food,catering.ice_cream",
     "funpark":     "entertainment.water_park,entertainment.theme_park",
     "hotel":       "accommodation.hotel",
     "attractions": "tourism.attraction,entertainment",

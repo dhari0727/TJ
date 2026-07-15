@@ -22,3 +22,5 @@ Thumbs.db
 # API keys — NEVER commit
 ml/geo/geoapify_key.txt
 ml/geo/geoapi_key
+
+ml/bot/gemini_key.txt
