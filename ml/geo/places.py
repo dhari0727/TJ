@@ -277,6 +277,16 @@ def nearby_places(place, mode="day", interests=None, limit=40, category=None):
 
     for p in pois:
         p.setdefault("fame", 0.0); p.setdefault("image", "")
+
+    # Boost/inject curated real local landmarks (see local_highlights.py) so
+    # genuinely famous spots that OSM under-tags (no wikidata/heritage tag,
+    # e.g. Santram Mandir in Nadiad) aren't buried under randomly-tagged hotels.
+    try:
+        from ml.geo import local_highlights
+        pois = local_highlights.boost_and_inject(pois, place, lat, lon)
+    except Exception:
+        pass
+
     pois = [p for p in pois if p["dist_km"] > 0.6]     # skip the origin itself
     if category:
         pois = [p for p in pois if p["category"] == category]
