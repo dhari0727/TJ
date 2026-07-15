@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="JourneyAI">
+  <!-- outer ring -->
+  <circle cx="120" cy="120" r="106" fill="none" stroke="currentColor" stroke-width="9"/>
+  <!-- inner compass ring -->
+  <circle cx="120" cy="120" r="70" fill="none" stroke="currentColor" stroke-width="5" opacity="0.85"/>
+  <!-- bold 4-point compass star -->
+  <g fill="currentColor">
+    <polygon points="120,44 138,120 120,138 102,120"/>
+    <polygon points="120,196 102,120 120,102 138,120" opacity="0.6"/>
+    <polygon points="44,120 120,102 138,120 120,138" opacity="0.9"/>
+    <polygon points="196,120 120,138 102,120 120,102" opacity="0.75"/>
+  </g>
+  <circle cx="120" cy="120" r="10" fill="currentColor"/>
+  <!-- AI circuit nodes -->
+  <g fill="currentColor">
+    <circle cx="158" cy="98" r="5"/><circle cx="160" cy="146" r="5"/>
+  </g>
+  <g stroke="currentColor" stroke-width="4" fill="none" opacity="0.9">
+    <line x1="140" y1="106" x2="154" y2="100"/>
+    <line x1="140" y1="134" x2="156" y2="143"/>
+  </g>
+</svg>

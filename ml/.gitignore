@@ -1,0 +1,7 @@
+# Python venv — recreate with: py -3.10 -m venv ml/venv && pip install -r ml/requirements.txt
+venv/
+# Trained model artifacts — regenerate via the NLP/cost/recommender build steps
+artifacts/
+# Python caches
+__pycache__/
+*.pyc

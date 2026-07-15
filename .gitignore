@@ -1,0 +1,20 @@
+# --- Python ML ---
+ml/venv/
+ml/artifacts/*.pkl
+ml/artifacts/_*.log
+ml/artifacts/geocache/
+ml/artifacts/shots/
+__pycache__/
+*.pyc
+
+# --- user uploads (media) ---
+uploads/*
+!uploads/.htaccess
+
+# --- scratch / logs ---
+*.log
+.DS_Store
+Thumbs.db
+
+# --- keep the artifacts dir but not its generated contents ---
+!ml/artifacts/.gitkeep
