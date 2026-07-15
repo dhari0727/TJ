@@ -15,6 +15,7 @@ uploads/*
 *.log
 .DS_Store
 Thumbs.db
+ml/geo/_collected_results.json
 
 # --- keep the artifacts dir but not its generated contents ---
 !ml/artifacts/.gitkeep
@@ -22,5 +23,7 @@ Thumbs.db
 # API keys — NEVER commit
 ml/geo/geoapify_key.txt
 ml/geo/geoapi_key
+ml/geo/serpapi_key.txt
+ml/geo/serpapi_key
 
 ml/bot/gemini_key.txt
