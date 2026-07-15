@@ -290,12 +290,51 @@ def nearby_places(place, mode="day", interests=None, limit=40, category=None):
     for p in pois:
         cat_counts[p["category"]] = cat_counts.get(p["category"], 0) + 1
 
+    # Which RESULT categories do the selected interests map to? (e.g. "temples"
+    # -> religious, "history" -> heritage). Used to prioritise what the user asked.
+    INTEREST_RESULT_CATS = {
+        "temples": {"religious"}, "history": {"heritage", "attraction"},
+        "architecture": {"heritage"}, "nature": {"nature", "garden"},
+        "gardens": {"garden"}, "museums": {"museum"}, "food": {"food"},
+        "shopping": {"shopping"}, "wildlife": {"nature"}, "beach": {"beach"},
+        "relaxation": {"garden", "hotel", "nature"}, "adventure": {"funpark", "nature"},
+        "nightlife": {"food", "funpark"}, "photography": {"nature", "heritage"},
+        "culture": {"heritage", "religious", "museum"},
+    }
+    wanted = set()
+    for it in interests:
+        wanted |= INTEREST_RESULT_CATS.get(it, set())
+
     if category:
-        # single-category view: just rank by score, return more
         ranked = sorted(pois, key=lambda x: x["score"], reverse=True)[:limit]
+    elif wanted:
+        # INTEREST-FOCUSED: fill ~70% of slots with the wanted categories
+        # (ranked by score = fame+proximity, so famous nearby temples surface),
+        # then fill the rest with a varied mix for context.
+        primary = sorted([p for p in pois if p["category"] in wanted],
+                         key=lambda x: x["score"], reverse=True)
+        others  = sorted([p for p in pois if p["category"] not in wanted],
+                         key=lambda x: x["score"], reverse=True)
+        n_primary = max(1, int(limit * 0.7))
+        ranked = primary[:n_primary]
+        # round-robin the rest across the remaining categories for a little variety
+        by_cat = {}
+        for p in others:
+            by_cat.setdefault(p["category"], []).append(p)
+        cat_order = sorted(by_cat, key=lambda c: by_cat[c][0]["score"], reverse=True)
+        idx = 0
+        while len(ranked) < limit and any(by_cat.values()) and cat_order:
+            c = cat_order[idx % len(cat_order)]
+            if by_cat[c]:
+                ranked.append(by_cat[c].pop(0))
+            idx += 1
+            if idx > len(cat_order) * limit:
+                break
+        # if still short (e.g. only temples nearby), top up from primary
+        if len(ranked) < limit:
+            ranked += primary[n_primary:limit - len(ranked) + n_primary]
     else:
-        # BALANCED: round-robin across categories, but by SCORE within each so
-        # famous spots lead. Guarantees variety AND surfaces the notable places.
+        # NO interests: balanced round-robin (variety) by score.
         by_cat = {}
         for p in pois:
             by_cat.setdefault(p["category"], []).append(p)
@@ -371,18 +410,21 @@ def _attach_images(route):
 
 
 def _attach_food(route, food_pool):
-    """For each non-food stop, attach the nearest food place (where to eat)."""
+    """For each stop, attach the 3 nearest food places (where to eat at this stop)."""
     for stop in route:
-        if stop["category"] == "food":
-            continue
-        best, bd = None, 1e9
+        scored = []
         for f in food_pool:
             d = haversine(stop["lat"], stop["lon"], f["lat"], f["lon"])
-            if d < bd:
-                bd, best = d, f
-        if best and bd < 15:   # only if genuinely nearby
-            stop["eat"] = {"name": best["name"], "dist_km": round(bd, 1),
-                           "cuisine": best.get("cuisine", ""), "lat": best["lat"], "lon": best["lon"]}
+            if d < 20:
+                scored.append((d, f))
+        scored.sort(key=lambda x: x[0])
+        eats = []
+        for d, f in scored[:3]:
+            eats.append({"name": f["name"], "dist_km": round(d, 1),
+                         "cuisine": f.get("cuisine", ""), "lat": f["lat"], "lon": f["lon"]})
+        if eats:
+            stop["eats"] = eats
+            stop["eat"] = eats[0]   # keep single for backward compat
 
 
 def build_route(place, mode="weekend", interests=None, stops=4):
@@ -401,7 +443,29 @@ def build_route(place, mode="weekend", interests=None, stops=4):
     food_pool = [p for p in pool if p["category"] == "food"]
     sights = [p for p in pool if p["category"] != "food"]
 
+    focused = bool(interests)   # if the user picked interests, honour them
+    # When interests are picked, restrict route sights to the matching categories
+    # (e.g. a "temples" route is temples), so it isn't diluted by other types.
+    if focused:
+        _INT_CATS = {"temples": {"religious"}, "history": {"heritage", "attraction"},
+                     "architecture": {"heritage"}, "nature": {"nature", "garden"},
+                     "museums": {"museum"}, "food": {"food"}, "shopping": {"shopping"},
+                     "wildlife": {"nature"}, "beach": {"beach"}, "gardens": {"garden"},
+                     "relaxation": {"garden", "nature", "hotel"}, "adventure": {"funpark", "nature"},
+                     "culture": {"heritage", "religious", "museum"},
+                     "photography": {"nature", "heritage"}}
+        wanted = set()
+        for it in interests:
+            wanted |= _INT_CATS.get(it, set())
+        focused_sights = [p for p in sights if p["category"] in wanted]
+        if len(focused_sights) >= 2:   # only restrict if we have enough
+            sights = focused_sights
+
     def pick_varied(src, n, avoid=()):
+        # When the user picked interests, `src` is already interest-ordered by
+        # nearby_places — just take the top N (don't force category variety).
+        if focused:
+            return [p for p in src if p["name"] not in avoid][:n]
         chosen, used = [], {}
         for p in src:
             if p["name"] in avoid:

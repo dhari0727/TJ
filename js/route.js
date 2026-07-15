@@ -42,7 +42,9 @@
       var img = s.image
         ? '<div class="ja-route-img" style="background-image:url(\'' + s.image + '\')"></div>'
         : '<div class="ja-route-img noimg">' + svg(icon(s.category)) + '</div>';
-      var eat = s.eat ? '<div class="ja-route-eat">' + svg('heart') + ' Eat nearby: <strong>' + s.eat.name + '</strong> <span style="color:var(--text-mut)">(' + s.eat.dist_km + ' km)</span></div>' : '';
+      var eats = s.eats || (s.eat ? [s.eat] : []);
+      var eat = eats.length ? '<div class="ja-route-eat">' + svg('heart') + ' <span>Eat nearby:</span> ' +
+        eats.map(function (e) { return '<a class="ja-eat-chip" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=' + e.lat + ',' + e.lon + '">' + e.name + ' <span style="opacity:.6">' + e.dist_km + 'km</span></a>'; }).join('') + '</div>' : '';
       var el = document.createElement('div');
       el.className = 'ja-route-stop';
       el.innerHTML = '<div class="ja-route-dot">' + (i + 1) + '</div><div class="ja-route-card">' + img +
@@ -113,7 +115,11 @@
     saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
     fetch('save-route.php', { method: 'POST', body: body })
       .then(function (r) { return r.json(); })
-      .then(function (d) { saveBtn.disabled = false; saveBtn.innerHTML = d.ok ? '✓ Saved' : (d.error || 'Error'); })
+      .then(function (d) {
+        saveBtn.disabled = false;
+        if (d.ok) { saveBtn.innerHTML = '✓ Saved — view in My Routes'; saveBtn.onclick = function(){ location.href = 'my-routes.php'; }; }
+        else saveBtn.innerHTML = (d.error || 'Error');
+      })
       .catch(function () { saveBtn.disabled = false; saveBtn.textContent = 'Error'; });
   });
 

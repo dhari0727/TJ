@@ -36,10 +36,13 @@ function render_stops($route, $origin){
             <button type="button" class="ja-route-remove" data-remove="<?= $i ?>" title="Remove stop"><?= ja_icon('trash',15) ?></button>
           </div>
           <div class="ja-route-do"><?= ja_icon('compass',14) ?> <?= htmlspecialchars($s['do'] ?? 'Visit this spot') ?></div>
-          <?php if ($eat): ?>
-            <div class="ja-route-eat"><?= ja_icon('heart',14) ?> Eat nearby: <strong><?= htmlspecialchars($eat['name']) ?></strong>
-              <?= $eat['cuisine']? '· '.htmlspecialchars(is_array($eat['cuisine'])?implode(', ',$eat['cuisine']):$eat['cuisine']):'' ?>
-              <span style="color:var(--text-mut)">(<?= $eat['dist_km'] ?> km)</span></div>
+          <?php $eats = $s['eats'] ?? ($eat ? [$eat] : []); if ($eats): ?>
+            <div class="ja-route-eat"><?= ja_icon('heart',14) ?> <span>Eat nearby:</span>
+              <?php foreach ($eats as $ei=>$ee): ?>
+                <a class="ja-eat-chip" target="_blank" rel="noopener"
+                   href="https://www.google.com/maps/search/?api=1&query=<?= $ee['lat'] ?>,<?= $ee['lon'] ?>"><?= htmlspecialchars($ee['name']) ?> <span style="opacity:.6"><?= $ee['dist_km'] ?>km</span></a>
+              <?php endforeach; ?>
+            </div>
           <?php endif; ?>
           <a class="ja-route-map" target="_blank" rel="noopener"
              href="https://www.google.com/maps/search/?api=1&query=<?= $s['lat'] ?>,<?= $s['lon'] ?>"><?= ja_icon('map-pin',13) ?> Google Maps</a>

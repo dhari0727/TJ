@@ -47,6 +47,7 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
         <a href="dashboard.php" class="<?= ja_nav_class('dashboard',$ja_active) ?>">Dashboard</a>
         <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan a Trip</a>
         <a href="recommendations.php" class="<?= ja_nav_class('recs',$ja_active) ?>">For You</a>
+        <a href="my-routes.php" class="<?= ja_nav_class('routes',$ja_active) ?>">My Routes</a>
         <a href="my-entries.php" class="<?= ja_nav_class('entries',$ja_active) ?>">My Entries</a>
         <a href="analytics.php" class="<?= ja_nav_class('analytics',$ja_active) ?>">Analytics</a>
         <a href="new-entry.php" class="ja-btn ja-btn-primary" style="padding:9px 18px;font-size:.9rem">+ New</a>
