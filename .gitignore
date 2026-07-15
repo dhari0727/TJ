@@ -18,3 +18,7 @@ Thumbs.db
 
 # --- keep the artifacts dir but not its generated contents ---
 !ml/artifacts/.gitkeep
+
+# API keys — NEVER commit
+ml/geo/geoapify_key.txt
+ml/geo/geoapi_key

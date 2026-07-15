@@ -33,7 +33,7 @@ GEOAPIFY_CATS = {
     "nature":      "natural,tourism.attraction.viewpoint",
     "food":        "catering.restaurant,catering.cafe",
     "funpark":     "entertainment.water_park,entertainment.theme_park",
-    "hotel":       "accommodation.hotel,accommodation.resort",
+    "hotel":       "accommodation.hotel",
     "attractions": "tourism.attraction,entertainment",
     "shopping":    "commercial.shopping_mall,commercial.marketplace",
     "museum":      "entertainment.museum",
@@ -180,6 +180,29 @@ def fetch_places(lat, lon, radius_km, categories):
     return out
 
 
+def place_image(name, lat=None, lon=None):
+    """Best-effort image URL for a place: Wikipedia thumbnail by name. Cached."""
+    ck = "img:" + name.lower()
+    c = _cache_get(ck, max_age=30 * 86400)
+    if c is not None:
+        return c or None
+    url = ("https://en.wikipedia.org/w/api.php?action=query&prop=pageimages&format=json"
+           "&piprop=thumbnail&pithumbsize=400&titles=" + urllib.parse.quote(name))
+    img = ""
+    try:
+        d = _get(url, timeout=8)
+        pages = d.get("query", {}).get("pages", {})
+        for _, pg in pages.items():
+            th = pg.get("thumbnail", {}).get("source")
+            if th:
+                img = th
+                break
+    except Exception:
+        img = ""
+    _cache_put(ck, img)
+    return img or None
+
+
 if __name__ == "__main__":
     import sys
     if not has_key():
@@ -192,4 +215,5 @@ if __name__ == "__main__":
         ps = fetch_places(g[0], g[1], 100, DEFAULT_CATS)
         print(f"found {len(ps)} places")
         for p in sorted(ps, key=lambda x: -x["fame"])[:12]:
-            print(f"  {p['dist_km']:5.1f}km fame={p['fame']:.1f} {p['category']:9s} {p['name']}")
+            line = f"  {p['dist_km']:5.1f}km fame={p['fame']:.1f} {p['category']:9s} {p['name']}"
+            print(line.encode("ascii", "replace").decode())

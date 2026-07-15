@@ -321,13 +321,76 @@ def nearby_places(place, mode="day", interests=None, limit=40, category=None):
     }
 
 
+# what-to-do phrasing per stop category
+_DO_LABEL = {
+    "religious": "Seek blessings & soak in the spiritual atmosphere",
+    "heritage": "Explore the history & architecture",
+    "garden": "Relax and stroll the greenery",
+    "nature": "Enjoy the scenic views",
+    "museum": "Discover the exhibits",
+    "funpark": "Have fun — rides & activities",
+    "hotel": "Rest or grab a comfortable stay",
+    "food": "Taste the local flavours",
+    "shopping": "Shop for local finds & souvenirs",
+    "beach": "Unwind by the water",
+    "attraction": "Take in this local landmark",
+}
+
+
+def _order_route(origin, chosen):
+    """Greedy nearest-neighbour ordering from origin; returns (route, total, back)."""
+    route, cur, remaining, total = [], (origin["lat"], origin["lon"]), chosen[:], 0.0
+    while remaining:
+        remaining.sort(key=lambda p: haversine(cur[0], cur[1], p["lat"], p["lon"]))
+        nxt = dict(remaining.pop(0))
+        leg = round(haversine(cur[0], cur[1], nxt["lat"], nxt["lon"]), 1)
+        total += leg
+        nxt["leg_km"] = leg
+        nxt["do"] = _DO_LABEL.get(nxt["category"], "Visit this spot")
+        route.append(nxt)
+        cur = (nxt["lat"], nxt["lon"])
+    back = round(haversine(cur[0], cur[1], origin["lat"], origin["lon"]), 1)
+    return route, round(total + back, 1), back
+
+
+def _attach_images(route):
+    """Attach a Wikipedia thumbnail to each stop that lacks an image (best effort)."""
+    try:
+        from ml.geo import geoapify
+    except Exception:
+        return
+    for stop in route:
+        if stop.get("image"):
+            continue
+        try:
+            img = geoapify.place_image(stop["name"])
+            if img:
+                stop["image"] = img
+        except Exception:
+            pass
+
+
+def _attach_food(route, food_pool):
+    """For each non-food stop, attach the nearest food place (where to eat)."""
+    for stop in route:
+        if stop["category"] == "food":
+            continue
+        best, bd = None, 1e9
+        for f in food_pool:
+            d = haversine(stop["lat"], stop["lon"], f["lat"], f["lon"])
+            if d < bd:
+                bd, best = d, f
+        if best and bd < 15:   # only if genuinely nearby
+            stop["eat"] = {"name": best["name"], "dist_km": round(bd, 1),
+                           "cuisine": best.get("cuisine", ""), "lat": best["lat"], "lon": best["lon"]}
+
+
 def build_route(place, mode="weekend", interests=None, stops=4):
     """
-    Multi-destination route: pick top nearby places and order them into an
-    efficient sequence (greedy nearest-neighbour) starting from the origin.
-    Returns the ordered stops with leg distances and a total.
+    Multi-destination route with rich stops (what to do, where to eat, images)
+    plus an ALTERNATIVE themed route. Ordered by greedy nearest-neighbour.
     """
-    near = nearby_places(place, mode=mode, interests=interests, limit=40)
+    near = nearby_places(place, mode=mode, interests=interests, limit=60)
     if "error" in near:
         return near
     origin = near["origin"]
@@ -335,43 +398,47 @@ def build_route(place, mode="weekend", interests=None, stops=4):
     if not pool:
         return {"error": f"No routable places found near '{place}'. Try a wider trip mode."}
 
-    # spread selection: don't cluster — pick diverse distances/categories
-    chosen = []
-    used_cats = {}
-    for p in pool:
-        if len(chosen) >= stops:
-            break
-        c = p["category"]
-        if used_cats.get(c, 0) >= max(1, stops // 2 + 1):
-            continue          # avoid too many of one category
-        used_cats[c] = used_cats.get(c, 0) + 1
-        chosen.append(p)
-    if len(chosen) < stops:   # backfill if category limits were too strict
-        for p in pool:
-            if p not in chosen and len(chosen) < stops:
-                chosen.append(p)
+    food_pool = [p for p in pool if p["category"] == "food"]
+    sights = [p for p in pool if p["category"] != "food"]
 
-    # greedy nearest-neighbour ordering from the origin
-    route = []
-    cur = (origin["lat"], origin["lon"])
-    remaining = chosen[:]
-    total = 0.0
-    while remaining:
-        remaining.sort(key=lambda p: haversine(cur[0], cur[1], p["lat"], p["lon"]))
-        nxt = remaining.pop(0)
-        leg = round(haversine(cur[0], cur[1], nxt["lat"], nxt["lon"]), 1)
-        total += leg
-        nxt = dict(nxt); nxt["leg_km"] = leg
-        route.append(nxt)
-        cur = (nxt["lat"], nxt["lon"])
-    # return leg back to origin
-    back = round(haversine(cur[0], cur[1], origin["lat"], origin["lon"]), 1)
-    total += back
+    def pick_varied(src, n, avoid=()):
+        chosen, used = [], {}
+        for p in src:
+            if p["name"] in avoid:
+                continue
+            if len(chosen) >= n:
+                break
+            c = p["category"]
+            if used.get(c, 0) >= max(1, n // 2 + 1):
+                continue
+            used[c] = used.get(c, 0) + 1
+            chosen.append(p)
+        for p in src:   # backfill
+            if len(chosen) >= n:
+                break
+            if p not in chosen and p["name"] not in avoid:
+                chosen.append(p)
+        return chosen
+
+    # MAIN route — top varied famous sights
+    main_sel = pick_varied(sorted(sights, key=lambda x: -x.get("score", 0)), stops)
+    main_route, main_total, main_back = _order_route(origin, main_sel)
+    _attach_food(main_route, food_pool)
+    _attach_images(main_route)
+
+    # ALTERNATIVE route — different spots (avoid main's), still varied
+    used_names = {s["name"] for s in main_route}
+    alt_sel = pick_varied(sorted(sights, key=lambda x: -x.get("score", 0)), stops, avoid=used_names)
+    alt_route, alt_total, alt_back = _order_route(origin, alt_sel)
+    _attach_food(alt_route, food_pool)
 
     return {
         "origin": origin, "mode": mode, "mode_label": near["mode_label"], "days": near["days"],
-        "interests": near["interests"], "stops": len(route),
-        "route": route, "return_km": back, "total_km": round(total, 1),
+        "interests": near["interests"], "stops": len(main_route),
+        "route": main_route, "return_km": main_back, "total_km": main_total,
+        "alternative": {"route": alt_route, "return_km": alt_back, "total_km": alt_total,
+                        "stops": len(alt_route)} if alt_route else None,
+        "food_options": food_pool[:6],  # "what to eat" list
     }
 
 

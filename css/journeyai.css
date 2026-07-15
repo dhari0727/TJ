@@ -430,6 +430,21 @@ textarea.ja-input{resize:vertical;font-family:var(--font-body)}
 .ja-route-sub{font-size:.84rem;color:var(--text-mut);margin-top:3px}
 .ja-route-leg{margin:2px 0 2px 21px;padding-left:22px;font-size:.82rem;color:var(--text-mut);display:flex;gap:6px;align-items:center;
   border-left:2px dashed var(--brd);min-height:26px}
+/* rich route cards */
+.ja-route-card{flex:1;display:flex;gap:0;background:var(--surface);border:1px solid var(--glass-brd);
+  border-radius:var(--radius-sm);box-shadow:var(--shadow);overflow:hidden}
+.ja-route-img{width:120px;flex:none;background-size:cover;background-position:center;min-height:110px}
+.ja-route-img.noimg{display:grid;place-items:center;background:var(--bg-2);color:var(--ja-teal)}
+.ja-route-info{flex:1;padding:14px 16px;min-width:0}
+.ja-route-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.ja-route-do{font-size:.86rem;color:var(--ja-teal);margin-top:8px;display:flex;gap:6px;align-items:center}
+.ja-route-eat{font-size:.85rem;color:var(--text-dim);margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ja-route-map{font-size:.82rem;color:var(--text-mut);margin-top:8px;display:inline-flex;gap:5px;align-items:center}
+.ja-route-map:hover{color:var(--ja-teal)}
+.ja-route-remove{flex:none;width:32px;height:32px;border-radius:9px;border:1px solid var(--brd);background:transparent;
+  color:var(--text-mut);cursor:pointer;display:grid;place-items:center;transition:.2s}
+.ja-route-remove:hover{color:var(--ja-coral);border-color:var(--ja-coral)}
+@media(max-width:560px){.ja-route-img{width:88px}}
 
 /* nearby real places (day-trip results) */
 .ja-nearby-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
