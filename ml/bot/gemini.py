@@ -20,7 +20,7 @@ import os
 import urllib.request
 import urllib.parse
 
-MODEL = os.environ.get("JOURNEYAI_GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.environ.get("JOURNEYAI_GEMINI_MODEL", "gemini-2.0-flash")
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 
 
@@ -51,7 +51,7 @@ _MODELS = None
 def _model_chain():
     global _MODELS
     if _MODELS is None:
-        _MODELS = [MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
+        _MODELS = [MODEL, "gemini-2.0-flash", "gemini-2.0-flash-001", "gemini-2.0-flash-lite"]
         seen, out = set(), []
         for m in _MODELS:
             if m not in seen:

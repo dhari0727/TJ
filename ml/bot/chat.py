@@ -82,12 +82,6 @@ def chat(message, history=None, user_eml=None, user_location=None):
     if not gemini.has_key():
         return {"reply": "The assistant isn't configured yet — a Gemini API key is needed. "
                          "You can still use Plan a Trip and the route builder.", "cards": []}
-    _k = gemini.get_key() or ""
-    if not _k.startswith("AIza"):
-        return {"reply": "The AI key looks like an OAuth token, not an API key. "
-                         "Please create a proper API key at https://aistudio.google.com/app/apikey "
-                         "(it starts with 'AIza') and paste it into ml/bot/gemini_key.txt. "
-                         "Meanwhile, Plan a Trip and the route builder work fully.", "cards": []}
 
     # build Gemini `contents` from history + this message
     contents = []
@@ -129,8 +123,44 @@ def chat(message, history=None, user_eml=None, user_location=None):
     except Exception as e:
         msg = str(e)
         if "429" in msg or "quota" in msg.lower():
-            return {"reply": "I'm getting a lot of requests right now (rate limit). Please try again in a moment.", "cards": all_cards}
+            # Free-tier quota hit — fall back to a direct tool call so the user
+            # still gets useful results without the LLM.
+            fb = _fallback(message, user_eml)
+            if fb:
+                return fb
+            return {"reply": "The AI assistant's free daily quota is used up (resets at midnight "
+                             "Pacific). Meanwhile, try Plan a Trip or the route builder!", "cards": all_cards}
         return {"reply": "Sorry, I hit an error answering that. Try rephrasing?", "cards": all_cards}
+
+
+def _fallback(message, user_eml=None):
+    """Best-effort answer WITHOUT the LLM (used when Gemini quota is exhausted).
+    Simple intent detection -> direct tool call."""
+    m = message.lower()
+    import re
+    # extract a place after 'near' / 'in' / 'at'
+    place = None
+    mt = re.search(r"\b(?:near|in|at|around)\s+([a-zA-Z .,'-]{2,60})", message)
+    if mt:
+        place = mt.group(1).strip(" .,")
+    try:
+        if place and any(w in m for w in ["place", "visit", "nearby", "near me", "temple", "food",
+                                          "eat", "ice cream", "day trip", "1 day", "weekend"]):
+            interests = []
+            if "temple" in m: interests = ["temples"]
+            elif any(w in m for w in ["eat", "food", "restaurant", "ice cream"]): interests = ["food"]
+            kw = "ice cream" if "ice cream" in m else None
+            res = dispatch("find_nearby_places", {"place": place, "trip_type": "day",
+                                                  "interests": interests, "keyword": kw})
+            if res.get("places"):
+                cards = _cards_from_tool("find_nearby_places", res)
+                names = ", ".join(p["name"] for p in res["places"][:4])
+                return {"reply": f"Here are some spots near {place}: {names}. "
+                                 f"(AI assistant is on cooldown — showing direct results.)",
+                        "cards": cards}
+    except Exception:
+        pass
+    return None
 
 
 if __name__ == "__main__":
