@@ -47,7 +47,9 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
         <a href="dashboard.php" class="<?= ja_nav_class('dashboard',$ja_active) ?>">Dashboard</a>
         <a href="explore.php" class="<?= ja_nav_class('explore',$ja_active) ?>">Explore</a>
         <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan</a>
+        <a href="feed.php" class="<?= ja_nav_class('feed',$ja_active) ?>">Feed</a>
         <a href="my-routes.php" class="<?= ja_nav_class('routes',$ja_active) ?>">Routes</a>
+        <a href="my-plans.php" class="<?= ja_nav_class('plans',$ja_active) ?>">Plans</a>
         <a href="my-entries.php" class="<?= ja_nav_class('entries',$ja_active) ?>">Journal</a>
         <a href="analytics.php" class="<?= ja_nav_class('analytics',$ja_active) ?>">Analytics</a>
         <a href="new-entry.php" class="ja-btn ja-btn-primary" style="padding:9px 18px;font-size:.9rem">+ New</a>
@@ -56,6 +58,7 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
       <?php else: ?>
         <a href="index.php" class="<?= ja_nav_class('home',$ja_active) ?>">Home</a>
         <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan a Trip</a>
+        <a href="feed.php" class="<?= ja_nav_class('feed',$ja_active) ?>">Feed</a>
         <a href="analytics.php" class="<?= ja_nav_class('analytics',$ja_active) ?>">Analytics</a>
         <a href="login.php" class="<?= ja_nav_class('login',$ja_active) ?>">Login</a>
         <a href="register.php" class="ja-btn ja-btn-primary" style="padding:9px 20px;font-size:.9rem">Sign up</a>

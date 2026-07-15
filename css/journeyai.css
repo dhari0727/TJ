@@ -386,7 +386,7 @@ body.ja-has-overlay-nav{--nav-offset:0}
 .ja-why summary::-webkit-details-marker{display:none}
 .ja-why summary::before{content:"✧ ";}
 .ja-why p{color:var(--text-dim);font-size:.92rem;margin:10px 0 0;line-height:1.55}
-.ja-donut{width:74px;height:74px}
+.ja-donut{width:74px!important;height:74px!important;max-width:74px;max-height:74px;flex:none}
 .ja-evidence{margin-top:10px;font-size:.82rem;color:var(--text-mut)}
 .ja-evidence b{color:var(--text-dim);font-weight:600}
 

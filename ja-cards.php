@@ -164,7 +164,8 @@ function ja_render_cards($recs) {
           var labels=JSON.parse(cv.getAttribute('data-labels')||'[]');
           new Chart(cv,{type:'doughnut',data:{labels:labels,datasets:[{data:data,
             backgroundColor:['#31C6D4','#0E7C86','#0B3D4F','#FF7A59','#FF9E7A'],borderWidth:0}]},
-            options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+': ₹'+c.raw.toLocaleString('en-IN')}}}},
+            options:{responsive:false,maintainAspectRatio:false,
+              plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+': ₹'+c.raw.toLocaleString('en-IN')}}}},
               cutout:'62%',animation:{animateRotate:true,duration:900}}});
         });
       }

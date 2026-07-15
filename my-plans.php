@@ -1,5 +1,5 @@
 <?php
-$ja_title = "My Plans"; $ja_active = "plan";
+$ja_title = "My Plans"; $ja_active = "plans";
 session_start();
 require 'connection.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }

@@ -34,12 +34,31 @@ def parse(text):
     """Regex-based intent parse. Returns dict {origin, days, budget, interests, mode}."""
     t = (text or "").lower()
 
-    # origin: after 'from' / 'in' / 'near' / 'around', stop at comma or a
-    # stop-word (interest/budget) so we don't capture "ahmedabad, temples".
+    # origin extraction. "from X" is the strongest origin signal; try it first,
+    # then "near/around/in/at X". Stop at commas/interest/budget words. Handle
+    # "near me" specially (caller resolves geolocation).
     origin = None
-    m = re.search(r"\b(?:from|near|around|in|at)\s+([a-z][a-z .'-]{1,40}?)(?=\s*(?:,|\bwith\b|\bfor\b|\band\b|\bbudget\b|\bunder\b|\brs\b|₹|\bwant\b|\blike\b|\btemple|\bfood|\bbeach|\bhistor|\bnature|\bgarden|\bmuseum|\bshop|\badventure|\btrek|\bwildlife|\bnight|\brelax|\d|$))", t)
-    if m:
-        origin = m.group(1).strip(" .,")
+    _STOP = (r"(?=\s*(?:,|\bwith\b|\bfor\b|\band\b|\bbudget\b|\bunder\b|\brs\b|₹|\bwant\b|\blike\b|"
+             r"\btemple|\bfood|\bbeach|\bhistor|\bnature|\bgarden|\bmuseum|\bshop|\badventure|"
+             r"\btrek|\bwildlife|\bnight|\brelax|\bplaces?\b|\bvisit\b|\bday\b|\d|$))")
+    if re.search(r"\bnear\s+me\b", t):
+        origin = "near me"    # sentinel — caller swaps in the user's city
+    if not origin:
+        m = re.search(r"\bfrom\s+([a-z][a-z .'-]{1,40}?)" + _STOP, t)
+        if m:
+            origin = m.group(1).strip(" .,")
+    if not origin:
+        m = re.search(r"\b(?:around|in|at)\s+([a-z][a-z .'-]{1,40}?)" + _STOP, t)
+        if m:
+            origin = m.group(1).strip(" .,")
+    if not origin:
+        # last: "near X" but NOT "near by / nearby / near me"
+        m = re.search(r"\bnear\s+(?!by\b|me\b)([a-z][a-z .'-]{1,40}?)" + _STOP, t)
+        if m:
+            origin = m.group(1).strip(" .,")
+    # reject junk captures
+    if origin and origin in ("me", "by", "here", "there", "places", "place"):
+        origin = None if origin != "me" else "near me"
 
     # days
     days = None
@@ -110,9 +129,10 @@ def plan(text, travel_style="mid-range"):
     """Build a COMPLETE trip from one free-text line."""
     intent = parse_with_llm(text)
     origin = intent["origin"]
-    if not origin:
-        return {"error": "Tell me where you're starting from — e.g. 'weekend from Ahmedabad, temples & food'.",
-                "intent": intent}
+    if not origin or origin == "near me":
+        return {"error": "Tell me where you're starting from — e.g. 'weekend from Ahmedabad, temples & food'. "
+                         "(Tip: allow location access for 'near me' to work.)",
+                "intent": intent, "need_location": (origin == "near me")}
 
     days = intent["days"]
     interests = intent["interests"]

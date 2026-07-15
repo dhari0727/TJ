@@ -15,12 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $err = 'Please give your trip a title.';
     } else {
         // core (db) — named INSERT
-        $s = mysqli_prepare($conn, "INSERT INTO db(Title,Description,Country,City,cd,dv,dr,hn,address,ptv,tv,eml) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
+        $s = mysqli_prepare($conn, "INSERT INTO db(Title,Description,Country,City,cd,dv,dr,hn,address,ptv,tv,budget_target,eml) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $cd = date('Y-m-d');
+        $budgetTarget = trim($_POST['budget_target'] ?? '');
+        $budgetTargetVal = $budgetTarget === '' ? null : (float)$budgetTarget;
         $b = [$title, $_POST['desc']??'', $_POST['coun']??'', $_POST['city']??'', $cd,
               $_POST['dv']??'', $_POST['dr']??'', $_POST['hn']??'', $_POST['ad']??'',
               $_POST['ptv']??'', $_POST['tv']??'', $em];
-        mysqli_stmt_bind_param($s,'ssssssssssss',$b[0],$b[1],$b[2],$b[3],$b[4],$b[5],$b[6],$b[7],$b[8],$b[9],$b[10],$b[11]);
+        mysqli_stmt_bind_param($s,'sssssssssssds',$b[0],$b[1],$b[2],$b[3],$b[4],$b[5],$b[6],$b[7],$b[8],$b[9],$b[10],$budgetTargetVal,$b[11]);
         mysqli_stmt_execute($s); mysqli_stmt_close($s);
 
         // db1 — food + transport (positional 16)
@@ -53,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // handle photo/video uploads (multiple) with per-file captions
         $place = trim(($_POST['city'] ?? '') . ', ' . ($_POST['coun'] ?? ''), ', ');
+        // Best-effort browser geolocation, captured client-side (see script below) and
+        // submitted as hidden fields. Optional — left blank if the user denied/skipped it.
+        $mediaLat = trim($_POST['media_lat'] ?? '');
+        $mediaLon = trim($_POST['media_lon'] ?? '');
         if (!empty($_FILES['media']) && is_array($_FILES['media']['name'])) {
             $n = count($_FILES['media']['name']);
             for ($i = 0; $i < $n; $i++) {
@@ -63,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'size' => $_FILES['media']['size'][$i],
                 ];
                 $cap = $_POST['media_caption'][$i] ?? '';
-                ja_handle_upload($conn, $f, $em, $newId, $cap, $place, 1);
+                ja_handle_upload($conn, $f, $em, $newId, $cap, $place, 1, $mediaLat, $mediaLon);
             }
         }
         header('Location: display.php?id='.$newId.'&new=1'); exit;
@@ -130,14 +136,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <input type="file" name="media[]" id="mediaInput" accept="image/*,video/*" multiple hidden>
         </div>
         <div id="mediaPreview" class="ja-media-preview"></div>
-        <div class="ja-field" style="margin-top:14px">
-          <label>Caption <span style="color:var(--text-mut);font-weight:400">(add #hashtags e.g. #beach #goa)</span></label>
-          <input class="ja-input" name="media_caption[]" placeholder="A perfect sunset at the beach #goa #sunset">
-        </div>
+        <p id="mediaCaptionHint" class="ja-media-cap" style="display:none;margin-top:10px">Add a caption under each photo/video <span style="color:var(--text-mut)">(optional — #hashtags e.g. #beach #goa)</span></p>
+        <p id="mediaGeoStatus" style="margin:10px 0 0;color:var(--text-mut);font-size:.8rem"></p>
+        <input type="hidden" name="media_lat" id="mediaLat">
+        <input type="hidden" name="media_lon" id="mediaLon">
       </div>
 
       <div class="ja-card" style="margin-bottom:22px">
         <h3>Budget <span style="color:var(--text-mut);font-weight:400;font-size:.9rem">(in ₹, optional — powers cost insights)</span></h3>
+        <div class="ja-field"><label>Budget for this trip <span style="color:var(--text-mut);font-weight:400">(target total, optional)</span></label>
+          <input class="ja-input" type="number" name="budget_target" min="0" step="0.01" placeholder="e.g. 25000"></div>
         <div class="ja-fieldrow">
           <div class="ja-field"><label>Flight / air</label><input class="ja-input" type="number" name="flight" min="0" value="0"></div>
           <div class="ja-field"><label>Train</label><input class="ja-input" type="number" name="train" min="0" value="0"></div>
