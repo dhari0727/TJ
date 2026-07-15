@@ -82,6 +82,12 @@ def chat(message, history=None, user_eml=None, user_location=None):
     if not gemini.has_key():
         return {"reply": "The assistant isn't configured yet — a Gemini API key is needed. "
                          "You can still use Plan a Trip and the route builder.", "cards": []}
+    _k = gemini.get_key() or ""
+    if not _k.startswith("AIza"):
+        return {"reply": "The AI key looks like an OAuth token, not an API key. "
+                         "Please create a proper API key at https://aistudio.google.com/app/apikey "
+                         "(it starts with 'AIza') and paste it into ml/bot/gemini_key.txt. "
+                         "Meanwhile, Plan a Trip and the route builder work fully.", "cards": []}
 
     # build Gemini `contents` from history + this message
     contents = []

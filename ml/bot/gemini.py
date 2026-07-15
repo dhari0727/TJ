@@ -41,16 +41,51 @@ def has_key():
     return bool(get_key())
 
 
+import time
+import urllib.error
+
+# Try the primary model, then fall back to other free-tier models on 429.
+_MODELS = None
+
+
+def _model_chain():
+    global _MODELS
+    if _MODELS is None:
+        _MODELS = [MODEL, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"]
+        seen, out = set(), []
+        for m in _MODELS:
+            if m not in seen:
+                seen.add(m); out.append(m)
+        _MODELS = out
+    return _MODELS
+
+
 def _post(payload, timeout=45):
     key = get_key()
     if not key:
         raise RuntimeError("No Gemini API key configured.")
-    url = API.format(model=MODEL, key=key)
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data,
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    last_err = None
+    for model in _model_chain():
+        url = API.format(model=model, key=key)
+        for attempt in range(2):   # one retry per model on 429
+            try:
+                req = urllib.request.Request(url, data=data,
+                                             headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=timeout) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+                last_err = e
+                if e.code == 429:
+                    if attempt == 0:
+                        time.sleep(2)   # brief backoff then retry same model
+                        continue
+                    break               # give up on this model, try next
+                raise
+            except Exception as e:
+                last_err = e
+                break
+    raise last_err if last_err else RuntimeError("Gemini request failed.")
 
 
 def generate(contents, tools=None, system=None, timeout=45):
