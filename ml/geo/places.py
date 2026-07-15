@@ -260,7 +260,23 @@ def nearby_places(place, mode="day", interests=None, limit=40, category=None):
     for it in interests:
         cats.update(INTEREST_TO_CATS.get(it, []))
 
-    pois = fetch_pois(lat, lon, m["radius_km"], cats)
+    # Prefer Geoapify (reliable + fame + photos) when a key is configured;
+    # otherwise fall back to the OSM/Overpass path.
+    try:
+        from ml.geo import geoapify
+        if geoapify.has_key():
+            ga_geo = geoapify.geocode(place)
+            if ga_geo:
+                lat, lon, display = ga_geo
+            ga_cats = list(cats) + [c for c in geoapify.DEFAULT_CATS if c not in cats]
+            pois = geoapify.fetch_places(lat, lon, m["radius_km"], ga_cats)
+        else:
+            pois = fetch_pois(lat, lon, m["radius_km"], cats)
+    except Exception:
+        pois = fetch_pois(lat, lon, m["radius_km"], cats)
+
+    for p in pois:
+        p.setdefault("fame", 0.0); p.setdefault("image", "")
     pois = [p for p in pois if p["dist_km"] > 0.6]     # skip the origin itself
     if category:
         pois = [p for p in pois if p["category"] == category]
