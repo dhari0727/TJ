@@ -52,6 +52,7 @@ if ($ja_use_sidebar):
     ['routes','my-routes.php','map-pin','My Routes'],
     ['plans','my-plans.php','wallet','My Plans'],
     ['entries','my-entries.php','book','My Journal'],
+    ['storybooks','my-storybooks.php','book','Storybooks'],
     ['analytics','analytics.php','chart','Analytics'],
   ];
 ?>

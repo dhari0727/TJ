@@ -200,16 +200,23 @@ def route():
     place = str(data.get("place", "")).strip()
     if not place:
         return jsonify({"status": "error", "error": "place required"}), 400
-    from ml.geo.places import build_route, TRIP_MODES
-    mode = data.get("mode", "weekend")
-    if mode not in TRIP_MODES:
-        mode = "weekend"
     raw_interests = data.get("interests") or []
     if isinstance(raw_interests, str):
         raw_interests = [s.strip() for s in raw_interests.split(",")]
     interests = [i.lower() for i in raw_interests if i.lower() in CANONICAL_ACTIVITIES]
     stops = _clamp_int(data.get("stops"), 2, 8, 4)
-    result = build_route(place, mode=mode, interests=interests, stops=stops)
+
+    destination = str(data.get("destination", "")).strip()
+    if destination:
+        from ml.geo.places import build_route_between
+        result = build_route_between(place, destination, interests=interests, stops=stops)
+    else:
+        from ml.geo.places import build_route, TRIP_MODES
+        mode = data.get("mode", "weekend")
+        if mode not in TRIP_MODES:
+            mode = "weekend"
+        result = build_route(place, mode=mode, interests=interests, stops=stops)
+
     if "error" in result:
         return jsonify({"status": "error", "error": result["error"]}), 404
     result["status"] = "ok"

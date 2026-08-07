@@ -48,11 +48,44 @@
       '<a class="ja-btn ja-btn-primary" href="' + routeUrl + '">Open full route with map ' + svg('compass') + '</a>');
   }
 
+  function renderRouteBetween(d) {
+    var r = d.route, o = r.origin, dest = r.destination;
+    var stops = r.route.map(function (s, i) {
+      var img = s.image ? '<div class="ja-rs-img" style="background-image:url(\'' + esc(s.image) + '\')"></div>' : '';
+      var eats = (s.eats || []).slice(0, 2).map(function (e) { return '<span class="ja-eat-chip">' + esc(e.name) + '</span>'; }).join('');
+      return '<div class="ja-rs">' + '<div class="ja-rs-num">' + (i + 1) + '</div>' + img +
+        '<div class="ja-rs-body"><div class="ja-rs-name">' + esc(s.name) + '</div>' +
+        '<div class="ja-rs-do">' + svg('compass') + ' ' + esc(s.do || '') + '</div>' +
+        (eats ? '<div class="ja-rs-eat">' + svg('heart') + ' ' + eats + '</div>' : '') +
+        '<a class="ja-rs-map" target="_blank" href="' + maps(s.lat, s.lon) + '">Google Maps</a></div></div>';
+    }).join('');
+    var routeUrl = 'route.php?place=' + encodeURIComponent(d.origin_text) +
+      '&destination=' + encodeURIComponent(dest.place) +
+      '&interests=' + encodeURIComponent((d.interests || []).join(','));
+    return section(svg('compass') + ' ' + esc(o.display.split(',')[0]) + ' → ' + esc(dest.display.split(',')[0]),
+      r.direct_km + ' km direct · ' + r.total_km + ' km with stops · ' + r.stops + ' stops on the way',
+      '<div class="ja-route-mini">' + stops + '</div>' +
+      '<a class="ja-btn ja-btn-primary" href="' + routeUrl + '">Open full route with map ' + svg('compass') + '</a>');
+  }
+
   function renderNearby(d) {
     var cards = (d.nearby || []).map(placeCard).join('');
     return section(svg('pin') + ' Places near ' + esc(d.origin_text), (d.nearby || []).length + ' real spots',
       '<div class="ja-place-grid">' + cards + '</div>' +
       '<a class="ja-btn ja-btn-primary" href="route.php?place=' + encodeURIComponent(d.origin_text) + '&mode=' + esc(d.intent.mode) + '">Turn into a route ' + svg('compass') + '</a>');
+  }
+
+  function renderItinerary(d) {
+    var it = d.itinerary;
+    var highlights = (it.highlights || []).slice(0, 6).map(function (h) {
+      return '<span class="ja-hl-chip">' + svg('pin') + ' ' + esc(h) + '</span>';
+    }).join('');
+    var itinUrl = 'itinerary.php?dest=' + encodeURIComponent(it.destination || d.origin_text) +
+      '&days=' + d.days + '&style=' + esc((d.intent || {}).travel_style || 'mid-range');
+    return section(svg('compass') + ' Your ' + d.days + '-day trip to ' + esc((it.city || d.origin_text)),
+      inr(it.total_cost) + ' total · ' + inr(it.per_day_cost) + '/day',
+      '<div class="ja-hl-strip">' + highlights + '</div>' +
+      '<a class="ja-btn ja-btn-primary" href="' + itinUrl + '">Open full day-by-day itinerary ' + svg('compass') + '</a>');
   }
 
   function renderRecos(d) {
@@ -74,8 +107,10 @@
   function render(d) {
     if (d.error) { out.innerHTML = '<div class="ja-empty">' + esc(d.error) + '</div>'; return; }
     var html = '';
-    if (d.kind === 'route' && d.route) html += renderRoute(d);
+    if (d.kind === 'route_between' && d.route) html += renderRouteBetween(d);
+    else if (d.kind === 'route' && d.route) html += renderRoute(d);
     else if (d.kind === 'nearby') html += renderNearby(d);
+    else if (d.kind === 'itinerary' && d.itinerary) html += renderItinerary(d);
     else if (d.kind === 'recommend') html += renderRecos(d);
     else html += '<div class="ja-empty">Try adding where you\'re starting from.</div>';
     // cost strip

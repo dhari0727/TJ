@@ -111,10 +111,19 @@ $overBudget = ($budget !== null && $actual > $budget);
       </div>
     </div>
 
-    <div class="reveal" style="margin-top:26px;display:flex;gap:10px">
+    <div class="reveal" style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap">
       <a href="update.php?id=<?= $id ?>" class="ja-btn ja-btn-ghost">Edit entry</a>
       <a href="itinerary.php?dest=<?= urlencode(trim(($e['City']??'').', '.($e['Country']??''),', ')) ?>&days=<?= (int)$e['duration_days'] ?>" class="ja-btn ja-btn-primary">Build an itinerary →</a>
+      <button class="ja-btn ja-btn-ghost" id="importStorybookBtn" type="button" onclick="importToStorybook()">Import to Storybook</button>
     </div>
+    <script>
+    function importToStorybook(){
+      if(!confirm('Create a storybook from this entry?'))return;
+      fetch('storybook-api.php?action=import_entry',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'entry_id=<?= $id ?>'})
+        .then(function(r){return r.json()})
+        .then(function(d){if(d.book_id){window.location='storybook-edit.php?id='+d.book_id}else{alert(d.error||'Import failed')}});
+    }
+    </script>
   </div>
 </section>
 <footer class="ja-footer"><div class="ja-container">JourneyAI</div></footer>

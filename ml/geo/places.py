@@ -516,6 +516,197 @@ def build_route(place, mode="weekend", interests=None, stops=4):
     }
 
 
+def _corridor_score(pt, o_lat, o_lon, d_lat, d_lon, direct_km):
+    """
+    How well a point sits ON THE WAY from origin to destination.
+    Projects the point onto the straight origin->destination line: `along_km`
+    is progress toward the destination, `perp_km` is sideways detour distance.
+    Uses an equirectangular approximation (fine at the city/regional scale
+    trip planning operates at) — not great circle exact, but good enough to
+    rank detour vs progress.
+    """
+    import math
+    lat0 = math.radians((o_lat + d_lat) / 2)
+    kx = 111.32 * math.cos(lat0)   # km per degree longitude at this latitude
+    ky = 110.57                    # km per degree latitude (~constant)
+
+    ox, oy = o_lon * kx, o_lat * ky
+    dx, dy = d_lon * kx, d_lat * ky
+    px, py = pt["lon"] * kx, pt["lat"] * ky
+
+    vx, vy = dx - ox, dy - oy
+    seg_len2 = vx * vx + vy * vy
+    if seg_len2 < 1e-6:
+        return 0.0, haversine(pt["lat"], pt["lon"], o_lat, o_lon)
+
+    t = ((px - ox) * vx + (py - oy) * vy) / seg_len2   # 0=at origin, 1=at destination
+    proj_x, proj_y = ox + t * vx, oy + t * vy
+    perp_km = math.hypot(px - proj_x, py - proj_y)
+    along_km = t * direct_km
+    return along_km, perp_km
+
+
+def build_route_between(origin_place, dest_place, interests=None, stops=4, max_detour_km=None):
+    """
+    Point-to-point route: real waypoints on the way from origin_place to
+    dest_place (not a round trip). Gathers candidate POIs near BOTH
+    endpoints, scores each by progress-along vs sideways-detour from the
+    straight line between them, and keeps the best-fitting + most famous
+    ones roughly in order of the journey.
+    """
+    o_geo = geocode(origin_place)
+    if not o_geo:
+        return {"error": f"Couldn't locate '{origin_place}'. Try adding the state/country."}
+    d_geo = geocode(dest_place)
+    if not d_geo:
+        return {"error": f"Couldn't locate '{dest_place}'. Try adding the state/country."}
+
+    o_lat, o_lon, o_display = o_geo
+    d_lat, d_lon, d_display = d_geo
+    direct_km = round(haversine(o_lat, o_lon, d_lat, d_lon), 1)
+    if direct_km < 1:
+        return {"error": "Origin and destination look like the same place."}
+
+    # trip mode controls nearby_places()'s search radius (see TRIP_MODES) — pick
+    # one wide enough that endpoint searches have a real chance of overlapping
+    # in the middle for short/medium hops; for long hauls we rely on the
+    # midpoint search below to cover the middle instead of an ever-wider radius.
+    mode = "weekend" if direct_km > 150 else ("short" if direct_km > 60 else "day")
+
+    interests = [i.lower() for i in (interests or [])]
+    o_near = nearby_places(origin_place, mode=mode, interests=interests, limit=60)
+    d_near = nearby_places(dest_place, mode=mode, interests=interests, limit=60)
+
+    search_results = [o_near, d_near]
+    # also search around the midpoint (and, for longer hauls, the quarter
+    # points) so real waypoints between the two endpoints aren't missed —
+    # each endpoint's own radius often doesn't reach the middle of the trip.
+    n_mid_points = 1 if direct_km <= 200 else 3
+    for i in range(1, n_mid_points + 1):
+        t = i / (n_mid_points + 1)
+        mid_lat = o_lat + (d_lat - o_lat) * t
+        mid_lon = o_lon + (d_lon - o_lon) * t
+        mid_place = f"{mid_lat},{mid_lon}"
+        mid_near = nearby_places(mid_place, mode="day", interests=interests, limit=40)
+        search_results.append(mid_near)
+
+    pool_by_name = {}
+    for src in search_results:
+        if "error" in src:
+            continue
+        for p in src.get("places", []):
+            pool_by_name[p["name"]] = p   # de-dupe if the same POI surfaces from multiple searches
+    pool = list(pool_by_name.values())
+    if not pool:
+        return {"error": f"No routable places found between '{origin_place}' and '{dest_place}'."}
+
+    food_pool = [p for p in pool if p["category"] == "food"]
+    sights = [p for p in pool if p["category"] != "food"]
+
+    if max_detour_km is None:
+        max_detour_km = max(15, direct_km * 0.25)   # allow a modest detour, scaled to trip length
+
+    focused = bool(interests)
+    if focused:
+        _INT_CATS = {"temples": {"religious"}, "history": {"heritage", "attraction"},
+                     "architecture": {"heritage"}, "nature": {"nature", "garden"},
+                     "museums": {"museum"}, "food": {"food"}, "shopping": {"shopping"},
+                     "wildlife": {"nature"}, "beach": {"beach"}, "gardens": {"garden"},
+                     "relaxation": {"garden", "nature", "hotel"}, "adventure": {"funpark", "nature"},
+                     "culture": {"heritage", "religious", "museum"},
+                     "photography": {"nature", "heritage"}}
+        wanted = set()
+        for it in interests:
+            wanted |= _INT_CATS.get(it, set())
+        focused_sights = [p for p in sights if p["category"] in wanted]
+        if len(focused_sights) >= 2:
+            sights = focused_sights
+
+    on_the_way = []
+    for p in sights:
+        along_km, perp_km = _corridor_score(p, o_lat, o_lon, d_lat, d_lon, direct_km)
+        # keep points that fall between the two endpoints (with a little slack)
+        # and aren't too far off the direct line
+        if -10 <= along_km <= direct_km + 10 and perp_km <= max_detour_km:
+            q = dict(p)
+            q["along_km"] = round(along_km, 1)
+            q["perp_km"] = round(perp_km, 1)
+            on_the_way.append(q)
+
+    def pick_on_route(src, n, avoid=()):
+        # Divide the journey into n segments by along_km and pick the best
+        # candidate from EACH segment first, so stops spread across the whole
+        # trip rather than clustering at the fame-boosted endpoint cities
+        # (curated local landmarks make endpoints score well on perp+fame
+        # alone — without this bucketing, a midway town with no curated
+        # entry never wins a slot even when it's genuinely on the way).
+        avail = [p for p in src if p["name"] not in avoid]
+
+        def rank_key(p):
+            return p["perp_km"] * 1.5 - p.get("fame", 0)
+
+        seg_width = (direct_km + 20) / n   # small padding matches the -10..direct+10 slack above
+        buckets = [[] for _ in range(n)]
+        for p in avail:
+            idx = int((p["along_km"] + 10) // seg_width)
+            idx = max(0, min(n - 1, idx))
+            buckets[idx].append(p)
+
+        chosen, used_names = [], set()
+        for bucket in buckets:
+            bucket.sort(key=rank_key)
+            for p in bucket:
+                if p["name"] not in used_names:
+                    chosen.append(p)
+                    used_names.add(p["name"])
+                    break
+
+        if len(chosen) < n:   # some segments were empty — top up with the next-best remaining
+            ranked = sorted(avail, key=rank_key)
+            for p in ranked:
+                if len(chosen) >= n:
+                    break
+                if p["name"] not in used_names:
+                    chosen.append(p)
+                    used_names.add(p["name"])
+        return chosen[:n]
+
+    def build_ordered(selected):
+        ordered = sorted(selected, key=lambda x: x["along_km"])
+        route, cur, total = [], (o_lat, o_lon), 0.0
+        for s in ordered:
+            leg = round(haversine(cur[0], cur[1], s["lat"], s["lon"]), 1)
+            total += leg
+            s = dict(s)
+            s["leg_km"] = leg
+            s["do"] = _DO_LABEL.get(s["category"], "Visit this spot")
+            route.append(s)
+            cur = (s["lat"], s["lon"])
+        final_leg = round(haversine(cur[0], cur[1], d_lat, d_lon), 1)
+        return route, round(total + final_leg, 1), final_leg
+
+    main_sel = pick_on_route(on_the_way, stops)
+    main_route, main_total, main_final_leg = build_ordered(main_sel)
+    _attach_food(main_route, food_pool)
+    _attach_images(main_route)
+
+    used_names = {s["name"] for s in main_route}
+    alt_sel = pick_on_route(on_the_way, stops, avoid=used_names)
+    alt_route, alt_total, alt_final_leg = build_ordered(alt_sel)
+    _attach_food(alt_route, food_pool)
+
+    return {
+        "origin": {"place": origin_place, "display": o_display, "lat": o_lat, "lon": o_lon},
+        "destination": {"place": dest_place, "display": d_display, "lat": d_lat, "lon": d_lon},
+        "direct_km": direct_km, "mode": mode, "interests": interests,
+        "stops": len(main_route),
+        "route": main_route, "final_leg_km": main_final_leg, "total_km": main_total,
+        "alternative": {"route": alt_route, "final_leg_km": alt_final_leg, "total_km": alt_total,
+                        "stops": len(alt_route)} if alt_route else None,
+        "food_options": food_pool[:6],
+    }
+
+
 if __name__ == "__main__":
     import sys
     res = nearby_places(sys.argv[1] if len(sys.argv) > 1 else "Anand, Gujarat",

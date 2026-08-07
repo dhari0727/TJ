@@ -24,8 +24,63 @@ mysqli_stmt_bind_param($stmt,'s',$em); mysqli_stmt_execute($stmt);
 $plans = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 mysqli_stmt_close($stmt);
 
-// personalised picks (small set)
-$reco = ml_recommend(['eml'=>$em,'budget'=>null,'duration_days'=>5,'interests'=>[],'top_n'=>3]);
+// personalised picks — derive user context from their journal data
+$user_budget = null;
+$user_interests = [];
+$user_duration = 5;
+
+// average budget from user's journal expenses
+$emEsc = mysqli_real_escape_string($conn, $em);
+$br = @mysqli_query($conn, "SELECT AVG(CAST(d1.total AS DECIMAL(10,2))) avg_b
+    FROM db d LEFT JOIN db1 d1 ON d1.Title=d.Title AND d1.eml=d.eml
+    WHERE d.eml='$emEsc' AND d1.total IS NOT NULL AND d1.total > 0");
+if ($br && $row = mysqli_fetch_assoc($br)) {
+    if ($row['avg_b'] && $row['avg_b'] > 0) $user_budget = (float)$row['avg_b'];
+}
+
+// extract interests from recent journal descriptions + titles
+// keys MUST match CANONICAL_ACTIVITIES in ml/nlp/lexicon.py exactly
+$dr = @mysqli_query($conn, "SELECT Description, Title FROM db
+    WHERE eml='$emEsc' ORDER BY cd DESC LIMIT 8");
+if ($dr) {
+    $allText = '';
+    while ($r = mysqli_fetch_assoc($dr)) $allText .= ' ' . ($r['Description'] ?? '') . ' ' . ($r['Title'] ?? '');
+    $interests_gazetteer = [
+        'beach'=>['beach','beaches','shore','coast','sand','seaside','surf','snorkel','island'],
+        'trekking'=>['trek','trekking','hike','hiking','trail','trails'],
+        'food'=>['food','cuisine','restaurant','cafe','dining','culinary','spice','biryani','curry','street food','delicacies'],
+        'nightlife'=>['nightlife','bar','club','party','pub'],
+        'history'=>['history','historic','ancient','heritage','ruins','fort','forts','palace','castle'],
+        'temples'=>['temple','temples','shrine','monastery','spiritual','pilgrimage','ghat','ghats','aarti'],
+        'museums'=>['museum','museums','gallery','galleries','exhibition','art'],
+        'shopping'=>['shopping','market','bazaar','souvenir','souvenirs','handicraft','boutique'],
+        'wildlife'=>['wildlife','safari','jungle','national park','sanctuary','birds','tiger','elephant'],
+        'adventure'=>['adventure','rafting','paragliding','zip line','ziplining','bungee','kayak','thrill'],
+        'relaxation'=>['relax','relaxation','relaxing','spa','peaceful','serene','unwind','tranquil','calm'],
+        'photography'=>['photography','photo','photos','photogenic','instagram','scenic','viewpoint','views'],
+        'nature'=>['nature','waterfall','waterfalls','lake','valley','forest','gardens','tea garden','meadow','meadows'],
+        'culture'=>['culture','cultural','tradition','traditional','festival','local life','village','tribal'],
+        'backwaters'=>['backwater','backwaters','houseboat'],
+        'mountains'=>['mountain','mountains','himalaya','himalayas','peak','hills','hill station','summit'],
+        'desert'=>['desert','dunes','rann','sand dunes'],
+        'snow'=>['snow','snowfall','ski','skiing','snowy','glacier'],
+        'diving'=>['diving','scuba','snorkel','snorkeling','reef'],
+        'architecture'=>['architecture','architectural','monument','cathedral','mosque','buildings','old town'],
+    ];
+    foreach ($interests_gazetteer as $canonical => $keywords) {
+        foreach ($keywords as $kw) {
+            if (stripos($allText, $kw) !== false) { $user_interests[] = $canonical; break; }
+        }
+    }
+}
+
+$reco = ml_recommend([
+    'eml'=>$em,
+    'budget'=>$user_budget,
+    'duration_days'=>$user_duration,
+    'interests'=>$user_interests,
+    'top_n'=>6
+]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -146,6 +201,7 @@ $reco = ml_recommend(['eml'=>$em,'budget'=>null,'duration_days'=>5,'interests'=>
       <a href="plan-trip.php"><span class="qi"><?= ja_icon('search',26) ?></span>Plan a Trip<span class="ja-muted" style="font-weight:400;font-size:.85rem">AI recommendations</span></a>
       <a href="new-entry.php"><span class="qi"><?= ja_icon('pen',26) ?></span>New Journal<span class="ja-muted" style="font-weight:400;font-size:.85rem">Record a trip</span></a>
       <a href="my-entries.php"><span class="qi"><?= ja_icon('book',26) ?></span>My Entries<span class="ja-muted" style="font-weight:400;font-size:.85rem"><?= count($entries) ? count($entries).' recent' : 'Start your journal' ?></span></a>
+      <a href="my-storybooks.php"><span class="qi"><?= ja_icon('book',26) ?></span>Storybooks<span class="ja-muted" style="font-weight:400;font-size:.85rem">Themed journals</span></a>
       <a href="analytics.php"><span class="qi"><?= ja_icon('chart',26) ?></span>Analytics<span class="ja-muted" style="font-weight:400;font-size:.85rem">Explore insights</span></a>
     </div>
 

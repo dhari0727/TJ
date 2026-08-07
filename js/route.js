@@ -17,13 +17,15 @@
   }
 
   function recompute(route) {
-    // recompute leg distances + total from origin through the (possibly edited) list
+    // recompute leg distances + total from origin through the (possibly edited) list.
+    // Point-to-point routes end AT the destination, not back at the origin.
     var o = activeOrigin(), cur = [o.lat, o.lon], total = 0;
     route.forEach(function (s) {
       var leg = Math.round(haversine(cur[0], cur[1], s.lat, s.lon) * 10) / 10;
       s.leg_km = leg; total += leg; cur = [s.lat, s.lon];
     });
-    var back = Math.round(haversine(cur[0], cur[1], o.lat, o.lon) * 10) / 10;
+    var endPoint = D.destination ? [D.destination.lat, D.destination.lon] : [o.lat, o.lon];
+    var back = Math.round(haversine(cur[0], cur[1], endPoint[0], endPoint[1]) * 10) / 10;
     return { total: Math.round((total + back) * 10) / 10, back: back };
   }
 
@@ -88,7 +90,12 @@
     var pts = [[o.lat, o.lon]];
     L.marker([o.lat, o.lon]).addTo(layer).bindPopup('Start');
     route.forEach(function (s, i) { pts.push([s.lat, s.lon]); L.marker([s.lat, s.lon]).addTo(layer).bindPopup((i + 1) + '. ' + s.name); });
-    pts.push([o.lat, o.lon]);
+    if (D.destination) {
+      pts.push([D.destination.lat, D.destination.lon]);
+      L.marker([D.destination.lat, D.destination.lon]).addTo(layer).bindPopup('Destination');
+    } else {
+      pts.push([o.lat, o.lon]);
+    }
     L.polyline(pts, { color: '#0E7C86', weight: 3, opacity: .8, dashArray: '6 6' }).addTo(layer);
     if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.15));
   }

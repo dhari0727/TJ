@@ -1,0 +1,1236 @@
+/* ============================================================
+   STORYBOOK CSS — Travel Journal Storybook Feature
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. THEME DEFAULTS
+   ------------------------------------------------------------ */
+
+:root,
+[data-sb-theme="floral"] {
+  --sb-bg: #FFF5F7;
+  --sb-surface: #FFFFFF;
+  --sb-text: #2D2226;
+  --sb-text-dim: #8C7A80;
+  --sb-accent: #D4758C;
+  --sb-accent2: #A3C9A8;
+  --sb-border: #E8D5DA;
+  --sb-paper: #FFFBFC;
+  --sb-shadow: 0 2px 12px rgba(212, 117, 140, 0.12);
+  --sb-slot-bg: #FFF0F3;
+  --sb-slot-border: #E8C4CC;
+  --sb-font-display: 'Playfair Display', serif;
+  --sb-font-body: 'Lora', serif;
+  --sb-font-hand: 'Caveat', cursive;
+}
+
+[data-sb-theme="dark-academia"] {
+  --sb-bg: #1A1612;
+  --sb-surface: #252017;
+  --sb-text: #E8DCC8;
+  --sb-text-dim: #9A8C74;
+  --sb-accent: #C9A96E;
+  --sb-accent2: #6B8F71;
+  --sb-border: #3D3328;
+  --sb-paper: #2C2519;
+  --sb-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --sb-slot-bg: #2A231A;
+  --sb-slot-border: #4A3F32;
+  --sb-font-display: 'DM Serif Display', serif;
+  --sb-font-body: 'Lora', serif;
+  --sb-font-hand: 'Caveat', cursive;
+}
+
+[data-sb-theme="retro-travel"] {
+  --sb-bg: #F5E6C8;
+  --sb-surface: #FFF8EC;
+  --sb-text: #3A2E1F;
+  --sb-text-dim: #8C7B64;
+  --sb-accent: #D35400;
+  --sb-accent2: #2980B9;
+  --sb-border: #D4C4A8;
+  --sb-paper: #FFFBF0;
+  --sb-shadow: 0 2px 12px rgba(211, 84, 0, 0.1);
+  --sb-slot-bg: #F0E2C0;
+  --sb-slot-border: #C8B896;
+  --sb-font-display: 'Playfair Display', serif;
+  --sb-font-body: 'Inter', sans-serif;
+  --sb-font-hand: 'Caveat', cursive;
+}
+
+[data-sb-theme="minimal"] {
+  --sb-bg: #FAFAFA;
+  --sb-surface: #FFFFFF;
+  --sb-text: #1A1A1A;
+  --sb-text-dim: #888888;
+  --sb-accent: #1A1A1A;
+  --sb-accent2: #555555;
+  --sb-border: #E0E0E0;
+  --sb-paper: #FFFFFF;
+  --sb-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  --sb-slot-bg: #F5F5F5;
+  --sb-slot-border: #CCCCCC;
+  --sb-font-display: 'Space Mono', monospace;
+  --sb-font-body: 'Inter', sans-serif;
+  --sb-font-hand: 'Inter', sans-serif;
+}
+
+[data-sb-theme="y2k"] {
+  --sb-bg: #FFE8F5;
+  --sb-surface: #FFFFFF;
+  --sb-text: #1A0A2E;
+  --sb-text-dim: #8A6FA0;
+  --sb-accent: #FF2D9B;
+  --sb-accent2: #00D4FF;
+  --sb-border: #FFB8D9;
+  --sb-paper: #FFFBFE;
+  --sb-shadow: 0 2px 12px rgba(255, 45, 155, 0.15);
+  --sb-slot-bg: #FFE0F0;
+  --sb-slot-border: #FFA0D0;
+  --sb-font-display: 'Space Mono', monospace;
+  --sb-font-body: 'Inter', sans-serif;
+  --sb-font-hand: 'Caveat', cursive;
+}
+
+[data-sb-theme="moody-film"] {
+  --sb-bg: #1C1916;
+  --sb-surface: #262220;
+  --sb-text: #D8CCBA;
+  --sb-text-dim: #8A7E6E;
+  --sb-accent: #C4956A;
+  --sb-accent2: #7A8B6E;
+  --sb-border: #3A3530;
+  --sb-paper: #2A2622;
+  --sb-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --sb-slot-bg: #2E2A26;
+  --sb-slot-border: #4A443E;
+  --sb-font-display: 'Lora', serif;
+  --sb-font-body: 'Inter', sans-serif;
+  --sb-font-hand: 'Caveat', cursive;
+}
+
+[data-sb-theme="cottagecore"] {
+  --sb-bg: #F0EDE4;
+  --sb-surface: #F8F6F0;
+  --sb-text: #3A352A;
+  --sb-text-dim: #8A8578;
+  --sb-accent: #5E8B5A;
+  --sb-accent2: #C4956A;
+  --sb-border: #D8D4C8;
+  --sb-paper: #FDFCFA;
+  --sb-shadow: 0 2px 12px rgba(94, 139, 90, 0.1);
+  --sb-slot-bg: #EAE6DC;
+  --sb-slot-border: #C8C4B8;
+  --sb-font-display: 'Lora', serif;
+  --sb-font-body: 'Lora', serif;
+  --sb-font-hand: 'Caveat', cursive;
+}
+
+/* Shared sizing */
+:root {
+  --sb-page-w: 480px;
+  --sb-page-h: 680px;
+  --sb-page-pad: 40px;
+}
+
+/* ------------------------------------------------------------
+   2. STORYBOOK SHELL
+   ------------------------------------------------------------ */
+
+.sb-shell {
+  min-height: 100vh;
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  font-family: var(--sb-font-body);
+}
+
+.sb-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--sb-surface);
+  border-bottom: 1px solid var(--sb-border);
+  backdrop-filter: blur(8px);
+}
+
+.sb-toolbar-title {
+  font-family: var(--sb-font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.sb-toolbar-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--sb-text-dim);
+}
+
+.sb-toolbar-breadcrumb span {
+  color: var(--sb-text-dim);
+}
+
+.sb-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ------------------------------------------------------------
+   3. BUTTONS
+   ------------------------------------------------------------ */
+
+.sb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--sb-font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid var(--sb-border);
+  border-radius: 8px;
+  background: var(--sb-surface);
+  color: var(--sb-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.sb-btn:hover {
+  border-color: var(--sb-accent);
+}
+
+.sb-btn-primary {
+  background: var(--sb-accent);
+  color: #FFFFFF;
+  border-color: var(--sb-accent);
+}
+
+.sb-btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.sb-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--sb-text-dim);
+}
+
+.sb-btn-ghost:hover {
+  color: var(--sb-text);
+  background: var(--sb-slot-bg);
+}
+
+.sb-btn-sm {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}
+
+.sb-btn-danger {
+  background: #DC3545;
+  color: #FFFFFF;
+  border-color: #DC3545;
+}
+
+.sb-btn-danger:hover {
+  background: #C82333;
+  border-color: #C82333;
+}
+
+.sb-btn-icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+/* ------------------------------------------------------------
+   4. EDITOR LAYOUT
+   ------------------------------------------------------------ */
+
+.sb-editor {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  min-height: calc(100vh - 50px);
+}
+
+@media (max-width: 860px) {
+  .sb-editor {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ------------------------------------------------------------
+   5. THUMBNAIL SIDEBAR
+   ------------------------------------------------------------ */
+
+.sb-thumbbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--sb-border);
+  background: var(--sb-surface);
+  overflow-y: auto;
+  max-height: calc(100vh - 50px);
+}
+
+@media (max-width: 860px) {
+  .sb-thumbbar {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: none;
+    border-bottom: 1px solid var(--sb-border);
+    max-height: none;
+    padding: 10px 16px;
+  }
+}
+
+.sb-thumb {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 480 / 680;
+  border: 2px solid var(--sb-border);
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--sb-paper);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .sb-thumb {
+    width: 72px;
+  }
+}
+
+.sb-thumb:hover {
+  border-color: var(--sb-accent);
+}
+
+.sb-thumb.active {
+  border-color: var(--sb-accent);
+  box-shadow: 0 0 0 2px rgba(212, 117, 140, 0.25);
+}
+
+.sb-thumb-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.sb-thumb-num {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--sb-accent);
+  color: #FFFFFF;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.sb-thumb-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #FFFFFF;
+  font-size: 0.6rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.sb-thumb:hover .sb-thumb-delete {
+  opacity: 1;
+}
+
+.sb-add-page-btn {
+  width: 100%;
+  aspect-ratio: 480 / 680;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--sb-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--sb-text-dim);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .sb-add-page-btn {
+    width: 72px;
+  }
+}
+
+.sb-add-page-btn:hover {
+  border-color: var(--sb-accent);
+  color: var(--sb-accent);
+}
+
+/* ------------------------------------------------------------
+   6. CANVAS
+   ------------------------------------------------------------ */
+
+.sb-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 20px 80px;
+  overflow-y: auto;
+}
+
+.sb-page-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ------------------------------------------------------------
+   7. THE PAGE
+   ------------------------------------------------------------ */
+
+.sb-page {
+  position: relative;
+  width: var(--sb-page-w);
+  max-width: 100%;
+  aspect-ratio: 480 / 680;
+  background: var(--sb-paper);
+  border: 1px solid var(--sb-border);
+  border-radius: 6px;
+  box-shadow: var(--sb-shadow);
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.sb-page-inner {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sb-page-pad);
+  height: 100%;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------
+   8. TEMPLATE LAYOUTS
+   ------------------------------------------------------------ */
+
+/* Cover template */
+.sb-tpl-cover {
+  display: grid;
+  grid-template-rows: 1fr auto auto auto;
+  grid-template-areas:
+    "hero"
+    "title"
+    "date"
+    "hand";
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.sb-tpl-cover .sb-slot.hero {
+  grid-area: hero;
+  justify-self: center;
+  width: 80%;
+  height: auto;
+}
+
+.sb-tpl-cover .sb-page-title {
+  grid-area: title;
+}
+
+.sb-tpl-cover .sb-page-subtitle {
+  grid-area: date;
+}
+
+.sb-tpl-cover .sb-hand-note {
+  grid-area: hand;
+  font-family: var(--sb-font-hand);
+  font-size: 1.2rem;
+  color: var(--sb-text-dim);
+}
+
+/* Photo + Caption */
+.sb-tpl-photo-caption {
+  display: grid;
+  grid-template-rows: 65% 1fr;
+  gap: 12px;
+}
+
+.sb-tpl-photo-caption .sb-slot.main-photo {
+  width: 100%;
+}
+
+/* Two Photos side-by-side */
+.sb-tpl-two-photo {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 12px;
+}
+
+.sb-tpl-two-photo .sb-photo-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sb-tpl-two-photo .sb-photo-row .sb-slot {
+  width: 100%;
+}
+
+/* Text-only story */
+.sb-tpl-story {
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--sb-page-pad) * 1.2);
+  gap: 16px;
+  justify-content: center;
+}
+
+/* Cost card */
+.sb-tpl-cost-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+}
+
+.sb-tpl-cost-card .sb-cost-title {
+  font-family: var(--sb-font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--sb-border);
+}
+
+.sb-tpl-cost-card .sb-cost-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-cost-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--sb-border);
+  font-family: var(--sb-font-body);
+  font-size: 0.9rem;
+}
+
+.sb-cost-row .sb-cost-label {
+  color: var(--sb-text-dim);
+}
+
+.sb-cost-row .sb-cost-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-cost-row.total {
+  border-bottom: none;
+  border-top: 2px solid var(--sb-accent);
+  margin-top: 4px;
+  padding-top: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Photo grid (2x2) */
+.sb-tpl-photo-grid {
+  display: grid;
+  grid-template-rows: 1fr 1fr auto;
+  gap: 10px;
+}
+
+.sb-tpl-photo-grid .sb-grid-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------
+   9. PHOTO SLOTS
+   ------------------------------------------------------------ */
+
+.sb-slot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  border: 2px dashed var(--sb-slot-border);
+  border-radius: 8px;
+  background: var(--sb-slot-bg);
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.sb-slot:hover {
+  border-color: var(--sb-accent);
+  box-shadow: 0 0 0 3px rgba(212, 117, 140, 0.15);
+}
+
+.sb-slot.filled {
+  border: none;
+  background: transparent;
+}
+
+.sb-slot-img,
+.sb-slot video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.sb-slot.filled .sb-slot-img {
+  border-radius: 4px;
+}
+
+.sb-slot-empty-hint {
+  font-size: 0.75rem;
+  color: var(--sb-text-dim);
+  pointer-events: none;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------
+   10. TEXT EDITING
+   ------------------------------------------------------------ */
+
+.sb-editable {
+  min-height: 1.5em;
+  padding: 4px 8px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-bottom: 1px dashed var(--sb-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.sb-editable:focus {
+  border-color: var(--sb-accent);
+  border-bottom-style: solid;
+}
+
+.sb-editable:empty::before {
+  content: attr(data-placeholder);
+  color: var(--sb-text-dim);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.sb-page-title {
+  font-family: var(--sb-font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.sb-page-subtitle {
+  font-family: var(--sb-font-hand);
+  font-size: 1.3rem;
+  color: var(--sb-text-dim);
+  line-height: 1.3;
+}
+
+.sb-page-body {
+  font-family: var(--sb-font-body);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  flex: 1;
+}
+
+/* ------------------------------------------------------------
+   11. DECORATIONS
+   ------------------------------------------------------------ */
+
+.sb-deco {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  font-size: 2rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+  z-index: 10;
+}
+
+.sb-deco:hover {
+  transform: scale(1.15);
+}
+
+/* ------------------------------------------------------------
+   12. WASHI TAPE / NOTEBOOK FEEL
+   ------------------------------------------------------------ */
+
+.sb-washi {
+  position: relative;
+}
+
+.sb-washi::before,
+.sb-washi::after {
+  content: '';
+  position: absolute;
+  width: 48px;
+  height: 14px;
+  background: var(--sb-accent);
+  opacity: 0.35;
+  border-radius: 2px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.sb-washi::before {
+  top: -5px;
+  left: 12px;
+  transform: rotate(-3deg);
+}
+
+.sb-washi::after {
+  bottom: -5px;
+  right: 12px;
+  transform: rotate(2deg);
+}
+
+.sb-tape-photo {
+  position: relative;
+  transform: rotate(2deg);
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Slight, intentional imperfection on multi-photo layouts — reads as
+   placed-by-hand rather than machine-gridded. Kept subtle (<2deg). */
+.sb-tpl-two-photo .sb-photo-row .sb-slot:nth-child(1) { transform: rotate(-1.4deg); }
+.sb-tpl-two-photo .sb-photo-row .sb-slot:nth-child(2) { transform: rotate(1.2deg); }
+.sb-tpl-photo-grid .sb-grid-2x2 .sb-slot:nth-child(1) { transform: rotate(-1deg); }
+.sb-tpl-photo-grid .sb-grid-2x2 .sb-slot:nth-child(2) { transform: rotate(0.8deg); }
+.sb-tpl-photo-grid .sb-grid-2x2 .sb-slot:nth-child(3) { transform: rotate(0.6deg); }
+.sb-tpl-photo-grid .sb-grid-2x2 .sb-slot:nth-child(4) { transform: rotate(-0.9deg); }
+
+/* Pull-quote treatment for photo captions — an editorial caption reads as
+   authored, not just a generic <figcaption>. */
+.sb-tpl-photo-caption .sb-page-subtitle,
+.sb-tpl-photo-caption .sb-page-body {
+  font-family: var(--sb-font-body);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.55;
+  padding-left: 16px;
+  border-left: 3px solid var(--sb-accent);
+  color: var(--sb-text);
+}
+
+/* Deckle/torn-edge divider — a hand-torn-paper texture instead of a flat
+   ruled line, for separating sections within a page. */
+.sb-deckle {
+  height: 8px;
+  margin: 6px 0;
+  opacity: 0.55;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--sb-border) 0,
+    var(--sb-border) 3px,
+    transparent 3px,
+    transparent 7px
+  );
+}
+
+/* ------------------------------------------------------------
+   13. PROGRESS INDICATOR
+   ------------------------------------------------------------ */
+
+.sb-progress {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 20px;
+  background: var(--sb-surface);
+  border-top: 1px solid var(--sb-border);
+  font-size: 0.8rem;
+  color: var(--sb-text-dim);
+  z-index: 40;
+}
+
+/* ------------------------------------------------------------
+   14. TEMPLATE PICKER MODAL
+   ------------------------------------------------------------ */
+
+.sb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(2px);
+}
+
+.sb-modal {
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+  max-width: 640px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.sb-modal-title {
+  font-family: var(--sb-font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.sb-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.sb-modal-grid .sb-template-card {
+  aspect-ratio: 480 / 680;
+  border: 2px solid var(--sb-border);
+  border-radius: 8px;
+  background: var(--sb-paper);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  gap: 6px;
+  text-align: center;
+}
+
+.sb-modal-grid .sb-template-card:hover {
+  border-color: var(--sb-accent);
+  box-shadow: 0 2px 12px rgba(212, 117, 140, 0.15);
+}
+
+.sb-modal-grid .sb-template-card .sb-template-icon {
+  font-size: 1.6rem;
+}
+
+.sb-modal-grid .sb-template-card .sb-template-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sb-text);
+}
+
+/* ------------------------------------------------------------
+   15. EMOJI PICKER
+   ------------------------------------------------------------ */
+
+.sb-emoji-picker {
+  position: absolute;
+  background: var(--sb-surface);
+  border: 1px solid var(--sb-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  z-index: 90;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-width: 300px;
+}
+
+.sb-emoji-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: transform 0.1s ease;
+}
+
+.sb-emoji-btn:hover {
+  transform: scale(1.2);
+  background: var(--sb-slot-bg);
+}
+
+/* ------------------------------------------------------------
+   16. THEME PICKER
+   ------------------------------------------------------------ */
+
+.sb-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.sb-theme-card {
+  border: 2px solid var(--sb-border);
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  background: var(--sb-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sb-theme-card:hover {
+  border-color: var(--sb-accent);
+}
+
+.sb-theme-card.active {
+  border-color: var(--sb-accent);
+  box-shadow: 0 0 0 2px rgba(212, 117, 140, 0.25);
+}
+
+.sb-theme-card .sb-theme-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-family: var(--sb-font-display);
+}
+
+.sb-theme-swatch {
+  display: flex;
+  gap: 4px;
+}
+
+.sb-theme-swatch span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  display: inline-block;
+}
+
+/* ------------------------------------------------------------
+   17. VIEW MODE
+   ------------------------------------------------------------ */
+
+.sb-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 120px;
+}
+
+.sb-viewer .sb-page {
+  margin-bottom: 20px;
+}
+
+.sb-viewer-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.sb-viewer-page-counter {
+  font-size: 0.85rem;
+  color: var(--sb-text-dim);
+  font-family: var(--sb-font-body);
+}
+
+.sb-viewer-deco {
+  font-size: 1.4rem;
+  color: var(--sb-text-dim);
+  opacity: 0.4;
+  margin: 8px 0;
+  user-select: none;
+}
+
+/* ------------------------------------------------------------
+   18. DISCOVER GRID
+   ------------------------------------------------------------ */
+
+.sb-discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.sb-discover-card {
+  border: 1px solid var(--sb-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--sb-surface);
+  box-shadow: var(--sb-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.sb-discover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.sb-discover-cover {
+  width: 100%;
+  aspect-ratio: 480 / 680;
+  object-fit: cover;
+  display: block;
+  background: var(--sb-slot-bg);
+}
+
+.sb-discover-card .sb-discover-info {
+  padding: 14px;
+}
+
+.sb-discover-card .sb-discover-title {
+  font-family: var(--sb-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.sb-discover-card .sb-discover-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--sb-text-dim);
+}
+
+.sb-discover-card .sb-theme-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--sb-slot-bg);
+  border: 1px solid var(--sb-border);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--sb-text-dim);
+  text-transform: capitalize;
+}
+
+/* ------------------------------------------------------------
+   19. MY STORYBOOKS GRID
+   ------------------------------------------------------------ */
+
+.sb-my-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 18px;
+  padding: 20px;
+}
+
+.sb-my-card {
+  border: 1px solid var(--sb-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--sb-surface);
+  box-shadow: var(--sb-shadow);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.sb-my-card:hover {
+  transform: translateY(-2px);
+}
+
+.sb-my-card .sb-my-cover {
+  width: 100%;
+  aspect-ratio: 480 / 680;
+  object-fit: cover;
+  display: block;
+  background: var(--sb-slot-bg);
+}
+
+.sb-my-card .sb-my-info {
+  padding: 12px;
+}
+
+.sb-my-card .sb-my-title {
+  font-family: var(--sb-font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.sb-my-card .sb-my-meta {
+  font-size: 0.75rem;
+  color: var(--sb-text-dim);
+  display: flex;
+  gap: 8px;
+}
+
+.sb-my-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--sb-text-dim);
+}
+
+.sb-my-empty .sb-my-empty-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.sb-my-empty .sb-my-empty-text {
+  font-size: 1rem;
+  margin-bottom: 16px;
+}
+
+/* ------------------------------------------------------------
+   20. PRINT STYLESHEET
+   ------------------------------------------------------------ */
+
+@media print {
+  .sb-toolbar,
+  .sb-thumbbar,
+  .sb-btn,
+  .sb-modal-overlay,
+  .sb-emoji-picker,
+  .sb-progress,
+  .sb-viewer-nav,
+  .sb-editor,
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A5 portrait;
+    margin: 15mm;
+  }
+
+  body,
+  .sb-shell,
+  .sb-canvas,
+  .sb-viewer {
+    background: #FFFFFF !important;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sb-page {
+    width: 148mm;
+    height: 210mm;
+    break-after: page;
+    break-inside: avoid;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin: 0 auto;
+  }
+
+  .sb-page-inner {
+    height: 100%;
+    padding: 10mm;
+  }
+
+  .sb-slot-img,
+  .sb-slot video {
+    border: none !important;
+  }
+
+  .sb-deco {
+    position: static !important;
+  }
+
+  .sb-deco:hover {
+    transform: none !important;
+  }
+
+  .sb-washi::before,
+  .sb-washi::after {
+    background: #999 !important;
+  }
+
+  .sb-tape-photo {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .sb-slot:hover {
+    border-color: var(--sb-slot-border) !important;
+    box-shadow: none !important;
+  }
+
+  .sb-editable:focus {
+    border-color: transparent !important;
+    border-bottom-color: var(--sb-border) !important;
+  }
+}
+
+/* ------------------------------------------------------------
+   21. REDUCED MOTION
+   ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

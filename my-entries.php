@@ -38,7 +38,10 @@ mysqli_stmt_close($stmt);
         <h1>My Entries</h1>
         <p class="sub"><?= count($rows) ?> trip<?= count($rows)===1?'':'s' ?> recorded.</p>
       </div>
-      <a href="new-entry.php" class="ja-btn ja-btn-primary" data-magnetic>+ New entry</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="new-entry.php" class="ja-btn ja-btn-primary" data-magnetic>+ New entry</a>
+        <a href="storybook-create.php" class="ja-btn ja-btn-ghost" data-magnetic>+ New storybook</a>
+      </div>
     </div>
   </div>
 </div>

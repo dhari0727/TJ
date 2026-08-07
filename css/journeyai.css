@@ -522,6 +522,9 @@ textarea.ja-input{resize:vertical;font-family:var(--font-body)}
 .ja-eat-chip{display:inline-flex;gap:4px;padding:3px 10px;border-radius:100px;background:var(--bg-2);
   color:var(--ja-teal);font-size:.8rem;font-weight:500;transition:.2s}
 .ja-eat-chip:hover{background:var(--ja-aqua);color:#04303a}
+.ja-hl-strip{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 16px}
+.ja-hl-chip{display:inline-flex;gap:5px;align-items:center;padding:5px 12px;border-radius:100px;
+  background:var(--bg-2);color:var(--ja-teal);font-size:.82rem;font-weight:500}
 .ja-route-map{font-size:.82rem;color:var(--text-mut);margin-top:8px;display:inline-flex;gap:5px;align-items:center}
 .ja-route-map:hover{color:var(--ja-teal)}
 .ja-route-remove{flex:none;width:32px;height:32px;border-radius:9px;border:1px solid var(--brd);background:transparent;

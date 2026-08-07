@@ -11,7 +11,7 @@ so it ALWAYS works even with no Gemini quota.
 """
 import re
 
-from ml.geo.places import nearby_places, build_route
+from ml.geo.places import nearby_places, build_route, build_route_between
 from ml.cost.predict import predict_cost
 
 _INTEREST_WORDS = {
@@ -31,16 +31,25 @@ _INTEREST_WORDS = {
 
 
 def parse(text):
-    """Regex-based intent parse. Returns dict {origin, days, budget, interests, mode}."""
+    """Regex-based intent parse. Returns dict {origin, destination, days, budget, interests, mode}."""
     t = (text or "").lower()
 
     # origin extraction. "from X" is the strongest origin signal; try it first,
     # then "near/around/in/at X". Stop at commas/interest/budget words. Handle
     # "near me" specially (caller resolves geolocation).
     origin = None
+    destination = None
     _STOP = (r"(?=\s*(?:,|\bwith\b|\bfor\b|\band\b|\bbudget\b|\bunder\b|\brs\b|₹|\bwant\b|\blike\b|"
              r"\btemple|\bfood|\bbeach|\bhistor|\bnature|\bgarden|\bmuseum|\bshop|\badventure|"
              r"\btrek|\bwildlife|\bnight|\brelax|\bplaces?\b|\bvisit\b|\bday\b|\d|$))")
+    # "from X to Y" / "X to Y route" — a fixed two-point trip, check BEFORE the
+    # plain "from X" pattern so it doesn't swallow "to Y" into the origin.
+    m = re.search(r"\bfrom\s+([a-z][a-z .'-]{1,40}?)\s+to\s+([a-z][a-z .'-]{1,40}?)" + _STOP, t)
+    if not m:
+        m = re.search(r"\b([a-z][a-z .'-]{1,40}?)\s+to\s+([a-z][a-z .'-]{1,40}?)\s+(?:route|trip|road\s*trip)\b", t)
+    if m:
+        origin = m.group(1).strip(" .,")
+        destination = m.group(2).strip(" .,")
     if re.search(r"\bnear\s+me\b", t):
         origin = "near me"    # sentinel — caller swaps in the user's city
     if not origin:
@@ -93,7 +102,7 @@ def parse(text):
     if days is None:
         days = 2
     mode = "day" if days <= 1 else ("weekend" if days <= 2 else ("short" if days <= 5 else "long"))
-    return {"origin": origin, "days": days, "budget": budget,
+    return {"origin": origin, "destination": destination, "days": days, "budget": budget,
             "interests": interests, "mode": mode}
 
 
@@ -105,7 +114,10 @@ def parse_with_llm(text):
             return parse(text)
         prompt = (
             "Extract travel intent from this request as strict JSON with keys "
-            "origin(string or null), days(int), budget(int rupees or null), "
+            "origin(string or null), destination(string or null — ONLY set if the "
+            "request names a fixed end point for a route, e.g. 'from Ahmedabad to "
+            "Vadodara' or 'Surat to Diu road trip'; leave null for a normal "
+            "single-place/nearby request), days(int), budget(int rupees or null), "
             "interests(array from: temples,food,beach,history,nature,gardens,museums,"
             "shopping,adventure,trekking,wildlife,nightlife,relaxation). "
             "Request: " + text + "\nReturn ONLY the JSON object."
@@ -117,7 +129,7 @@ def parse_with_llm(text):
         if mt:
             d = json.loads(mt.group(0))
             days = int(d.get("days") or 2)
-            return {"origin": d.get("origin"), "days": days,
+            return {"origin": d.get("origin"), "destination": d.get("destination"), "days": days,
                     "budget": d.get("budget"), "interests": d.get("interests") or [],
                     "mode": "day" if days <= 1 else ("weekend" if days <= 2 else ("short" if days <= 5 else "long"))}
     except Exception:
@@ -137,11 +149,23 @@ def plan(text, travel_style="mid-range"):
     days = intent["days"]
     interests = intent["interests"]
     mode = intent["mode"]
+    fixed_destination = intent.get("destination")
 
     result = {"intent": intent, "origin_text": origin, "days": days,
               "interests": interests, "budget": intent["budget"]}
 
-    if mode in ("day", "weekend"):
+    if fixed_destination:
+        # explicit "from X to Y" — a fixed two-point route, not a round trip
+        route = build_route_between(origin, fixed_destination, interests=interests,
+                                     stops=min(6, max(3, days * 3)))
+        if "error" in route:
+            return {"error": route["error"], "intent": intent}
+        result["route"] = route
+        result["origin_geo"] = route.get("origin")
+        result["destination_geo"] = route.get("destination")
+        result["kind"] = "route_between"
+        result["est_cost"] = days * (1500 if travel_style == "budget" else 2500)
+    elif mode in ("day", "weekend"):
         # LOCAL trip -> real nearby places + a route
         route = build_route(origin, mode=mode, interests=interests, stops=min(6, max(3, days * 3)))
         if "error" in route:
@@ -156,7 +180,21 @@ def plan(text, travel_style="mid-range"):
         # rough cost = days * a daily local estimate
         result["est_cost"] = days * (1500 if travel_style == "budget" else 2500)
     else:
-        # LONGER trip -> destination recommendations
+        # LONGER trip. If the user named a real, known destination (e.g. "3 days
+        # in Dwarka"), build ITS itinerary directly — don't second-guess them
+        # with unrelated "best matches" just because the trip is 3+ days.
+        # Only fall back to destination recommendations when no place was named
+        # or it's not a destination our catalog/itinerary generator recognizes.
+        from ml.itinerary.generate import generate as generate_itinerary
+        itin = generate_itinerary(origin, days=days, travel_style=travel_style,
+                                   party_size=1) if origin else {"error": "no origin"}
+        if "error" not in itin:
+            result["itinerary"] = itin
+            result["kind"] = "itinerary"
+            result["est_cost"] = itin.get("total_cost", days * (1500 if travel_style == "budget" else 2500))
+            return result
+
+        # LONGER trip, unrecognized place -> destination recommendations
         from ml.recommender.hybrid import get_recommender
         from ml.recommender.explain import explain
         recs = get_recommender().recommend(

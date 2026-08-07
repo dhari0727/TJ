@@ -4,13 +4,16 @@ session_start();
 require 'ml_client.php';
 
 $place = trim($_GET['place'] ?? '');
+$destination = trim($_GET['destination'] ?? '');
 $mode  = $_GET['mode'] ?? 'day';
 $stops = max(2, min(8, (int)($_GET['stops'] ?? 4)));
 $interests = array_filter(array_map('trim', explode(',', $_GET['interests'] ?? '')));
 
-$r = $place ? ml_request('POST','/route', [
-    'place'=>$place,'mode'=>$mode,'interests'=>array_values($interests),'stops'=>$stops
-], 60) : ['__error'=>'No starting point given.'];
+$reqBody = ['place'=>$place,'mode'=>$mode,'interests'=>array_values($interests),'stops'=>$stops];
+if ($destination !== '') $reqBody['destination'] = $destination;
+
+$r = $place ? ml_request('POST','/route', $reqBody, 60) : ['__error'=>'No starting point given.'];
+$isBetween = ($destination !== '' && empty($r['__error']));
 
 $err = !empty($r['__error']) || ($r['status'] ?? '')==='error';
 
@@ -60,9 +63,14 @@ function render_stops($route, $origin){
 <div class="ja-pagehead">
   <div class="ja-container">
     <div class="ja-eyebrow"><?= ja_icon('compass',14) ?> Multi-stop route</div>
-    <h1>Your Route<?= $place ? ' from '.htmlspecialchars(explode(',',$place)[0]) : '' ?></h1>
-    <?php if (!$err): ?>
-      <p class="sub"><span id="rStops"><?= (int)$r['stops'] ?></span> stops · <span id="rKm"><?= (int)$r['total_km'] ?></span> km round trip · <?= htmlspecialchars($r['mode_label']) ?></p>
+    <?php if ($isBetween): ?>
+      <h1><?= htmlspecialchars(explode(',',$r['origin']['display'])[0]) ?> → <?= htmlspecialchars(explode(',',$r['destination']['display'])[0]) ?></h1>
+      <p class="sub"><span id="rStops"><?= (int)$r['stops'] ?></span> stops · <?= (float)$r['direct_km'] ?> km direct · <span id="rKm"><?= (int)$r['total_km'] ?></span> km with stops</p>
+    <?php else: ?>
+      <h1>Your Route<?= $place ? ' from '.htmlspecialchars(explode(',',$place)[0]) : '' ?></h1>
+      <?php if (!$err): ?>
+        <p class="sub"><span id="rStops"><?= (int)$r['stops'] ?></span> stops · <span id="rKm"><?= (int)$r['total_km'] ?></span> km round trip · <?= htmlspecialchars($r['mode_label']) ?></p>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 </div>
@@ -97,8 +105,12 @@ function render_stops($route, $origin){
             </div>
             <div id="stopsHost"><?php render_stops($r['route'], $r['origin']); ?></div>
             <div class="ja-route-stop origin">
-              <div class="ja-route-dot"><?= ja_icon('home',16) ?></div>
-              <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Return home · <span id="backKm"><?= (int)$r['return_km'] ?></span> km</span></div></div></div>
+              <div class="ja-route-dot"><?= ja_icon($isBetween ? 'map-pin' : 'home',16) ?></div>
+              <?php if ($isBetween): ?>
+                <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Arrive · <?= htmlspecialchars(explode(',',$r['destination']['display'])[0]) ?> · <span id="backKm"><?= (int)$r['final_leg_km'] ?></span> km</div></div></div>
+              <?php else: ?>
+                <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Return home · <span id="backKm"><?= (int)$r['return_km'] ?></span> km</span></div></div></div>
+              <?php endif; ?>
             </div>
           </div>
         </div>
