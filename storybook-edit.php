@@ -1,5 +1,5 @@
 <?php
-$ja_title = "Edit Storybook"; $ja_active = "storybooks";
+$ja_title = "Edit Storybook"; $ja_active = "entries";
 session_start();
 require 'connection.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
@@ -84,6 +84,7 @@ $theme = htmlspecialchars($book['theme']);
   <div class="sb-editor">
     <div class="sb-thumbbar" id="sbThumbbar">
       <div class="sb-thumbbar-head">Pages (<?= $pageCount ?>)</div>
+      <div class="sb-progress" id="sbProgress"><div class="sb-progress-bar"><span id="sbProgressFill"></span></div><div class="sb-progress-text" id="sbProgressText"></div></div>
       <label style="display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--sb-text-dim);padding:0 2px 8px">
         Reading order:
         <select id="sbPageOrderSelect" style="font-size:.72rem;border:1px solid var(--sb-border);border-radius:5px;background:var(--sb-paper);color:var(--sb-text);padding:2px 4px">
@@ -252,6 +253,75 @@ $theme = htmlspecialchars($book['theme']);
     return el;
   }
 
+  // ---- memory prompts: nudges so a blank page never feels like homework ----
+  var PROMPTS = [
+    'What did you eat today, and who were you with?',
+    'What surprised you most about this place?',
+    'Describe the sounds and smells around you right now.',
+    'What was the best moment of the day?',
+    'What would you tell a friend planning this trip?',
+    'Something that went wrong, and how it turned out fine.',
+    'A stranger you met, or a conversation you want to remember.',
+    'What did this place cost, and was it worth it?',
+    'The view you will remember in ten years.',
+    'Something you would do differently next time.'
+  ];
+  function promptsFor(pg) {
+    var out = [], n = PROMPTS.length, start = (pg.page_id * 7) % n;
+    for (var i = 0; i < 3; i++) out.push(PROMPTS[(start + i * 3) % n]);
+    return out;
+  }
+  function makePrompts(pg) {
+    if (['story', 'photo-caption', 'two-photo'].indexOf(pg.template) < 0) return null;
+    if ((pg.body_text || '').length > 60) return null;
+    var box = document.createElement('div'); box.className = 'sb-prompts';
+    box.innerHTML = '<div class="sb-prompts-label">Need a nudge?</div>';
+    promptsFor(pg).forEach(function(t){
+      var chip = document.createElement('button'); chip.type = 'button'; chip.className = 'sb-prompt-chip'; chip.textContent = t;
+      chip.addEventListener('click', function(){
+        pg.body_text = (pg.body_text ? pg.body_text + '\n' : '') + t + ' ';
+        savePage(pg.page_id, {body_text: pg.body_text});
+        renderThumbs(); renderCanvas();
+      });
+      box.appendChild(chip);
+    });
+    return box;
+  }
+  // ---- progress: how much of the book has actual content ----
+  function isFilled(pg) {
+    return !!(pg.photo_1 || pg.photo_2 || pg.photo_3 || pg.photo_4 || (pg.body_text || '').trim().length > 20 || pg.cost_entry_id);
+  }
+  function renderProgress() {
+    var fill = document.getElementById('sbProgressFill'), txt = document.getElementById('sbProgressText');
+    if (!fill) return;
+    var done = pages.filter(isFilled).length, total = pages.length;
+    fill.style.width = (total ? Math.round(done * 100 / total) : 0) + '%';
+    txt.textContent = total
+      ? (done === total ? 'All ' + total + ' pages filled. Ready to share!' : done + ' of ' + total + ' pages filled. Page ' + (activePageIdx + 1) + ' is waiting.')
+      : 'Start with page 1.';
+  }
+  // ---- cost card: live numbers from the linked journal entry ----
+  function loadEditorCost(pg, el) {
+    var dim = 'text-align:center;color:var(--sb-text-dim);padding:20px 0;font-size:.85rem';
+    if (!pg.cost_entry_id) {
+      el.innerHTML = '<div style="' + dim + '">No journal entry linked. Import an entry from My Storybooks to fill this card.</div>';
+      return;
+    }
+    el.innerHTML = '<div style="' + dim + '">Loading costs...</div>';
+    apiGet({action: 'get_cost', page_id: pg.page_id}).then(function(d){
+      if (!d || d.error || !d.has_data) { el.innerHTML = '<div style="' + dim + '">No costs recorded</div>'; return; }
+      var rows = [['Food', d.food_total], ['Transport', d.transport_total], ['Accommodation', d.accommodation_total], ['Shopping', d.shopping_total], ['Fees & Misc', d.fees_misc_total]]
+        .filter(function(r){ return (parseFloat(r[1]) || 0) > 0; })
+        .map(function(r){ return '<div class="sb-cost-row"><span class="sb-cost-label">' + esc(r[0]) + '</span><span class="sb-cost-value">₹' + parseFloat(r[1]).toLocaleString('en-IN') + '</span></div>'; });
+      var tot = parseFloat(d.true_total) || 0;
+      if (tot > 0) {
+        rows.push('<div class="sb-cost-row total"><span class="sb-cost-label">Total</span><span class="sb-cost-value">₹' + tot.toLocaleString('en-IN') + '</span></div>');
+        if (d.duration_days) rows.push('<div class="sb-cost-perday">about ₹' + Math.round(tot / d.duration_days).toLocaleString('en-IN') + ' per day over ' + d.duration_days + ' days</div>');
+      }
+      el.innerHTML = rows.join('') || '<div style="' + dim + '">No costs recorded</div>';
+    });
+  }
+
   function renderThumbs() {
     var list = document.getElementById('sbThumbList');
     list.innerHTML = '';
@@ -270,6 +340,7 @@ $theme = htmlspecialchars($book['theme']);
       btn.addEventListener('click', function(e){ e.stopPropagation(); deletePage(parseInt(this.getAttribute('data-del'))); });
     });
     document.querySelector('.sb-thumbbar-head').textContent = 'Pages ('+pages.length+')';
+    renderProgress();
   }
   function renderCanvas() {
     var canvas = document.getElementById('sbCanvas');
@@ -311,8 +382,8 @@ $theme = htmlspecialchars($book['theme']);
         var ct = document.createElement('div'); ct.className='sb-cost-title'; ct.textContent=pg.title||'Cost Breakdown';
         inner.appendChild(ct);
         var cb = document.createElement('div'); cb.className='sb-cost-rows';
-        cb.innerHTML='<div style="text-align:center;color:var(--sb-text-dim);padding:20px 0;font-size:.85rem">Cost data linked from journal entry</div>';
         inner.appendChild(cb);
+        loadEditorCost(pg, cb);
         break;
       case 'photos':
         var grid = document.createElement('div'); grid.className='sb-grid-2x2';
@@ -323,6 +394,9 @@ $theme = htmlspecialchars($book['theme']);
     }
 
     page.appendChild(inner); wrap.appendChild(page);
+    var badge = document.createElement('div'); badge.className = 'sb-page-badge'; badge.textContent = 'Page ' + (activePageIdx + 1) + ' of ' + pages.length;
+    wrap.insertBefore(badge, page);
+    var pr = makePrompts(pg); if (pr) wrap.appendChild(pr);
     canvas.innerHTML=''; canvas.appendChild(wrap);
   }
   function addPage(template) {

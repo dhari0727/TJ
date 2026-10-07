@@ -5,6 +5,7 @@
  */
 session_start();
 require 'ml_client.php';
+require_once __DIR__ . '/ja-lib.php';
 header('Content-Type: application/json');
 
 $raw = file_get_contents('php://input');
@@ -14,10 +15,15 @@ if (!is_array($in)) $in = [];
 $message = trim($in['message'] ?? '');
 if ($message === '') { echo json_encode(['reply'=>'Ask me anything about your trip!','cards'=>[]]); exit; }
 
+$location = trim((string)($in['location'] ?? ''));
+if ($location === '' && !empty($_SESSION['eml'])) {
+    $location = ja_user_prefs($_SESSION['eml'])['home_city'];   // saved home city from the profile
+}
+
 $payload = [
     'message'  => mb_substr($message, 0, 2000),
     'history'  => array_slice($in['history'] ?? [], -10),
-    'location' => $in['location'] ?? null,
+    'location' => mb_substr($location, 0, 120) ?: null,
     'eml'      => $_SESSION['eml'] ?? null,
 ];
 

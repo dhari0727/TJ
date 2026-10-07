@@ -1,5 +1,4 @@
 <?php
-error_reporting(0);
 $ja_title = "Discover Storybooks"; $ja_active = "feed";
 session_start();
 require 'connection.php';

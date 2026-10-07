@@ -1,5 +1,5 @@
 <?php
-$ja_title = "My Routes"; $ja_active = "routes";
+$ja_title = "My Routes"; $ja_active = "plans";
 session_start();
 require 'connection.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
@@ -31,7 +31,8 @@ require_once 'ja-icons.php';
 <div class="ja-pagehead">
   <div class="ja-container">
     <div class="ja-eyebrow"><?= ja_icon('compass',14) ?> Your trips</div>
-    <h1>My Routes</h1>
+    <h1>My Trips</h1>
+    <?php $ja_tab='routes'; include 'ja-trips-tabs.php'; ?>
     <p class="sub"><?= count($routes) ?> saved route<?= count($routes)===1?'':'s' ?>.</p>
   </div>
 </div>

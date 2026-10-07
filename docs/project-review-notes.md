@@ -1,127 +1,187 @@
-# JourneyAI — Project Review Prep
+# JourneyAI — Study Notes for Review
 
-## Role → Notebook mapping
+## Introduction (say this at the start)
 
-| Roll No. | Role | Notebook(s) |
+**Tagline (title slide):**
+> JourneyAI — the travel platform that explains itself.
+
+**30-second hook (opening line, read almost verbatim):**
+> Ask most travel apps for a recommendation and you get a confident answer with zero reasoning
+> behind it — and if you ask what your trip will actually cost, you get a guess, not a number
+> you can trust. JourneyAI fixes both problems. It's a travel platform where every recommendation
+> comes with a plain-English reason backed by real data, every cost estimate comes from a trained
+> model with a measured accuracy — and we built it end-to-end ourselves, from the raw data
+> collection to the machine learning to the web app you're about to see.
+
+**Full introduction (60-90 seconds, use if you have the floor for longer):**
+> Good [morning/afternoon]. We're presenting JourneyAI, a travel planning platform built around
+> one idea: an app should be able to explain itself.
+>
+> Most travel apps fall into one of two camps. Either they're a black box — you type in a few
+> preferences and get a ranked list with no visibility into why — or they're just a digital
+> notebook: you type in your trip, and nothing intelligent ever happens with that data. We
+> wanted neither. We built a system where the journal data people write actually trains the
+> models that power recommendations and cost predictions, and where every single output — a
+> recommended destination, a predicted budget — comes with a transparent, traceable reason.
+>
+> We also made a deliberate choice to go deep instead of wide. Rather than a shallow catalog
+> spanning the whole country, JourneyAI's machine learning is built on **103 real Gujarat
+> destinations** — researched individually, not scraped — so every number you'll see today is
+> grounded in a place that actually exists, with real attractions and realistic costs.
+>
+> Over the next few minutes we'll walk you through four pieces: how we generated and processed
+> the data, how we built an explainable recommendation engine, how we trained and validated a
+> cost-prediction model against real baselines, and how it all comes together live in the app.
+
+---
+
+## The numbers (memorize these)
+
+| What | Number |
+|---|---|
+| Gujarat towns we researched/curated (real landmarks, food) | **100** |
+| Destinations in our trainable ML catalog | **103** (the 100 towns → 88 usable entries, + 15 we hand-researched separately, 12 overlap) |
+| Synthetic users generated | **150** |
+| Synthetic journals generated (training data) | **2,600** |
+| Interactions / ratings generated | **~3,560** |
+| Cost model accuracy | **MAE ₹2,434 · R² 0.708 · MAPE 22.0%** (beats naive baseline by 15%) |
+| Recommender sanity check | **hit-rate@5 ≈ 88-92%** |
+| Vadodara curation proof | **4 of 6 real landmarks missed by raw map data, recovered by our curation** |
+
+**If asked "100 or 103, which is it?"** — 100 is the raw research (towns + their landmarks/food).
+103 is what we built the ML models on (we turned those towns into full catalog entries with
+cost/activity/season data, plus added a few extra hand-picked spots).
+
+---
+
+## Tech stack (one line, likely opening question)
+
+Python (scikit-learn, pandas, NLTK) for the ML notebooks, a Flask microservice to serve the
+trained models live, PHP + MySQL for the web app itself.
+
+---
+
+## The one-paragraph pitch
+
+Most travel apps either recommend blindly (no reasoning) or are just a data-entry journal with
+no intelligence. We built a system where trip data trains a genuinely explainable AI — every
+recommendation says **why**, backed by real evidence, not just a score. Everything is homegrown
+(no black-box LLM calls in the core models), and we went deep on one region — **all 103 Gujarat
+destinations**, not a handful of famous names.
+
+**What's actually different here:**
+- Explainability — every pick comes with a plain-English reason and real evidence, not a score.
+- Regional depth — 103 real Gujarat destinations, not a token handful.
+- Hybrid signal blend — content + semantic + collaborative, not one single approach.
+- The journal data trains the model — usage feeds the intelligence, not a static dataset.
+
+---
+
+## Team roles → notebooks
+
+| Roll No. | Role | Notebook |
 |---|---|---|
-| **D24DCS162** | Data & Corpus | **01 — Synthetic Data Generation** (+ **05 — Geo/Places Data Collection**, supporting) |
-| **D24DCS154** | NLP & Features | **02 — NLP Feature Extraction & Destination Profiles** |
-| **D24DCS161** | Recommender | **04 — Hybrid Recommender** |
-| **D24DCS163** | Cost & Serving | **03 — Cost Prediction Model** (+ **06 — Itinerary Generation**, bonus/serving-layer demo) |
-
-Notebooks 05 and 06 weren't named in the original 4-way split — I assigned them by nearest fit
-(05 is data curation, same spirit as 162's corpus work; 06 is built directly on 163's cost model
-and would be demoed through their Flask microservice). Reassign if your team already has a
-different understanding.
+| D24DCS162 | Data & Corpus | 01 (+ 05, supporting) |
+| D24DCS154 | NLP & Features | 02 |
+| D24DCS161 | Recommender | 04 |
+| D24DCS163 | Cost & Serving | 03 (+ 06, bonus) |
 
 ---
 
-## Overall concept — the pitch
+## Each notebook, in plain terms
 
-**Problem:** generic travel apps are either a black-box recommender with no reasoning, or a
-plain data-entry journal with no intelligence behind it.
+### 01 — Data Generation
+- **What it does:** builds our training data. Since no real Gujarat travel dataset exists
+  publicly, we generate realistic synthetic journals (fake but structured — costs, activities,
+  and sentiment all correlate sensibly, not random).
+- **Say:** "150 users, 2,600 journals, across all 103 Gujarat destinations, fully reproducible
+  (same seed = same data every time)."
 
-**JourneyAI's answer:** a travel journal that *feeds* its own AI. As people write trips
-(costs, narratives, ratings), that data trains a genuinely explainable recommender and a cost
-predictor — every recommendation says **why**, not just a score. All homegrown NLP, no black-box
-API calls for the core intelligence.
+### 02 — NLP Feature Extraction
+- **What it does:** turns free-text journal descriptions into structured data — sentiment
+  (positive/negative), activities (temples, beach, food...), budget tier, TF-IDF text vectors.
+- **Say:** "All rule-based and lexicon-based, not a black-box model — every tag can be traced
+  back to a specific word match, so it's fully explainable."
 
-**Say this in the opening slide:** *"Most travel apps either recommend blindly or just store
-data. We built a system where the journal data trains the AI, and the AI can always explain
-itself — in plain language, backed by real evidence."*
+### 03 — Cost Prediction Model
+- **What it does:** predicts what a trip will cost, broken into categories (food, transport,
+  stay, shopping, fees), using a trained regression model (GradientBoostingRegressor).
+- **Why GradientBoosting, not Linear Regression or a neural net:** handles nonlinear
+  interactions between destination/season/style without needing huge data, and is much less
+  prone to overfitting than a deep model would be on ~2,600 rows.
+- **Say:** "MAE ₹2,434, R² 0.708, MAPE 22% on a real held-out test split — genuine
+  generalization, not just fitting the training data."
+- **Baseline comparison (real number, not just a claim):** a naive "predict each destination's
+  average cost" baseline gets MAE ₹2,851 / R² 0.587. Our model cuts error by **15%** over that.
+  A plain Linear Regression comes close (MAE ₹2,465, R² 0.717) — worth being honest about if
+  asked: it shows the cost relationships here are largely additive, and GradientBoosting's edge
+  is modest on this dataset size, but it's still the better choice as more data/features get
+  added later.
 
-**Differentiators to hit:**
-- End-to-end pipeline you built yourselves: raw text → structured features → trained models →
-  explainable recommendations — no third-party ML API for the core intelligence.
-- Every recommendation includes a plain-English reason traceable to real data (matched
-  interests, similar travelers' ratings, real journal excerpts).
-- Cost prediction gives a low/high **band**, not a single guess, plus a category breakdown.
-- Fully reproducible: 6 real notebooks, real metrics, real trained artifacts — not slideware.
+### 04 — Hybrid Recommender
+- **What it does:** recommends destinations by blending 3 signals — what you said you like
+  (content), what your interests semantically match (TF-IDF), and what similar travelers liked
+  (collaborative filtering) — then explains the pick in plain English.
+- **Say:** "For 'temples, history, food' it picks Dwarka. For 'desert, culture' it picks Kutch.
+  Consistent, sensible results, not random noise."
 
----
+### 05 — Geo/Places Data Collection
+- **What it does:** the 100-town research dataset. Proves real value with a concrete before/
+  after: raw map data (OpenStreetMap/Geoapify) vs. our curated version for Vadodara — **4 of 6
+  real landmarks were missing from the raw data and only show up because of our curation.**
+- **Say:** "This isn't just supporting data — 88 of our 103 catalog destinations came directly
+  from here."
 
-## Per-notebook talking points
-
-### 01 — Synthetic Data Generation (D24DCS162)
-- **Why synthetic:** no public dataset of India-focused travel journals + costs + ratings
-  exists. Built a generator with *real structure*, not random noise.
-- **What to show:** the 93-destination catalog (research-backed cost priors), how synthetic
-  users get a latent "taste vector" that biases which destinations they write about, template
-  narratives with sentiment-varied vocabulary (so the NLP model has real signal to find), and
-  Dirichlet-distributed cost splits for realistic budget breakdowns. Deterministic seeding =
-  reproducible.
-- **Numbers to cite:** 93 destinations · 1,501 journals (1,500 synthetic + 1 real) · 41 users ·
-  2,088 interactions.
-- **One-liner:** *"We didn't fake random numbers — user taste correlates with destination
-  choice, sentiment correlates with cost satisfaction, so every downstream model has genuine
-  signal, not noise."*
-
-### 02 — NLP Feature Extraction & Destination Profiles (D24DCS154)
-- **Problem:** journal text is unstructured; need sentiment, activities, budget tier, travel
-  style as structured features.
-- **What to show:** hand-built sentiment lexicon with negation ("not amazing") and intensifier
-  ("absolutely stunning") handling; a 100+ keyword activity gazetteer; TF-IDF vectorization;
-  fuzzy destination-name normalization ("Bombay" → "Mumbai"); rule-based travel-style classifier.
-- **Why it matters (be ready for this question):** *"Why not just use a transformer/LLM for
-  sentiment?"* → Explainability: every tag traces to a specific rule or word match, no black box,
-  zero inference cost, fully auditable.
-- **Numbers to cite:** TF-IDF matrix ≈ 1,500 × 4,000 vocab · 93 destination profiles built.
-
-### 03 — Cost Prediction Model (D24DCS163)
-- **Problem:** users want a realistic, broken-down budget estimate before committing.
-- **What to show:** GradientBoostingRegressor predicting **daily** cost (explain: removes trip
-  length as a confound so the model learns destination/style/season effects cleanly), two extra
-  quantile regressors for a low/high confidence band, per-destination category-split ratios for
-  the UI donut chart.
-- **Numbers to cite — know these cold:** **MAE ₹7,921 · R² 0.749 · MAPE 32.7%** on a held-out
-  20% split. *"R²=0.75 means the model explains 75% of the variance in trip cost from just
-  destination, style, season and duration — strong given the dataset spans backpacker to luxury
-  travel."*
-- **Also mention:** the trained model is served live via a Flask microservice (`ml/app.py`) to
-  the PHP app, with a batched-prediction endpoint (~17x faster than per-destination calls) so the
-  recommender can score all 93 destinations in one pass.
-
-### 04 — Hybrid Recommender (D24DCS161)
-- **Problem:** single-signal recommenders either ignore stated interests (pure collaborative) or
-  ignore what similar travelers loved (pure content-based).
-- **What to show:** the 3-signal blend — content (interest-activity cosine), semantic (TF-IDF
-  cosine over narrative text), collaborative (item-item CF from real ratings) — plus a discovery
-  boost for well-scoring "hidden gem" destinations. **The centerpiece: the explainability layer**
-  turning a numeric blend into "We recommend X because it matches your interest in Y, travelers
-  with similar taste rated it highly, and it fits your ₹Z budget" — backed by real sample journal
-  titles, not a made-up sentence.
-- **Numbers to cite:** hit-rate@5 ≈ 92% sanity check against users' real 5-star history (explain
-  it's a sanity check, not a rigorous train/test split, if pressed).
-- **Best demo move:** run 2-3 live queries and read out the generated explanations — this is the
-  most visually/verbally impressive part of the whole system.
-
-### 05 — Geo/Places Data Collection (D24DCS162, supporting, mention only if time allows)
-- Not a trained model — real POI data (free OpenStreetMap, optional Geoapify) with a disk cache,
-  plus a 100-town hand-curated "local highlights" dataset filling gaps OSM misses for smaller
-  Indian towns.
-- **One-liner:** *"This is what lets recommendations and itineraries work for any place someone
-  types, not just our 93 curated destinations."*
-- **Numbers:** 15,845+ cached POIs · 100 curated towns.
-
-### 06 — Itinerary Generation (D24DCS163, bonus, mention only if time allows)
-- **Explicitly not ML** — composes the cost model + catalog + geo lookup into a day-by-day plan.
-  Say this clearly so it doesn't get challenged as if it were a trained model.
-- **One-liner:** *"This shows how the trained pieces come together into a real user-facing
-  feature — no LLM, no paid API, fully deterministic."*
+### 06 — Itinerary Generation (bonus, not ML)
+- **What it does:** builds a day-by-day plan using the catalog + cost model + geo data. No
+  training involved — say this clearly if asked.
 
 ---
 
-## Suggested slide flow (8-10 min review)
+## Quick Q&A
 
-1. Title + problem statement
-2. System architecture (PHP app ↔ Flask ML microservice ↔ MySQL) — one diagram
-3. Data: synthetic corpus (162)
-4. NLP pipeline (154)
-5. Cost model + metrics (163)
-6. Recommender + live explainability demo (161) — spend the most time here, it's the standout
-7. App screenshots: storybook journal, recommendation cards, cost breakdown donut
-8. Results summary table (all key metrics in one place)
-9. Roadmap / future work
+**Q: How did you collect the data? What APIs?**
+- Training data (01-04): synthetic, no API — no public dataset exists for this.
+- Real map data (05, Explore/Route pages): OpenStreetMap (free) + Geoapify (free tier).
+- The 100-town research: a one-time pass using Gemini + SerpAPI, not a live dependency.
 
-I can also generate this as a ready-to-present HTML slide deck (or a proper .pptx) if that's
-faster than building it by hand tonight — just say the word.
+**Q: What preprocessing did you do?**
+Tokenize → lemmatize → remove stopwords → sentiment lexicon lookup → activity keyword matching
+→ budget bucketing (quantile-based) → TF-IDF vectorization → one-hot encode categories for the
+cost model → 80/20 train/test split.
+
+**Q: How many features?**
+- Cost model: ~5 inputs (destination, style, season, duration, party size) → ~116 columns after
+  encoding.
+- NLP: 7 structured fields per journal + a TF-IDF vector (2,000-4,000 dimensions).
+
+**Q: Which website page does each notebook power?**
+| Notebook | Page(s) |
+|---|---|
+| 03 Cost model | Dashboard, Plan a Trip, Recommendations, Itinerary |
+| 04 Recommender | Dashboard, Plan a Trip, Recommendations (the cards) |
+| 05 Geo/places | Explore / Route builder |
+| 06 Itinerary | Itinerary page |
+| 02 NLP | Feeds the recommender + Analytics page |
+| 01 Data gen | Not a live page — it's the training foundation |
+
+**Q: What's your accuracy?**
+Cost model: R² 0.708, and it beats a naive "average cost per destination" baseline by 15% MAE —
+real evidence it learned something, not just a number in isolation. Recommender: ~90% hit-rate,
+but say clearly this is a sanity check, not a formal accuracy metric. NLP: rule-based, no single
+accuracy number — its strength is that everything is explainable, not that it's "trained."
+
+**Q: Is this validated against real prices?**
+No — be upfront about this if asked. The cost model is trained on synthetic data, so it
+demonstrates the technique correctly, but hasn't been checked against real bookings.
+
+---
+
+## If you only remember 5 things
+
+1. **100 towns researched → 103 destinations trained on.**
+2. **Cost model: MAE ₹2,434, R² 0.708 — real held-out accuracy.**
+3. **Recommender picks make sense: Dwarka for temples, Kutch for desert — and explains why.**
+4. **Vadodara proof: 4 of 6 real landmarks missing from raw map data, recovered by our curation.**
+5. **Everything is synthetic training data by design (no dataset exists) — say this proactively,
+   don't wait to be asked.**

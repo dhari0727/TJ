@@ -7,8 +7,21 @@
  * render a graceful "service offline" banner instead of white-screening.
  */
 
-if (!defined('JOURNEYAI_ML_BASE')) {
-    define('JOURNEYAI_ML_BASE', 'http://127.0.0.1:5000');
+/** Service URL: editable by an admin (Admin > Site & services); falls back to the local default. */
+function ml_base() {
+    static $base = null;
+    if ($base !== null) return $base;
+    $base = 'http://127.0.0.1:5000';
+    if (defined('JOURNEYAI_ML_BASE')) return $base = JOURNEYAI_ML_BASE;
+    $conn = null;
+    include __DIR__ . '/connection.php';           // sets a local $conn; no session needed
+    if ($conn) {
+        $r = @mysqli_query($conn, "SELECT svalue FROM settings WHERE skey = 'ml_service_url'");
+        $row = $r ? mysqli_fetch_row($r) : null;
+        if (!empty($row[0]) && preg_match('#^https?://#', $row[0])) $base = rtrim($row[0], '/');
+        mysqli_close($conn);
+    }
+    return $base;
 }
 
 /**
@@ -16,7 +29,7 @@ if (!defined('JOURNEYAI_ML_BASE')) {
  * $payload array (json for POST). Returns decoded array or ['__error'=>...].
  */
 function ml_request($method, $path, $payload = null, $timeout = 8) {
-    $url = JOURNEYAI_ML_BASE . $path;
+    $url = ml_base() . $path;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,

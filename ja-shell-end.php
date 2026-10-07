@@ -2,7 +2,7 @@
   </main>
 </div>
 <?php include __DIR__ . '/ja-chat.php'; ?>
-<script src="js/ja-chat.js" defer></script>
+<script src="js/ja-chat.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-chat.js') ?>" defer></script>
 <script>
 /* sidebar mobile toggle */
 (function(){

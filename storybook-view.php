@@ -1,6 +1,5 @@
 <?php
 $ja_title = "View Storybook"; $ja_active = "entries";
-error_reporting(0);
 session_start();
 require 'connection.php';
 
@@ -186,6 +185,7 @@ $jsonPages = json_encode(array_map(function($p) {
       <div class="sb-viewer-nav">
         <button class="sb-btn" id="sbPrevBtn" type="button">&larr; Prev</button>
         <span class="sb-viewer-page-counter" id="sbViewerCounter">Page 1 of <?= $pageCount ?></span>
+        <span class="sb-rollup" id="sbRollup" style="display:none"></span>
         <button class="sb-btn" id="sbNextBtn" type="button">Next &rarr;</button>
       </div>
     <?php endif; ?>
@@ -379,6 +379,28 @@ $jsonPages = json_encode(array_map(function($p) {
       })
       .catch(function(){ el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--sb-text-dim)">Could not load costs</div>'; });
   }
+  // running "spent so far" rollup across cost-card pages, shown while flipping through the book
+  var costTotals = {};   // page_id -> rupee total
+  function loadAllCosts() {
+    pages.forEach(function(pg){
+      if (pg.template !== 'cost-card' || !pg.cost_entry_id) return;
+      var url = 'storybook-api.php?action=get_cost&page_id=' + pg.page_id + (SHARE_TOKEN ? '&token=' + encodeURIComponent(SHARE_TOKEN) : '');
+      fetch(url).then(function(r){ return r.json(); }).then(function(d){
+        if (d && d.has_data) { costTotals[pg.page_id] = parseFloat(d.true_total) || 0; updateRollup(); }
+      }).catch(function(){});
+    });
+  }
+  function updateRollup() {
+    var el = document.getElementById('sbRollup');
+    if (!el) return;
+    var sum = 0, any = false;
+    for (var i = 0; i <= currentIdx; i++) {
+      var t = costTotals[pages[i] && pages[i].page_id];
+      if (t) { sum += t; any = true; }
+    }
+    el.textContent = any ? 'Spent so far: ₹' + Math.round(sum).toLocaleString('en-IN') : '';
+    el.style.display = any ? '' : 'none';
+  }
   function showPage(idx) {
     var container = document.getElementById('sbPageContainer');
     if (!container || pages.length === 0) return;
@@ -396,6 +418,7 @@ $jsonPages = json_encode(array_map(function($p) {
     if (pg.template === 'cost-card' && pg.cost_entry_id) {
       setTimeout(function(){ loadCosts(pg.page_id); }, 0);
     }
+    updateRollup();
   }
 
   function prevPage() {
@@ -519,6 +542,7 @@ $jsonPages = json_encode(array_map(function($p) {
 
   if (pages.length > 0) {
     showPage(0);
+    loadAllCosts();
     if (IS_PUBLIC && pages.length > 0) {
       loadComments(pages[0].page_id);
     }

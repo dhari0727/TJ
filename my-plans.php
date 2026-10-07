@@ -19,13 +19,6 @@ if ($viewId) {
     $viewPlan = mysqli_fetch_assoc(mysqli_stmt_get_result($s));
     mysqli_stmt_close($s);
 
-    if ($viewPlan) {
-        $s = mysqli_prepare($conn, "SELECT * FROM packing_items WHERE plan_id=? ORDER BY sort_order ASC, item_id ASC");
-        mysqli_stmt_bind_param($s, 'i', $viewId);
-        mysqli_stmt_execute($s);
-        $packing = mysqli_fetch_all(mysqli_stmt_get_result($s), MYSQLI_ASSOC);
-        mysqli_stmt_close($s);
-    }
 }
 
 $s = mysqli_prepare($conn, "SELECT plan_id, destination, days, travel_style, month, party_size, share_token, created_at FROM saved_plans WHERE eml=? ORDER BY plan_id DESC");
@@ -42,7 +35,8 @@ mysqli_stmt_close($s);
 <div class="ja-pagehead">
   <div class="ja-container">
     <div class="ja-eyebrow"><?= ja_icon('compass',14) ?> Your trips</div>
-    <h1>My Plans</h1>
+    <h1>My Trips</h1>
+    <?php $ja_tab='plans'; include 'ja-trips-tabs.php'; ?>
     <p class="sub"><?= count($plans) ?> saved plan<?= count($plans)===1?'':'s' ?>.</p>
   </div>
 </div>
@@ -150,22 +144,11 @@ mysqli_stmt_close($s);
           </div>
           <?php endif; ?>
 
-          <!-- Packing checklist -->
-          <div class="ja-card ja-pack-list" style="margin-top:20px" id="jaPackCard" data-plan-id="<?= (int)$viewPlan['plan_id'] ?>">
-            <h3><?= ja_icon('wallet',16) ?> Packing checklist</h3>
-            <ul style="list-style:none;padding:0;margin:12px 0 0" id="jaPackList">
-              <?php foreach ($packing as $p): ?>
-                <li data-item-id="<?= (int)$p['item_id'] ?>" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--brd)">
-                  <input type="checkbox" class="ja-pack-check" <?= $p['is_checked'] ? 'checked' : '' ?> style="width:17px;height:17px;flex:none">
-                  <span class="ja-pack-label" style="flex:1;font-size:.9rem;<?= $p['is_checked'] ? 'text-decoration:line-through;color:var(--text-mut)' : '' ?>"><?= htmlspecialchars($p['label']) ?></span>
-                  <button type="button" class="ja-pack-del no-print" title="Remove" style="background:none;border:none;color:var(--text-mut);cursor:pointer;padding:2px 6px"><?= ja_icon('trash',14) ?></button>
-                </li>
-              <?php endforeach; ?>
-            </ul>
-            <form id="jaPackAddForm" class="no-print" style="display:flex;gap:8px;margin-top:14px">
-              <input type="text" id="jaPackAddInput" class="ja-input" placeholder="Add an item…" style="flex:1;padding:10px 12px">
-              <button class="ja-btn ja-btn-primary" style="padding:10px 16px" type="submit">Add</button>
-            </form>
+          <!-- Packing: one builder for everything (packing.php) -->
+          <div class="ja-card" style="margin-top:20px">
+            <h3><?= ja_icon('wallet',16) ?> Packing list</h3>
+            <p class="ja-muted" style="font-size:.9rem;margin:6px 0 14px">A checklist sized to this trip's days, season and style, with a reason for each item.</p>
+            <a href="packing.php?plan=<?= (int)$viewPlan['plan_id'] ?>" class="ja-btn ja-btn-primary" style="width:100%"><?= ja_icon('check',15) ?> Open packing list</a>
           </div>
         </aside>
       </div>
@@ -229,56 +212,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Packing checklist
-  var packCard = document.getElementById('jaPackCard');
-  if (packCard) {
-    var planId = packCard.dataset.planId;
-    var list = document.getElementById('jaPackList');
-
-    list.addEventListener('change', function (e) {
-      if (!e.target.classList.contains('ja-pack-check')) return;
-      var li = e.target.closest('li');
-      var itemId = li.dataset.itemId;
-      var checked = e.target.checked;
-      var label = li.querySelector('.ja-pack-label');
-      label.style.textDecoration = checked ? 'line-through' : 'none';
-      label.style.color = checked ? 'var(--text-mut)' : '';
-      fetch('packing-toggle.php', { method: 'POST', body: new URLSearchParams({ item_id: itemId, checked: checked ? 1 : 0 }) });
-    });
-
-    list.addEventListener('click', function (e) {
-      var btn = e.target.closest('.ja-pack-del');
-      if (!btn) return;
-      var li = btn.closest('li');
-      var itemId = li.dataset.itemId;
-      fetch('packing-delete.php', { method: 'POST', body: new URLSearchParams({ item_id: itemId }) })
-        .then(function (r) { return r.json(); })
-        .then(function (data) { if (data.ok) li.remove(); });
-    });
-
-    var addForm = document.getElementById('jaPackAddForm');
-    addForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var input = document.getElementById('jaPackAddInput');
-      var label = input.value.trim();
-      if (!label) return;
-      fetch('packing-add.php', { method: 'POST', body: new URLSearchParams({ plan_id: planId, label: label }) })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.ok) { alert(data.error || 'Could not add item.'); return; }
-          var li = document.createElement('li');
-          li.dataset.itemId = data.item_id;
-          li.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--brd)';
-          li.innerHTML = '<input type="checkbox" class="ja-pack-check" style="width:17px;height:17px;flex:none">' +
-            '<span class="ja-pack-label" style="flex:1;font-size:.9rem"></span>' +
-            '<button type="button" class="ja-pack-del no-print" title="Remove" style="background:none;border:none;color:var(--text-mut);cursor:pointer;padding:2px 6px">'
-            + '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
-          li.querySelector('.ja-pack-label').textContent = data.label;
-          list.appendChild(li);
-          input.value = '';
-        });
-    });
-  }
 });
 </script>
 

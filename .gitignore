@@ -27,3 +27,9 @@ ml/geo/serpapi_key.txt
 ml/geo/serpapi_key
 
 ml/bot/gemini_key.txt
+
+# scraped raw cache (regenerable)
+ml/data/raw/
+config/
+logs/
+backups/

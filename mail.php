@@ -1,49 +1,28 @@
 <?php
 /**
- * JourneyAI — password reset email helper.
- * Included by forgot-pswd.php; call send_reset_email($email, $token) to
- * deliver a one-time reset link (see reset-password.php for the consumer).
+ * JourneyAI — password reset email.
+ * Uses the built-in SMTP client (ja-mailer.php); the SMTP account is configured by an admin
+ * under Admin > Email settings. No PHPMailer or environment variables needed.
  */
-$ja_phpmailer_path = __DIR__ . '/PHPMailer-master/PHPMailerAutoload.php';
-if (is_file($ja_phpmailer_path)) {
-    require_once $ja_phpmailer_path;
+require_once __DIR__ . '/ja-mailer.php';
+
+/** Build the reset URL for a token (same folder as the current script). */
+function ja_reset_url($token) {
+    return ja_base_url() . '/reset-password.php?token=' . urlencode($token);
 }
 
+/**
+ * Send the reset email. Returns the ja_send_mail() result array
+ * ['ok','status','error'] plus 'url' (the reset link) for admin/dev display.
+ */
 function send_reset_email($userEmail, $token) {
-    if (!class_exists('PHPMailer')) {
-        return false; // PHPMailer vendor library not installed in this checkout
-    }
-    $mail = new PHPMailer;
-
-    // SMTP credentials come from environment variables — never hardcode secrets.
-    // Set JOURNEYAI_SMTP_USER / JOURNEYAI_SMTP_PASS / JOURNEYAI_SMTP_FROM before use.
-    $smtpUser = getenv('JOURNEYAI_SMTP_USER') ?: '';
-    $smtpPass = getenv('JOURNEYAI_SMTP_PASS') ?: '';
-    $smtpFrom = getenv('JOURNEYAI_SMTP_FROM') ?: $smtpUser;
-
-    $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com';
-    $mail->Port = 587;
-    $mail->SMTPSecure = 'tls';
-    $mail->SMTPAuth = true;
-    $mail->Username = $smtpUser;
-    $mail->Password = $smtpPass;
-
-    $mail->setFrom($smtpFrom, 'JourneyAI');
-    $mail->addAddress($userEmail);
-    $mail->addReplyTo($smtpFrom, 'JourneyAI');
-
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $base = dirname($_SERVER['SCRIPT_NAME'] ?? '/');
-    $resetUrl = "$scheme://$host$base/reset-password.php?token=" . urlencode($token);
-
-    $mail->isHTML(true);
-    $mail->Subject = 'JourneyAI — reset your password';
-    $mail->Body = "We received a request to reset your JourneyAI password.<br><br>"
-        . "<a href=\"$resetUrl\">Click here to choose a new password</a><br><br>"
-        . "This link expires in 1 hour. If you didn't request this, you can ignore this email.";
-    $mail->AltBody = "Reset your JourneyAI password: $resetUrl (expires in 1 hour)";
-
-    return $mail->send();
+    $url = ja_reset_url($token);
+    $site = ja_setting('site_name', 'JourneyAI');
+    $html = "<p>We received a request to reset your $site password.</p>"
+          . "<p><a href=\"" . htmlspecialchars($url) . "\">Choose a new password</a></p>"
+          . "<p>This link expires in 1 hour. If you didn't ask for this, you can ignore this email.</p>";
+    $res = ja_send_mail($userEmail, "$site: reset your password", $html,
+        "Reset your $site password: $url (expires in 1 hour)");
+    $res['url'] = $url;
+    return $res;
 }

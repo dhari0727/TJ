@@ -31,13 +31,17 @@ def run(mod, *args):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-seed", action="store_true", help="skip corpus generation")
-    ap.add_argument("--n", type=int, default=500)
+    ap.add_argument("--no-real", action="store_true", help="skip loading real-sourced entries")
+    ap.add_argument("--n", type=int, default=1500)
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
     if not args.no_seed:
         run("ml.seed.generate_corpus", "--seed", str(args.seed),
             "--n", str(args.n), "--truncate")
+    if not args.no_real:
+        # real-sourced entries (Wikivoyage + blog extracts); needs ml/data/*.json from ml.scrape.*
+        run("ml.seed.load_real_entries", "--truncate")
     run("ml.nlp.extract_features")
     run("ml.nlp.build_profiles")
     run("ml.cost.train_cost_model")

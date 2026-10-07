@@ -109,7 +109,7 @@ def extract():
     print("Loading journals view...")
     df = fetch_df(
         "SELECT entry_id, eml, Title, Description, Country, City, ptv, "
-        "duration_days, true_total FROM journals")
+        "duration_days, true_total FROM journals WHERE eml NOT LIKE '%%@demo.journeyai'")
     if df.empty:
         print("No journals found — seed the corpus first.")
         return

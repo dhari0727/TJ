@@ -66,11 +66,13 @@ function ja_render_cards($recs) {
         $gem    = !empty($r['lesser_known']);
         $acts   = $r['top_activities'] ?? [];
         $expl   = htmlspecialchars($r['explanation'] ?? '');
+        $about  = htmlspecialchars($r['description'] ?? '');
         $titles = $r['sample_journal_titles'] ?? [];
         $bd     = $r['cost_breakdown'] ?? [];
         $season = htmlspecialchars($r['best_season'] ?? '');
         $distLbl= htmlspecialchars($r['distance_label'] ?? '');
         $isIntl = ($distLbl === 'International');
+        $distKm = $r['distance_km'] ?? null; $driveH = $r['drive_hours'] ?? null;
         $img    = ja_dest_image($r['destination']);
         $userEntry = ja_has_user_entry($r['destination']);
         $rating = ja_dest_rating($r['destination']);
@@ -83,6 +85,7 @@ function ja_render_cards($recs) {
           <div class="ja-reco-top">
             <img src="<?= $img ?>" alt="<?= $city ?>" loading="lazy" onerror="this.style.display='none'">
             <div class="ja-reco-city"><?= $city ?></div>
+            <?php if ($distKm): ?><div class="ja-usertag" style="left:auto;right:10px"><?= ja_icon('map-pin',11) ?> ~<?= (int)$distKm ?> km<?= $driveH ? ' · ' . $driveH . ' h drive' : ' · fly or train' ?></div><?php endif; ?>
             <?php if ($userEntry): ?><div class="ja-usertag"><?= ja_icon('user',11) ?> User Entry</div><?php endif; ?>
           </div>
           <div class="ja-reco-body">
@@ -132,6 +135,9 @@ function ja_render_cards($recs) {
             <details class="ja-why">
               <summary>Why this destination?</summary>
               <p><?= $expl ?></p>
+              <?php if ($about): ?>
+                <p class="ja-about"><?= $about ?></p>
+              <?php endif; ?>
               <?php if ($titles): ?>
                 <div class="ja-evidence"><b>From journals:</b> <?= htmlspecialchars(implode(' · ', $titles)) ?></div>
               <?php endif; ?>
@@ -140,7 +146,7 @@ function ja_render_cards($recs) {
 
             <div style="display:flex;gap:8px;margin-top:14px">
               <a class="ja-btn ja-btn-primary" style="flex:1;padding:11px;justify-content:center"
-                 href="itinerary.php?dest=<?= urlencode($r['destination']) ?>&days=<?= (int)($r['duration_days'] ?? 5) ?>"><?= ja_icon('compass',16) ?> Itinerary</a>
+                 href="trip.php?dest=<?= urlencode($r['destination']) ?>&days=<?= (int)($r['duration_days'] ?? 5) ?>"><?= ja_icon('compass',16) ?> Itinerary</a>
               <form method="post" action="save-plan.php" style="flex:none">
                 <input type="hidden" name="destination" value="<?= $dest ?>">
                 <input type="hidden" name="predicted_cost" value="<?= $cost ?>">

@@ -234,6 +234,26 @@
     });
   }
 
+  /* ---------- location: browser geolocation -> city name (Nominatim), cached for the session ---------- */
+  var K_CITY = "jaChat.city";
+  function getCity() {
+    try { var c = sessionStorage.getItem(K_CITY); if (c) return Promise.resolve(c); } catch (e) {}
+    return new Promise(function (resolve) {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        fetch("https://nominatim.openstreetmap.org/reverse?format=json&zoom=12&lat=" + pos.coords.latitude + "&lon=" + pos.coords.longitude)
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var a = (d && d.address) || {};
+            var city = a.city || a.town || a.village || a.suburb || a.county || a.state_district || a.state || "";
+            if (city) { try { sessionStorage.setItem(K_CITY, city); } catch (e) {} }
+            resolve(city || null);
+          })
+          .catch(function () { resolve(null); });
+      }, function () { resolve(null); }, { timeout: 8000, maximumAge: 600000 });
+    });
+  }
+
   /* ---------- send ---------- */
   function send(text) {
     text = (text || "").trim();
@@ -251,10 +271,18 @@
 
     var priorHistory = history.slice(0, -1); // everything before this message
 
-    fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({ message: text, history: priorHistory })
+    // "near me" style questions need a place: detect the user's city (cached) and send it along
+    var wantsPlace = /near ?me|nearby|around me|close to me|my location/i.test(text);
+    var placeStep = wantsPlace ? getCity() : Promise.resolve(null);
+
+    placeStep.then(function (city) {
+      var body = { message: text, history: priorHistory };
+      if (city) body.location = city;
+      return fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(body)
+      });
     })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);

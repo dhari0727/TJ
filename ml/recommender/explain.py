@@ -36,68 +36,77 @@ def sample_titles(destination, limit=2):
 
 def explain(rec, budget=None, interests=None):
     """
-    Build an explanation for one recommendation dict (from Recommender.recommend).
-    Returns the same dict enriched with `explanation` and `evidence`.
+    Build a destination-specific explanation for one recommendation dict (from Recommender.recommend).
+    Uses concrete facts the system actually has: real attractions, distance from the start, season fit,
+    cost per day vs budget. Returns the same dict enriched with `explanation` and `evidence`.
     """
     factors = rec["reason_factors"]
     interests = interests or []
+    dest = rec["destination"]
+    city = dest.split(",")[0]
+    acts = rec.get("top_activities") or []
+    matched = [i for i in interests if i in acts]
+    attractions = [a for a in (rec.get("attractions") or []) if a][:3]
+    days = int(rec.get("duration_days") or 0)
+    pc = rec["predicted_cost"]
 
-    # rank the non-budget signals to find the dominant driver(s).
-    # skip None factors (e.g. proximity when no origin region was given).
-    signal_items = sorted(
-        ((k, v) for k, v in factors.items() if k != "budget" and v is not None),
-        key=lambda kv: kv[1], reverse=True)
+    signal_items = sorted(((k, v) for k, v in factors.items() if k != "budget" and v is not None),
+                          key=lambda kv: kv[1], reverse=True)
     top = [k for k, v in signal_items if v >= 0.45][:2] or ([signal_items[0][0]] if signal_items else [])
 
-    parts = []
-    # lead with matched interests when content is a driver
-    matched = [i for i in interests if i in rec.get("top_activities", [])]
-    if "content" in top and matched:
-        parts.append(f"it's a great match for your interest in "
-                     f"{_join(matched)}")
-    elif "content" in top and rec.get("top_activities"):
-        parts.append(f"it's known for {_join(rec['top_activities'][:2])}")
+    sents = []
+    # 1) why it fits, with real places as proof
+    if matched:
+        lead = f"{city} fits your interest in {_join(matched)}"
+    elif acts:
+        lead = f"{city} is known for {_join(acts[:2])}"
+    else:
+        lead = f"{city} is a strong all-round pick"
+    if attractions:
+        lead += f", with {_join(attractions)}"
+    sents.append(lead + ".")
 
-    if "collaborative" in top:
-        parts.append(f"travelers with tastes like yours rated it highly "
-                     f"({rec['n_journals']} journals)")
+    # 2) getting there + when
+    logistics = []
+    if rec.get("distance_km"):
+        h = rec.get("drive_hours")
+        logistics.append(f"about {rec['distance_km']} km away" + (f" ({h} h by road)" if h else " (best reached by train or flight)"))
+    if rec.get("best_season"):
+        fit = rec.get("season_fit")
+        when = f"best in {rec['best_season']}"
+        if fit is not None and fit >= 0.9:
+            when += ", which suits your travel month"
+        elif fit is not None and fit <= 0.4:
+            when += ", so your travel month is off-season"
+        logistics.append(when)
+    if logistics:
+        sents.append(_cap(_join(logistics, sep="; ")) + ".")
 
-    if "semantic" in top and "content" not in top:
-        parts.append("its travel stories closely match what you're looking for")
-
-    # sentiment evidence
-    if rec.get("sentiment_mean", 0) >= 0.5:
-        parts.append("visitors wrote overwhelmingly positive reviews")
-
-    # budget clause
-    pc = rec["predicted_cost"]
+    # 3) cost
+    perday = int(round(pc / days)) if days else None
+    cost = f"Estimated {_fmt_inr(pc)}" + (f" for {days} day{'s' if days != 1 else ''} (about {_fmt_inr(perday)} a day)" if perday else "")
     if budget:
         if pc <= budget:
-            parts.append(f"and the estimated {_fmt_inr(pc)} fits your "
-                         f"{_fmt_inr(budget)} budget")
-        elif rec["budget_fit"] == "stretch":
-            parts.append(f"though at ~{_fmt_inr(pc)} it slightly stretches your "
-                         f"{_fmt_inr(budget)} budget")
-    else:
-        parts.append(f"with an estimated cost of {_fmt_inr(pc)}")
+            cost += f", within your {_fmt_inr(budget)} budget"
+        elif rec.get("budget_fit") == "stretch":
+            cost += f", a slight stretch on your {_fmt_inr(budget)} budget"
+    sents.append(cost + ".")
 
-    gem = ""
+    if "collaborative" in top and rec.get("n_journals", 0) >= 5:
+        sents.append("Travellers with similar tastes rated it highly.")
     if rec.get("lesser_known"):
-        gem = " It's a lesser-known hidden gem worth discovering."
-
-    dest = rec["destination"]
-    sentence = f"We recommend {dest} because " + _join(parts, sep="; ") + "." + gem
+        sents.append("A lesser-known place worth discovering.")
 
     titles = sample_titles(dest)
     rec = dict(rec)
-    rec["explanation"] = sentence
-    rec["evidence"] = {
-        "sample_journals": titles,
-        "dominant_factors": top,
-        "predicted_cost": pc,
-    }
+    rec["explanation"] = " ".join(sents)
+    rec["evidence"] = {"sample_journals": titles, "dominant_factors": top, "predicted_cost": pc}
     rec["sample_journal_titles"] = titles
     return rec
+
+
+def _cap(t):
+    return t[:1].upper() + t[1:] if t else t
 
 
 def _join(items, sep=", "):

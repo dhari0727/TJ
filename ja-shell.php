@@ -13,15 +13,8 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/ja-icons.php';
 $ja_fname = $_SESSION['fname'] ?? 'Traveller';
 
-$nav = [
-  ['dashboard','dashboard.php','home','Dashboard'],
-  ['explore','explore.php','compass','Explore'],
-  ['plan','plan-trip.php','search','Plan a Trip'],
-  ['recs','recommendations.php','star','For You'],
-  ['routes','my-routes.php','map-pin','My Routes'],
-  ['entries','my-entries.php','book','My Journal'],
-  ['analytics','analytics.php','chart','Analytics'],
-];
+require_once __DIR__ . '/ja-nav.php';
+$nav = $ja_side_nav;
 ?>
 <!DOCTYPE html>
 <html lang="en">

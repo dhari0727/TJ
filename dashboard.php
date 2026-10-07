@@ -91,7 +91,7 @@ $reco = ml_recommend([
   <div class="ja-eyebrow" style="color:var(--ja-teal)"><?= ja_icon('sparkle',14) ?> Welcome back, <?= htmlspecialchars($fname) ?></div>
   <h1 style="font-size:clamp(1.8rem,4vw,2.6rem)">Where to next?</h1>
   <p class="sub" style="margin-bottom:18px">Describe your trip in one line — I'll plan the whole thing.</p>
-  <form class="ja-smart-box" onsubmit="location.href='explore.php?q='+encodeURIComponent(this.q.value);return false;">
+  <form class="ja-smart-box" onsubmit="location.href='plan-trip.php?q='+encodeURIComponent(this.q.value);return false;">
     <?= ja_icon('search',22) ?>
     <input type="text" name="q" autocomplete="off" placeholder="e.g. Weekend from Ahmedabad, temples &amp; food">
     <button type="submit" class="ja-btn ja-btn-primary">Plan it <?= ja_icon('arrow',18) ?></button>
@@ -197,12 +197,11 @@ $reco = ml_recommend([
 
     <!-- quick actions -->
     <div class="ja-quick" style="margin-bottom:36px">
-      <a href="explore.php"><span class="qi"><?= ja_icon('compass',26) ?></span>Explore<span class="ja-muted" style="font-weight:400;font-size:.85rem">Instant trip from one line</span></a>
-      <a href="plan-trip.php"><span class="qi"><?= ja_icon('search',26) ?></span>Plan a Trip<span class="ja-muted" style="font-weight:400;font-size:.85rem">AI recommendations</span></a>
-      <a href="new-entry.php"><span class="qi"><?= ja_icon('pen',26) ?></span>New Journal<span class="ja-muted" style="font-weight:400;font-size:.85rem">Record a trip</span></a>
-      <a href="my-entries.php"><span class="qi"><?= ja_icon('book',26) ?></span>My Entries<span class="ja-muted" style="font-weight:400;font-size:.85rem"><?= count($entries) ? count($entries).' recent' : 'Start your journal' ?></span></a>
-      <a href="my-storybooks.php"><span class="qi"><?= ja_icon('book',26) ?></span>Storybooks<span class="ja-muted" style="font-weight:400;font-size:.85rem">Themed journals</span></a>
-      <a href="analytics.php"><span class="qi"><?= ja_icon('chart',26) ?></span>Analytics<span class="ja-muted" style="font-weight:400;font-size:.85rem">Explore insights</span></a>
+      <a href="plan-trip.php"><span class="qi"><?= ja_icon('search',26) ?></span>Plan a Trip<span class="ja-muted" style="font-weight:400;font-size:.85rem">Search, route &amp; cost</span></a>
+      <a href="my-plans.php"><span class="qi"><?= ja_icon('wallet',26) ?></span>My Trips<span class="ja-muted" style="font-weight:400;font-size:.85rem">Saved plans &amp; routes</span></a>
+      <a href="my-entries.php"><span class="qi"><?= ja_icon('book',26) ?></span>My Journal<span class="ja-muted" style="font-weight:400;font-size:.85rem"><?= count($entries) ? count($entries).' recent' : 'Start your journal' ?></span></a>
+      <a href="feed.php"><span class="qi"><?= ja_icon('heart',26) ?></span>Community<span class="ja-muted" style="font-weight:400;font-size:.85rem">Posts &amp; shared journals</span></a>
+      <a href="analytics.php"><span class="qi"><?= ja_icon('chart',26) ?></span>Insights<span class="ja-muted" style="font-weight:400;font-size:.85rem">What trips cost</span></a>
     </div>
 
     <div class="ja-hub-grid">

@@ -22,10 +22,15 @@ ACTIVITIES = [
 STYLES = ["budget", "mid-range", "luxury", "adventure", "family", "solo", "backpacker"]
 
 
-def D(name, country, city, region, tier, base, activities, styles, peak, attractions):
+def D(name, country, city, region, tier, base, activities, styles, peak, attractions, description=""):
+    # description is optional and empty by default so none of the existing calls below need to
+    # change — it's populated only where we've sourced real, cited facts from published travel
+    # writing (see docs/ for sourcing), not written from scratch. Downstream consumers must treat
+    # an empty description as "none available", not as an error.
     return {"name": name, "country": country, "city": city, "region": region,
             "tier": tier, "base_daily_inr": base, "activities": activities,
-            "styles": styles, "season_peak": peak, "attractions": attractions}
+            "styles": styles, "season_peak": peak, "attractions": attractions,
+            "description": description}
 
 
 DESTINATIONS = [
@@ -108,16 +113,366 @@ DESTINATIONS = [
       ["Gateway of India","Marine Drive","Elephanta Caves","Colaba"]),
     D("Kutch, India","India","Kutch","West India","lesser_known",2100,
       ["desert","culture","photography","shopping"],["mid-range","family"],[11,12,1,2],
-      ["White Rann","Kalo Dungar","Handicraft Villages","Mandvi Beach"]),
+      ["White Rann","Kalo Dungar","Handicraft Villages","Mandvi Beach"],
+      description="The White Rann of Kutch is, geologically, a stretch of former seabed — cut off "
+                  "from the Arabian Sea by an ancient shift, it now floods every monsoon and dries "
+                  "into nearly 2,900 square miles of blinding white salt crust. From Kalo Dungar, "
+                  "Kutch's highest point at 462 meters, the salt flat stretches to the horizon in "
+                  "every direction, and during the Rann Utsav's full-moon nights the crust reflects "
+                  "enough light to walk across without a torch."),
     D("Lonavala, India","India","Lonavala","West India","mainstream",2200,
       ["nature","mountains","relaxation","adventure"],["family","mid-range","budget"],[6,7,8,9,10],
       ["Bhushi Dam","Tiger's Leap","Karla Caves","Rajmachi Fort"]),
     D("Diu, India","India","Diu","West India","lesser_known",1900,
       ["beach","relaxation","history","photography"],["budget","family","solo"],[10,11,12,1,2],
-      ["Nagoa Beach","Diu Fort","St Paul's Church","Naida Caves"]),
+      ["Nagoa Beach","Diu Fort","St Paul's Church","Naida Caves"],
+      description="Diu remained a Portuguese colony until 1961 — 14 years after the rest of India "
+                  "gained independence — and that history still shows: the 1535 sea-moated fort, "
+                  "the baroque St Paul's Church with its Burmese-teak altar, and rare African hokka "
+                  "palms brought over by Portuguese traders. As a Union Territory bordering "
+                  "dry-state Gujarat, Diu's beach shacks are also some of the region's few places "
+                  "to legally get a beer by the sea."),
     D("Mount Abu, India","India","Mount Abu","West India","mainstream",2100,
       ["mountains","temples","nature","relaxation"],["family","budget","mid-range"],[10,11,2,3,4],
       ["Dilwara Temples","Nakki Lake","Guru Shikhar","Sunset Point"]),
+    D("Ahmedabad, India","India","Ahmedabad","West India","mainstream",2000,
+      ["history","architecture","food","shopping","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Sabarmati Ashram","Adalaj Stepwell","Kankaria Lake","Jama Masjid"],
+      description="Ahmedabad earned its UNESCO World Heritage City status not for a single "
+                  "monument but for an entire living neighborhood: the 600-year-old walled city "
+                  "Ahmed Shah founded on the Sabarmati in 1411, still threaded with pols — gated "
+                  "micro-communities built around shared wells and carved wooden bird feeders. At "
+                  "its heart, Manek Chowk shape-shifts through the day, from vegetable market to "
+                  "jewelry bazaar to a street-food carnival that only wakes up after 8pm."),
+    D("Vadodara, India","India","Vadodara","West India","mainstream",1900,
+      ["history","architecture","museums","food"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Laxmi Vilas Palace","Sayaji Baug","Baroda Museum","Champaner-Pavagadh"],
+      description="Vadodara's Laxmi Vilas Palace isn't just a royal residence — at 700 acres it's "
+                  "roughly four times the footprint of Buckingham Palace, built in 1890 by a "
+                  "Maharaja who also filled the city's Baroda Museum with an Egyptian mummy and a "
+                  "blue whale skeleton alongside 5th-century Akota bronzes. A short drive away, "
+                  "Champaner-Pavagadh preserves an entire 16th-century capital that was sacked once "
+                  "by the Mughals and never resettled."),
+    D("Dwarka, India","India","Dwarka","West India","mainstream",1800,
+      ["temples","culture","history"],["budget","family","mid-range"],[10,11,12,1,2],
+      ["Dwarkadhish Temple","Bet Dwarka","Rukmini Devi Temple","Nageshwar Jyotirlinga"],
+      description="Dwarka is one of Hinduism's four Char Dham sites, its 5-story, 72-pillared "
+                  "Dwarkadhish Temple standing where the Gomti River meets the Arabian Sea — but "
+                  "the more striking story is offshore. Since the 1960s, underwater archaeologists "
+                  "have mapped real submerged stone structures near Bet Dwarka, giving physical "
+                  "shape to the legend that Krishna's golden city sank beneath the waves."),
+    D("Somnath, India","India","Somnath","West India","mainstream",1900,
+      ["temples","history","relaxation"],["budget","mid-range","family"],[10,11,12,1,2],
+      ["Somnath Temple","Triveni Sangam","Bhalka Tirth","Somnath Beach"],
+      description="Somnath, first among Shiva's twelve Jyotirlingas, has been destroyed and "
+                  "rebuilt an estimated 17 times — most infamously sacked by Mahmud of Ghazni in "
+                  "1025 CE — with the current temple completed only in 1951 under Sardar "
+                  "Vallabhbhai Patel's personal direction. At the shore's edge stands the "
+                  "Banastambha, an arrow-shaped pillar inscribed with the claim that a straight "
+                  "line south from this exact point crosses no land until Antarctica."),
+    D("Palitana, India","India","Palitana","West India","lesser_known",1500,
+      ["temples","trekking","culture"],["budget","backpacker","mid-range"],[10,11,12,1,2,3],
+      ["Shatrunjaya Hill","Palitana Jain Temples","Adpur Palace","Kadambagiri Caves"],
+      description="Palitana's Shatrunjaya Hill is Jainism's holiest ground — believed to be where "
+                  "23 of the religion's 24 Tirthankaras attained liberation — and pilgrims still "
+                  "climb its 3,750 stone steps barefoot, fasting completely on the way up and "
+                  "down. By tradition, no one eats, drinks, or sleeps on the summit; by dusk the "
+                  "nearly 900 marble temples that crown the hill are left empty until the next "
+                  "day's climb begins."),
+    D("Statue of Unity, India","India","Kevadia","West India","mainstream",2600,
+      ["architecture","nature","history","photography"],["family","mid-range","luxury"],[10,11,12,1,2,3],
+      ["Statue of Unity","Sardar Sarovar Dam","Valley of Flowers","Sardar Sarovar Museum"],
+      description="At 182 meters, the Statue of Unity is the tallest statue on Earth — nearly "
+                  "twice the height of the Statue of Liberty — built to honor Sardar Vallabhbhai "
+                  "Patel, the man who stitched more than 565 fractured princely states into a "
+                  "single India after 1947. A viewing gallery at 153 meters looks straight down on "
+                  "the Sardar Sarovar Dam and the Narmada valley Patel's unification made possible "
+                  "to govern as one."),
+    D("Junagadh, India","India","Junagadh","West India","lesser_known",1700,
+      ["history","architecture","trekking","temples"],["budget","mid-range","adventure"],[10,11,12,1,2,3],
+      ["Girnar Hill","Uparkot Fort","Willingdon Dam","Mahabat Maqbara"]),
+    D("Porbandar, India","India","Porbandar","West India","lesser_known",1600,
+      ["history","beach","culture"],["budget","family","mid-range"],[10,11,12,1,2,3],
+      ["Kirti Mandir","Sudama Setu","Chowpatty Beach","Birla Sadan"]),
+    D("Patan, India","India","Patan","West India","lesser_known",1500,
+      ["history","architecture","shopping"],["budget","mid-range"],[10,11,12,1,2,3],
+      ["Rani ki Vav","Sahastralinga Talav","Patola Silk Weaving Centre","Patan Museum"]),
+    D("Bhavnagar, India","India","Bhavnagar","West India","lesser_known",1600,
+      ["history","culture","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Takhteshwar Temple","Nilambaug Palace","Gaurishankar Lake","Barton Museum"]),
+    D("Rajkot, India","India","Rajkot","West India","mainstream",1800,
+      ["history","food","shopping","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Kaba Gandhi No Delo","Watson Museum","Rotary Dolls Museum","Ranchhodji Temple"]),
+    D("Surat, India","India","Surat","West India","mainstream",2000,
+      ["food","shopping","history","architecture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Dutch Garden","Surat Castle","Dumas Beach","Sardar Patel Museum"]),
+
+
+    # ---- auto-derived from ml/geo/local_highlights.py (88 more real Gujarat towns) ----
+    D("Ambaji, India","India","Ambaji","West India","lesser_known",1500,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ambaji Temple","Gabbar Hill","Mansarovar Kund","Shaktipeeth Parikrama"]),
+    D("Amreli, India","India","Amreli","West India","mainstream",1800,
+      ["temples","history","nature","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Nagnath Temple","Kamnath and Trimbaknath Temples","Rajmahal Palace","Clock Tower"]),
+    D("Anand, India","India","Anand","West India","lesser_known",1500,
+      ["culture","museums","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Amul Dairy Plant","Dr. Verghese Kurien Memorial Museum","BAPS Shri Swaminarayan Mandir","ISKCON Vallabh Vidyanagar"]),
+    D("Anjar, India","India","Anjar","West India","mainstream",1800,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Jesal Toral Samadhi","Madhavrai Temple","Amba Mata's Shrine","MacMurdo Bungalow"]),
+    D("Ankleshwar, India","India","Ankleshwar","West India","mainstream",1800,
+      ["temples","history","wildlife","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Shri Ankleshwar Tirth","Chintamani Parsvanath Temple","Swaminarayan Temple","Nilkanthdham Poicha"]),
+    D("Bardoli, India","India","Bardoli","West India","mainstream",1800,
+      ["history","museums","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Swaraj Ashram","Sardar Patel Museum","Kedareshwar Temple","Jalaram Temple"]),
+    D("Bhachau, India","India","Bhachau","West India","mainstream",1800,
+      ["history","temples","nature","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bhachau Fort","Bhachau Swaminarayan Mandir","Balaram Palace (near Bhachau)","Rann of Kutch (nearby)"]),
+    D("Bharuch, India","India","Bharuch","West India","mainstream",1800,
+      ["temples","history","relaxation"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bhrigu Rishi Temple","Jama Masjid","Bharuch Fort","Kabirvad"]),
+    D("Bhuj, India","India","Bhuj","West India","mainstream",1800,
+      ["history","culture","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Aina Mahal","Prag Mahal","Great Rann of Kutch (White Desert)","Bhujodi Village"]),
+    D("Bilimora, India","India","Bilimora","West India","mainstream",1800,
+      ["temples","beach","nature","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Swaminarayan Temple","Dandi Beach","Dumas Beach","Gira Waterfall"]),
+    D("Borsad, India","India","Borsad","West India","mainstream",1800,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Swami Narayan Temple","Jalaram Temple","Mahakaleshwar Mahadev Temple","Historic Stepwell"]),
+    D("Botad, India","India","Botad","West India","mainstream",1800,
+      ["temples","wildlife","beach","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Shree Kashtabhanjan Dev Hanumanji Mandir, Salangpur","Velavadar National Park (Blackbuck National Park)","Ghogha Beach","Botad Fort"]),
+    D("Cambay Khambhat, India","India","Cambay Khambhat","West India","mainstream",1800,
+      ["history","temples","shopping","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Jami Mosque","Stambheshwar Mahadev Temple","Kavi Gokalnath Temple","Shree Lakshmi Narayan Mandir"]),
+    D("Dabhoi, India","India","Dabhoi","West India","mainstream",1800,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Dabhoi Fort","Hira Bhagol (Hira Gate)","Vadodari Bhagol (Baroda Gate)","Champaner Gate and Nandod (Nand) Gate"]),
+    D("Dahod, India","India","Dahod","West India","mainstream",1800,
+      ["temples","history","wildlife","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mangadh Hill","Panchkrishna Temple","Bhavka Shiva Temple","Ratanpur Bear Sanctuary"]),
+    D("Deesa, India","India","Deesa","West India","mainstream",1800,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Hawai Pillar","Swaminarayan Temple","Jalaram Temple","Soneshwar Mahadev Temple"]),
+    D("Dehgam, India","India","Dehgam","West India","mainstream",1800,
+      ["temples","nature","wildlife","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Hanumanji Temple","Dholeshwar Mahadev Temple","Zanzari Waterfalls","Nal Sarovar Bird Sanctuary"]),
+    D("Devgadh Baria, India","India","Devgadh Baria","West India","mainstream",1800,
+      ["history","temples","nature","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Devgadh Baria Fort / Darbargadh","Rajmahal Palace","Shri Swaminarayan Mandir","Shri Ranchhodraiji Maharaj Mandir"]),
+    D("Dholka, India","India","Dholka","West India","lesser_known",1500,
+      ["history","temples","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Dholka Fort","Hazrat Shah Alam Dargah","Local markets"]),
+    D("Dhrangadhra, India","India","Dhrangadhra","West India","mainstream",1800,
+      ["history","temples","nature","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Dhrangadhra Palace","Khodiyar Mandir","Swaminarayan Temple","Bavani Lake"]),
+    D("Dhrol, India","India","Dhrol","West India","lesser_known",1200,
+      ["history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Dhrol Fort / Darbargadh","Bhucharmori battlefield"]),
+    D("Gandhidham, India","India","Gandhidham","West India","mainstream",1800,
+      ["temples","history","nature","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bhadreswar Jain Temple","Chandra Prabh Dham Teerth","Purneshwar Temple","Gandhi Samadhi"]),
+    D("Gandhinagar, India","India","Gandhinagar","West India","mainstream",1800,
+      ["temples","history","museums","relaxation"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Swaminarayan Akshardham","Adalaj Stepwell","Indroda Nature Park","Sarita Udyan"]),
+    D("Godhra, India","India","Godhra","West India","lesser_known",1500,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ranchhodji Temple","Khodiyar Mandir","Champaner-Pavagadh Archaeological Park"]),
+    D("Gondal, India","India","Gondal","West India","mainstream",1800,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Naulakha Palace","Riverside Palace","Orchard Palace","Shri Swaminarayan Mandir"]),
+    D("Halvad, India","India","Halvad","West India","mainstream",1800,
+      ["history","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Halvad Fort","Ek Dandiya Mahal (wooden Royal Palace)","Swaminarayan Temple","Jain Temples at Tikar"]),
+    D("Himatnagar, India","India","Himatnagar","West India","mainstream",1800,
+      ["temples","history","relaxation","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bholeshwar Temple","Mahavir Swami Jain Temple","Himmat Singh Fort","Kazi ni Vavdi"]),
+    D("Idar, India","India","Idar","West India","mainstream",1800,
+      ["history","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Idar Fort (Idariyo Gadh)","Ruthi Rani no Mahal (Angry Queen's Palace)","Zarneshwar Mahadev Temple","Shantinath Shwetambar Jain Dersar"]),
+    D("Jamnagar, India","India","Jamnagar","West India","mainstream",1800,
+      ["history","relaxation","temples","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Lakhota Fort","Ranmal Lake","Bala Hanuman Temple","Khambhalia Gate"]),
+    D("Jasdan, India","India","Jasdan","West India","mainstream",1800,
+      ["wildlife","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Hingolgadh Nature Education Sanctuary (Hingolgadh Palace)","Jalaram Temple, Hirpara","Bhutada Dada Temple","Ram Mandir"]),
+    D("Jetpur, India","India","Jetpur","West India","mainstream",1800,
+      ["shopping","history","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Jetpur Textile Market","Jetpur City Palace","Jetpur Fort","Nilkantheshwar Temple"]),
+    D("Kadi, India","India","Kadi","West India","mainstream",1800,
+      ["temples","history","relaxation","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Kadi Sarangpur Hanuman Temple","Umiya Mata Temple","Oghadnath Mahadev Temple","Malhavrav Fort"]),
+    D("Kalavad, India","India","Kalavad","West India","lesser_known",1500,
+      ["temples","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Shitla Mataji Temple","Nava Ranuja Temple","Local handicraft and textile markets"]),
+    D("Kalol, India","India","Kalol","West India","mainstream",1800,
+      ["temples","history","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ambaji Temple","Kapileshwar Mahadev Temple","Bharat Sevashram (Durga, Hanuman & Ganesh temples)","Jamiyatpura Hanumanji Temple"]),
+    D("Kapadvanj, India","India","Kapadvanj","West India","lesser_known",1500,
+      ["temples","history","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Jain Temple (dedicated to Lord Mahavir)","Bhadrakali Temple","Ancient step wells and forts (surrounding countryside)","Kanjari village (nearby)"]),
+    D("Karjan, India","India","Karjan","West India","mainstream",1800,
+      ["nature","temples","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Karjan Dam","Gopinath Mahadev Temple","Shri Shankheshwar Parshwanath Jain Tirth (Anastu)","Sumeru Navkar Jain Tirth (Golden Temple)"]),
+    D("Keshod, India","India","Keshod","West India","lesser_known",1200,
+      ["wildlife","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Gir National Park (nearby)","Girnar Hill (nearby, ~70 km)"]),
+    D("Khambhalia, India","India","Khambhalia","West India","mainstream",1800,
+      ["nature","relaxation","temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ghee Dam","Anand Baug","Shiru Lake & Shiva Temple","Five Historic Gates (Nagar, Salaya, Por, Dwarka, Jodhpur Gate)"]),
+    D("Kheda, India","India","Kheda","West India","lesser_known",1500,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Kheda Fort","Swaminarayan Temple","Gandhi Ashram, Kheda","Galteshwar"]),
+    D("Kheralu, India","India","Kheralu","West India","lesser_known",1500,
+      ["temples","history","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bahuchar Mata Temple","Taranga Hills (Taranga Jain Temple)","Modhera Sun Temple","Dharoi Dam"]),
+    D("Kodinar, India","India","Kodinar","West India","mainstream",1800,
+      ["temples","nature","relaxation","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bapeshwar Shiva Temple","Bhalka Tirth","Mul Dwarka","Jamjir Waterfalls"]),
+    D("Limbdi, India","India","Limbdi","West India","mainstream",1800,
+      ["temples","history","shopping","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["BAPS Shri Swaminarayan Temple","Jain Temple (1,100 years old)","Jasma Odan Temple","Gandhi Smruti Mandir"]),
+    D("Lunawada, India","India","Lunawada","West India","mainstream",1800,
+      ["temples","history","nature","relaxation"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Luneshwar Mahadev Temple","Kaleshwari","Kadana Dam","Kakachiya Triveni Sangam"]),
+    D("Mahuva, India","India","Mahuva","West India","mainstream",1800,
+      ["beach","temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mahuva Beach","Bhavani Mata Temple","Shree Swaminarayan Mandir","Nichla Mandir"]),
+    D("Mandvi, India","India","Mandvi","West India","mainstream",1800,
+      ["beach","history","temples","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mandvi Beach","Vijay Vilas Palace","72 Jinalaya Temple","Mandvi Shipyards"]),
+    D("Mangrol, India","India","Mangrol","West India","lesser_known",1500,
+      ["beach","temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mangrol Beach","Ahmedpur Mandvi Beach","Damodar Kund","Uparkot Fort"]),
+    D("Mansa, India","India","Mansa","West India","lesser_known",1500,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mansa Stepwell","Govardhannath Havelis and Vaishnava Temples","Former Mansa State Royal Heritage"]),
+    D("Mehsana, India","India","Mehsana","West India","lesser_known",1500,
+      ["temples","culture","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Simandhar Swami Jain Temple","Dudhsagar Dairy","Modhera Sun Temple","Bahuchar Mata Temple, Becharaji"]),
+    D("Mithapur, India","India","Mithapur","West India","mainstream",1800,
+      ["nature","beach","culture","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mithapur Lighthouse","Mithapur Beach","Mithapur Lakes","Tata Chemicals Plant"]),
+    D("Modasa, India","India","Modasa","West India","mainstream",1800,
+      ["temples","history","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Modeshwari Mata Temple","Baba Ramdev Temple","Khanderay Temple","Modasa Fort"]),
+    D("Modhera, India","India","Modhera","West India","lesser_known",1500,
+      ["history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Modhera Sun Temple","Surya Kund","Sabha Mandap"]),
+    D("Morbi, India","India","Morbi","West India","mainstream",1800,
+      ["temples","history","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Mani Mandir","Morbi Suspension Bridge (Jhulta Pul)","Darbargadh (Old Palace)","Wellington Secretariat"]),
+    D("Nadiad, India","India","Nadiad","West India","lesser_known",1500,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Santram Mandir","Mai Mandir","Shri Atmasiddhishastra Rachnabhoomi","Dahilaxmi Library"]),
+    D("Navsari, India","India","Navsari","West India","mainstream",1800,
+      ["history","temples","museums","beach"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["J.N. Tata Birthplace","Vadi Dar-e-Meher","Bhagarsath Anjuman Atash Behram","Meherjirana Library"]),
+    D("Padra, India","India","Padra","West India","mainstream",1800,
+      ["temples","wildlife","nature","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Tulja Bhavani Temple","Padra Bird Sanctuary","Narmada River","Nandalay Haveli"]),
+    D("Palanpur, India","India","Palanpur","West India","lesser_known",1500,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Balaram Palace","Kirti Stambh","Pallaviya Parshwanath Temple"]),
+    D("Petlad, India","India","Petlad","West India","lesser_known",1500,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ranchhodraiji Temple","Swaminarayan Temple (Shri Swaminarayan Mandir)","Sardar Vallabhbhai Patel Statue"]),
+    D("Radhanpur, India","India","Radhanpur","West India","lesser_known",1500,
+      ["culture","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Vrindavan Society area","Javantri","Zazam"]),
+    D("Rajpipla, India","India","Rajpipla","West India","mainstream",1800,
+      ["history","wildlife","nature","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Rajvant Palace","Shoolpaneshwar Wildlife Sanctuary","Ratanmahal Sloth Bear Sanctuary","Zarwani Waterfall"]),
+    D("Rajula, India","India","Rajula","West India","lesser_known",1500,
+      ["temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Kumbhnath Sukhnath Temple","Dhatarwadi Riverside","Chachudeshwar Mahadev Temple"]),
+    D("Ranavav, India","India","Ranavav","West India","lesser_known",1500,
+      ["history","wildlife","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Jambavant Cave (Jambuvant ki Gufa)","Khambhalida Caves","Barda Wildlife Sanctuary","Khimeshwar Temple"]),
+    D("Rapar, India","India","Rapar","West India","mainstream",1800,
+      ["history","temples","nature","museums"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bhujia Fort","Shri Ramnathji Mandir","Vraj Temple","Jain Temples of Rapar"]),
+    D("Salaya, India","India","Salaya","West India","lesser_known",1200,
+      ["temples","museums"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Rukmini Temple","Salaya Museum"]),
+    D("Sanand, India","India","Sanand","West India","lesser_known",1500,
+      ["wildlife","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Nalsarovar Bird Sanctuary","Adalaj Stepwell","Sabarmati Ashram"]),
+    D("Saputara, India","India","Saputara","West India","mainstream",1800,
+      ["nature","museums","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Saputara Lake","Sunrise Point","Sunset Point (Gandhi Shikhar)","Saputara Tribal Museum"]),
+    D("Savarkundla, India","India","Savarkundla","West India","lesser_known",1200,
+      ["temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["BAPS Shri Swaminarayan Mandir","Tulsi Shyam Springs"]),
+    D("Sidhpur, India","India","Sidhpur","West India","lesser_known",1500,
+      ["temples","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Bindu Sarovar","Rudra Mahalaya Temple","Bohra Vad","Sidhpur Stepwell"]),
+    D("Sihor, India","India","Sihor","West India","mainstream",1800,
+      ["history","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Brahma Kund","Gautameshwar Temple and Lake","Vijay Vilas Palace","Khodiyar Mata Temple"]),
+    D("Songadh, India","India","Songadh","West India","mainstream",1800,
+      ["history","nature","culture","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Songadh Fort","Gira Waterfalls","Chimer Waterfall","Ukai Dam"]),
+    D("Surendranagar, India","India","Surendranagar","West India","mainstream",1800,
+      ["temples","nature","wildlife","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Trinetreshwar Mahadev Temple (Tarnetar)","Chotila Hill (Chamunda Mataji Temple)","Ranmal Lake","Bajana Wildlife Sanctuary"]),
+    D("Talaja, India","India","Talaja","West India","lesser_known",1500,
+      ["history","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Talaja Buddhist Caves","Talaja Jain Tirth (Taldhwajgiri)","Khodiyar Mata Temple","Talaja Hills"]),
+    D("Thangadh, India","India","Thangadh","West India","mainstream",1800,
+      ["temples","history","culture","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Khodiyar Mata Temple","Thangadh Fort","Stepwell of Thangadh","Pottery and ceramics workshops"]),
+    D("Tharad, India","India","Tharad","West India","lesser_known",1500,
+      ["temples","culture","nature","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Shree Mota Mahaveer (Adinath) Jain Temple","Seema Darshan, Nadabet","Great Rann of Kutch (Tharad region)","Tharad Bazaar"]),
+    D("Umbergaon, India","India","Umbergaon","West India","lesser_known",1500,
+      ["beach","temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Umbergaon Beach","Shri Swaminarayan Mandir","Daman Ganga River"]),
+    D("Umreth, India","India","Umreth","West India","mainstream",1800,
+      ["temples","relaxation","history"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Shree Ram Mandir","Shree Giriraj Dham","Umreth Jain Temple (Shri Shankheshwar Parshwanath)","Umreth Municipal Garden"]),
+    D("Una, India","India","Una","West India","lesser_known",1500,
+      ["culture","wildlife","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Delwada","Gir National Park","Somnath Temple & Beach"]),
+    D("Unjha, India","India","Unjha","West India","lesser_known",1500,
+      ["temples","shopping"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Shree Umiya Mata Temple","Kutchhadi Dada Temple","Hanuman Mandir","Unjha APMC Spice Market"]),
+    D("Upleta, India","India","Upleta","West India","mainstream",1800,
+      ["temples","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Khodiyar Mata Temple","Swaminarayan Temple","Bhadrakali Temple","Triloknath Mahadev Temple"]),
+    D("Vadnagar, India","India","Vadnagar","West India","mainstream",1800,
+      ["history","temples","nature","museums"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Kirti Toran","Hatkeshwar Temple","Kalika Mata Temple","Sharmistha Lake / Vadnagar Lake"]),
+    D("Valsad, India","India","Valsad","West India","lesser_known",1500,
+      ["beach","history","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Tithal Beach","Parnera Hill (Parnera Fort)","Bilpudi Waterfalls"]),
+    D("Vapi, India","India","Vapi","West India","mainstream",1800,
+      ["relaxation","nature","beach","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Nakshatra Garden","G.I.D.C Garden","Vanganga Lake","Daman Ganga Riverbank"]),
+    D("Veraval, India","India","Veraval","West India","mainstream",1800,
+      ["temples","beach","museums","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Somnath Temple","Veraval Beach","Bhalka Tirth","Triveni Sangam"]),
+    D("Vijapur, India","India","Vijapur","West India","lesser_known",1500,
+      ["history","temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Vijapur Fort","Buddhisagar Suri Samadhi","Swaminarayan Temple, Vijapur","Jasmalnathji Mahadev Temple"]),
+    D("Viramgam, India","India","Viramgam","West India","lesser_known",1500,
+      ["history","nature","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Viramgam Fort","Town Lakes (three lakes surrounding Viramgam)","Nal Sarovar Bird Sanctuary (nearby)","Lothal (nearby)"]),
+    D("Visnagar, India","India","Visnagar","West India","lesser_known",1200,
+      ["temples"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Swaminarayan Temple"]),
+    D("Vyara, India","India","Vyara","West India","mainstream",1800,
+      ["history","temples","relaxation","nature"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Vyara Fort","Shri Swaminarayan Mandir","Jalvatika Garden","Mayadevi Waterfall Temple"]),
+    D("Wadhwan, India","India","Wadhwan","West India","mainstream",1800,
+      ["temples","history","wildlife"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ranakdevi Temple","Wagheshwari Devi Temple","Madhu Vav","Ganga Vav"]),
+    D("Wankaner, India","India","Wankaner","West India","mainstream",1800,
+      ["history","temples","nature","culture"],["budget","mid-range","family"],[10,11,12,1,2,3],
+      ["Ranjit Vilas Palace","Swaminarayan Temple","Gayatri Temple","Hazrat Shah Bava Dargah"]),
 
     # ==================== INDIA — SOUTH ====================
     D("Munnar, India","India","Munnar","South India","mainstream",2500,
@@ -224,7 +579,15 @@ DESTINATIONS = [
       ["Tiger Reserve","Jeep Safari","Corbett Falls","Garjiya Temple"]),
     D("Gir, India","India","Gir","West India","lesser_known",2500,
       ["wildlife","nature","photography","adventure"],["mid-range","family","adventure"],[12,1,2,3,4],
-      ["Asiatic Lion Safari","Devaliya Park","Kankai Temple","Crocodile Park"]),
+      ["Asiatic Lion Safari","Devaliya Park","Kankai Temple","Crocodile Park"],
+      description="Gir is the only place on Earth to see wild lions outside Africa — a population "
+                  "that has rebounded from fewer than 20 individuals a century ago to 891 in the "
+                  "2025 census, tracked today by GPS collars and an AI system that recognizes "
+                  "individual lions by their whisker patterns. Nearly half of Gir's lions now range "
+                  "outside the park into villages and farmland, and wildlife biologist Yadvendradev "
+                  "Jhala has warned the species still has \"all the eggs in one basket\" — one "
+                  "disease outbreak away from disaster, as a 2018 distemper outbreak that killed 23 "
+                  "lions showed."),
 
     # ==================== INTERNATIONAL — SOUTH & SE ASIA ====================
     D("Kathmandu, Nepal","Nepal","Kathmandu","Himalayas","mainstream",2000,
@@ -332,12 +695,38 @@ DESTINATIONS = [
 ]
 
 
+def _load_india_catalog():
+    """Real, Wikivoyage-derived destinations (ml/scrape/build_india_dataset.py). Hand-curated entries
+    above always win on a city-name clash; absent file => curated-only (nothing breaks)."""
+    import json
+    import os
+    path = os.path.join(os.path.dirname(__file__), "..", "data", "india_catalog.json")
+    if not os.path.exists(path):
+        return []
+    have = {d["city"].lower() for d in DESTINATIONS}
+    out = []
+    with open(path, encoding="utf8") as f:
+        for d in json.load(f):
+            if d["city"].lower() in have:
+                continue
+            out.append(D(d["name"], d["country"], d["city"], d["region"], d["tier"],
+                         d["base_daily_inr"], d["activities"], d["styles"], d["season_peak"],
+                         d["attractions"], d.get("description", "")))
+    return out
+
+
+_DEST_CACHE = None
+
+
 def get_destinations():
-    return DESTINATIONS
+    global _DEST_CACHE
+    if _DEST_CACHE is None:
+        _DEST_CACHE = DESTINATIONS + _load_india_catalog()
+    return _DEST_CACHE
 
 
 def by_name(name):
-    for d in DESTINATIONS:
+    for d in get_destinations():
         if d["name"] == name:
             return d
     return None

@@ -2,8 +2,11 @@
 $ja_title = "Sign up"; $ja_active = "register";
 include("connection.php");
 session_start();
-$err = ""; $err2 = "";
-if (isset($_POST["sn"])) {
+require_once __DIR__ . '/ja-lib.php';
+$regOpen = ja_setting('allow_registration', '1') === '1';
+$err = ""; $err2 = $regOpen ? "" : "New sign-ups are currently closed.";
+if (isset($_POST["sn"]) && !$regOpen) { $err2 = "New sign-ups are currently closed."; }
+elseif (isset($_POST["sn"])) {
     $fname = trim($_POST["fname"] ?? '');
     $lname = trim($_POST["lname"] ?? '');
     $eml   = trim($_POST["eml"] ?? '');
@@ -20,7 +23,9 @@ if (isset($_POST["sn"])) {
            && preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/',$psw) && strlen($psw) >= 8;
     $validate = filter_var($eml, FILTER_VALIDATE_EMAIL);
 
-    if ($emailExists) {
+    if (!ja_rate_limit('register:ip:' . ja_client_ip(), 10, 3600)) {
+        $err2 = "Too many sign-ups from this network. Please try again later.";
+    } else if ($emailExists) {
         $err2 = "That email is already registered.";
     } else if (!$strong) {
         $err = "Password needs 8+ characters with an uppercase letter, a number and a symbol.";
@@ -31,6 +36,7 @@ if (isset($_POST["sn"])) {
         $sql = mysqli_prepare($conn, "INSERT INTO signup (fname, lname, eml, psw) VALUES (?,?,?,?)");
         mysqli_stmt_bind_param($sql, 'ssss', $fname, $lname, $eml, $hash);
         if (mysqli_stmt_execute($sql)) {
+            ja_ensure_handle($eml);   // public profile handle (never derived from the email)
             $_SESSION["fname"] = $fname; $_SESSION["lname"] = $lname; $_SESSION['eml'] = $eml;
             header("location: dashboard.php"); exit();
         }

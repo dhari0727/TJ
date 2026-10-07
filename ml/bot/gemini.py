@@ -20,7 +20,7 @@ import os
 import urllib.request
 import urllib.parse
 
-MODEL = os.environ.get("JOURNEYAI_GEMINI_MODEL", "gemini-2.0-flash")
+MODEL = os.environ.get("JOURNEYAI_GEMINI_MODEL", "gemini-3.1-flash-lite")
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 
 
@@ -51,7 +51,7 @@ _MODELS = None
 def _model_chain():
     global _MODELS
     if _MODELS is None:
-        _MODELS = [MODEL, "gemini-2.0-flash", "gemini-2.0-flash-001", "gemini-2.0-flash-lite"]
+        _MODELS = [MODEL, "gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-latest"]
         seen, out = set(), []
         for m in _MODELS:
             if m not in seen:
@@ -76,11 +76,13 @@ def _post(payload, timeout=45):
                     return json.loads(r.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
                 last_err = e
-                if e.code == 429:
+                if e.code in (429, 500, 502, 503, 504):   # rate-limit / overload: retry, then next model
                     if attempt == 0:
                         time.sleep(2)   # brief backoff then retry same model
                         continue
                     break               # give up on this model, try next
+                if e.code == 404:
+                    break               # model retired/unavailable -> try the next one
                 raise
             except Exception as e:
                 last_err = e

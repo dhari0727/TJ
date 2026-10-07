@@ -113,7 +113,7 @@ $overBudget = ($budget !== null && $actual > $budget);
 
     <div class="reveal" style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap">
       <a href="update.php?id=<?= $id ?>" class="ja-btn ja-btn-ghost">Edit entry</a>
-      <a href="itinerary.php?dest=<?= urlencode(trim(($e['City']??'').', '.($e['Country']??''),', ')) ?>&days=<?= (int)$e['duration_days'] ?>" class="ja-btn ja-btn-primary">Build an itinerary →</a>
+      <a href="trip.php?dest=<?= urlencode(trim(($e['City']??'').', '.($e['Country']??''),', ')) ?>&days=<?= (int)$e['duration_days'] ?>" class="ja-btn ja-btn-primary">Build an itinerary →</a>
       <button class="ja-btn ja-btn-ghost" id="importStorybookBtn" type="button" onclick="importToStorybook()">Import to Storybook</button>
     </div>
     <script>

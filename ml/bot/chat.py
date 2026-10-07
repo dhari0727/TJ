@@ -113,9 +113,11 @@ def chat(message, history=None, user_eml=None, user_location=None):
                 reply = gemini.extract_text(resp) or "Here's what I found."
                 return {"reply": reply, "cards": all_cards}
             # execute tool calls, append model turn + function responses
-            model_parts = []
-            for c in calls:
-                model_parts.append({"functionCall": {"name": c["name"], "args": c["args"]}})
+            # echo the model's parts back verbatim: Gemini 3 needs the thoughtSignature that comes with them
+            try:
+                model_parts = resp["candidates"][0]["content"]["parts"]
+            except Exception:
+                model_parts = [{"functionCall": {"name": c["name"], "args": c["args"]}} for c in calls]
             contents.append({"role": "model", "parts": model_parts})
             resp_parts = []
             for c in calls:
@@ -135,16 +137,17 @@ def chat(message, history=None, user_eml=None, user_location=None):
         resp = gemini.generate(contents, system=SYSTEM)
         return {"reply": gemini.extract_text(resp) or "Here's what I found.", "cards": all_cards}
     except Exception as e:
-        msg = str(e)
-        if "429" in msg or "quota" in msg.lower():
-            # Free-tier quota hit — fall back to a direct tool call so the user
-            # still gets useful results without the LLM.
-            fb = _fallback(message, user_eml)
-            if fb:
-                return fb
+        # ANY LLM failure (quota, retired model, network) -> answer with the built-in planner
+        # instead of a dead end, so the assistant is always useful.
+        fb = _fallback(message, user_eml)
+        if fb:
+            return fb
+        if "429" in str(e) or "quota" in str(e).lower():
             return {"reply": "The AI assistant's free daily quota is used up (resets at midnight "
-                             "Pacific). Meanwhile, try Plan a Trip or the route builder!", "cards": all_cards}
-        return {"reply": "Sorry, I hit an error answering that. Try rephrasing?", "cards": all_cards}
+                             "Pacific). Meanwhile, try Plan a Trip. It does the same planning without the chat.",
+                    "cards": all_cards}
+        return {"reply": "I couldn't reach the AI model just now. Try Plan a Trip for the same kind of answer.",
+                "cards": all_cards}
 
 
 def _fallback(message, user_eml=None):
@@ -158,6 +161,15 @@ def _fallback(message, user_eml=None):
     if mt:
         place = mt.group(1).strip(" .,")
     try:
+        if any(w in m for w in ["trip", "route", "itinerary", "plan", "days", "weekend", "budget", " to "]):
+            from ml.bot import smartplan
+            res = smartplan.plan(message)
+            if res.get("status") == "ok" and res.get("route"):
+                stops = [s["name"] for s in res["route"].get("route", [])][:5]
+                if stops:
+                    return {"reply": f"Here's a plan from {res.get('origin_text','your start').title()}: " + ", ".join(stops) +
+                                     f" (about {res.get('days')} day(s), roughly ₹{res.get('est_cost'):,}). "
+                                     "Open Plan a Trip for the full route with a map.", "cards": []}
         if place and any(w in m for w in ["place", "visit", "nearby", "near me", "temple", "food",
                                           "eat", "ice cream", "day trip", "1 day", "weekend"]):
             interests = []

@@ -101,10 +101,20 @@ def recommend():
     if origin_region not in ORIGIN_REGIONS:
         origin_region = None
 
+    # distance-aware ranking: where the user starts + how long they have (day/weekend/short/long)
+    trip_mode = data.get("trip_mode") if data.get("trip_mode") in ("day", "weekend", "short", "long") else None
+    origin_latlon = None
+    origin_text = str(data.get("origin") or "").strip()[:120]
+    if origin_text and trip_mode:
+        from ml.geo.places import geocode
+        g = geocode(origin_text)
+        if g:
+            origin_latlon = (g[0], g[1])
+
     recs = _reco().recommend(
         eml=eml, budget=budget, duration_days=duration, interests=interests,
         travel_style=style, month=month, party_size=party, top_n=top_n,
-        origin_region=origin_region)
+        origin_region=origin_region, origin_latlon=origin_latlon, trip_mode=trip_mode)
     recs = [explain(r, budget=budget, interests=interests) for r in recs]
 
     return jsonify({
@@ -352,7 +362,18 @@ def analytics_personal():
 
 
 if __name__ == "__main__":
+    import logging
+    import os
+
+    host = os.environ.get("JOURNEYAI_ML_HOST", "127.0.0.1")   # keep on loopback; only PHP talks to it
+    port = int(os.environ.get("JOURNEYAI_ML_PORT", "5000"))
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     print("Loading JourneyAI models...")
     _reco()  # warm the models at boot
-    print("Models loaded. Serving on http://127.0.0.1:5000")
-    app.run(host="127.0.0.1", port=5000, debug=False)
+    try:
+        from waitress import serve   # production WSGI server (pip install waitress)
+        print(f"Models loaded. Serving with waitress on http://{host}:{port}")
+        serve(app, host=host, port=port, threads=8, ident="journeyai")
+    except ImportError:
+        print(f"waitress not installed - falling back to Flask's dev server on http://{host}:{port}")
+        app.run(host=host, port=port, debug=False)

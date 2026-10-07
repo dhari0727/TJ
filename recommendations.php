@@ -3,6 +3,7 @@ $ja_title = "For You"; $ja_active = "recs";
 session_start();
 require 'connection.php';
 require 'ml_client.php';
+require_once __DIR__ . '/ja-lib.php';
 
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $eml = $_SESSION['eml'];
@@ -54,10 +55,15 @@ if ($dr) {
     }
 }
 
-// personalised picks from the user's history
+// saved preferences count too (a brand-new user has no journal history yet)
+$prefs = ja_user_prefs($eml);
+$user_interests = array_values(array_unique(array_merge($prefs['interests'], $user_interests)));
+if (!$user_budget) $user_budget = (float)$prefs['default_budget'];
+
+// personalised picks from the user's history and preferences
 $result = ml_recommend([
     'eml' => $eml,
-    'budget' => $user_budget, 'duration_days' => 6, 'travel_style' => 'mid-range',
+    'budget' => $user_budget, 'duration_days' => 6, 'travel_style' => $prefs['travel_style'], 'party_size' => $prefs['party_size'],
     'interests' => $user_interests, 'top_n' => 6,
 ]);
 ?>

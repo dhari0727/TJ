@@ -1,6 +1,7 @@
 <?php
 $ja_title = "Forgot password"; $ja_active = "login";
 include("connection.php");
+require_once __DIR__ . '/ja-lib.php';
 require("mail.php");
 session_start();
 $err = ""; $ok = "";
@@ -10,6 +11,8 @@ if (isset($_POST['next'])) {
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $err = "Please enter a valid email address.";
+    } elseif (!ja_rate_limit('forgot:ip:' . ja_client_ip(), 8, 3600) || !ja_rate_limit('forgot:eml:' . strtolower($email), 3, 3600)) {
+        $err = "Too many requests. Please wait a while before trying again.";
     } else {
         $check = mysqli_prepare($conn, "SELECT eml FROM signup WHERE eml = ? LIMIT 1");
         mysqli_stmt_bind_param($check, 's', $email);
@@ -26,10 +29,17 @@ if (isset($_POST['next'])) {
             mysqli_stmt_execute($up);
             mysqli_stmt_close($up);
 
-            if (send_reset_email($email, $token)) {
+            $res = send_reset_email($email, $token);
+            if ($res['ok']) {
                 $ok = "If that email is registered, a reset link has been sent.";
+            } elseif ($res['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1'
+                      && in_array(ja_client_ip(), ['127.0.0.1', '::1'], true)) {
+                // local development only: email isn't set up, so show the link here
+                $ok = "Email isn't set up yet (admin: Admin > Email settings). Dev link: " . $res['url'];
+            } elseif ($res['status'] === 'not_configured') {
+                $err = "Password emails aren't enabled on this site yet. Please contact the site admin.";
             } else {
-                $err = "Unable to send the reset email right now. Please try again later.";
+                $err = "We couldn't send the email right now. Please try again later.";
             }
         } else {
             // don't reveal whether the address is registered

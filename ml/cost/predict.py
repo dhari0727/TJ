@@ -23,10 +23,11 @@ _BUNDLE = None
 
 # Region lookup so callers only need to pass a destination name.
 _DEST_REGION = None
+_DEST_BASE = {}
 
 
 def _load():
-    global _BUNDLE, _DEST_REGION
+    global _BUNDLE, _DEST_REGION, _DEST_BASE
     if _BUNDLE is None:
         with _lock:
             if _BUNDLE is None:
@@ -36,6 +37,8 @@ def _load():
                 from ml.db import fetch_all
                 _DEST_REGION = {r["canonical_name"]: r["region"]
                                 for r in fetch_all("SELECT canonical_name, region FROM destinations")}
+                _DEST_BASE = {r["canonical_name"]: float(r["base_daily_cost"] or 0)
+                              for r in fetch_all("SELECT canonical_name, base_daily_cost FROM destinations")}
     return _BUNDLE
 
 
@@ -43,6 +46,7 @@ def _row(dest, duration_days, style, season, party_size, region):
     return pd.DataFrame([{
         "dest": dest, "region": region or "unknown", "style": style or "mid-range",
         "season": season, "duration_days": int(duration_days), "party_size": int(party_size),
+        "base_daily": _DEST_BASE.get(dest, 0.0),
     }])
 
 
@@ -60,7 +64,8 @@ def predict_cost_batch(destinations, duration_days=5, travel_style="mid-range",
 
     rows = [{"dest": d, "region": (_DEST_REGION or {}).get(d) or "unknown",
              "style": travel_style, "season": season,
-             "duration_days": duration_days, "party_size": party_size}
+             "duration_days": duration_days, "party_size": party_size,
+             "base_daily": _DEST_BASE.get(d, 0.0)}
             for d in destinations]
     X = pd.DataFrame(rows)
     daily = b["model"].predict(X)

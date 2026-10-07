@@ -5,10 +5,11 @@
  * Relies on $ja_use_sidebar set by ja-head.php.
  */
 if (!empty($ja_use_sidebar)): ?>
+    <div class="ja-credits">Destination data from <a href="https://en.wikivoyage.org" target="_blank" rel="noopener">Wikivoyage</a> and <a href="https://en.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA 4.0) and <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL). Costs are estimates, not quotes.</div>
   </div><!-- .ja-app-content -->
 </div><!-- .ja-app-main -->
 <?php include __DIR__ . '/ja-chat.php'; ?>
-<script src="js/ja-chat.js" defer></script>
+<script src="js/ja-chat.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-chat.js') ?>" defer></script>
 <script>
 (function(){
   var t=document.getElementById('jaSideToggle'),s=document.getElementById('jaSidebar');
@@ -45,10 +46,11 @@ if (!empty($ja_use_sidebar)): ?>
         <span class="ja-muted">© <?= date('Y') ?> JourneyAI</span>
       </div>
     </div>
+    <div class="ja-credits">Destination data from <a href="https://en.wikivoyage.org" target="_blank" rel="noopener">Wikivoyage</a> and <a href="https://en.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA 4.0) and <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL). Costs are estimates, not quotes.</div>
   </div>
 </footer>
 <?php include __DIR__ . '/ja-chat.php'; ?>
-<script src="js/ja-chat.js" defer></script>
+<script src="js/ja-chat.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-chat.js') ?>" defer></script>
 </body>
 </html>
 <?php endif; ?>

@@ -2,7 +2,9 @@
 $ja_title = "Login"; $ja_active = "login";
 include('connection.php');
 session_start();
+require_once __DIR__ . '/ja-lib.php';
 $evalue = "";
+if (!empty($_GET['suspended'])) $evalue = "This account has been suspended. Contact the site admin.";
 
 // logout (linked from the JourneyAI navbar as login.php?logout=1)
 if (isset($_GET['logout'])) {
@@ -17,14 +19,24 @@ if (isset($_POST['lgn'])) {
     $password = $_POST['password'] ?? '';
 
     // fetch the user by email with a prepared statement (no SQL injection)
-    $stmt = mysqli_prepare($conn, "SELECT fname, lname, eml, psw FROM signup WHERE eml = ? LIMIT 1");
+    // throttle: 6 failed attempts per email+IP in 15 minutes
+    $ip = ja_client_ip();
+    $tq = mysqli_prepare($conn, "SELECT COUNT(*) FROM login_attempts WHERE eml = ? AND ip = ? AND created_at > (NOW() - INTERVAL 15 MINUTE)");
+    mysqli_stmt_bind_param($tq, 'ss', $email, $ip);
+    mysqli_stmt_execute($tq);
+    mysqli_stmt_bind_result($tq, $recentFails);
+    mysqli_stmt_fetch($tq);
+    mysqli_stmt_close($tq);
+    $locked = ($recentFails ?? 0) >= 6;
+
+    $stmt = mysqli_prepare($conn, "SELECT fname, lname, eml, psw, role, is_active FROM signup WHERE eml = ? LIMIT 1");
     mysqli_stmt_bind_param($stmt, 's', $email);
     mysqli_stmt_execute($stmt);
     $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     mysqli_stmt_close($stmt);
 
     $ok = false;
-    if ($user) {
+    if ($user && !$locked) {
         $stored = $user['psw'];
         $isHashed = (strlen($stored) >= 60 && (str_starts_with($stored, '$2y$') || str_starts_with($stored, '$argon')));
         if ($isHashed) {
@@ -42,14 +54,31 @@ if (isset($_POST['lgn'])) {
         }
     }
 
+    if ($ok && !(int)$user['is_active']) {
+        $ok = false;
+        $evalue = "This account has been suspended. Contact the site admin.";
+    }
     if ($ok) {
+        session_regenerate_id(true);
+        $lu = mysqli_prepare($conn, "UPDATE signup SET last_login = NOW() WHERE eml = ?");
+        mysqli_stmt_bind_param($lu, 's', $user['eml']);
+        mysqli_stmt_execute($lu);
+        mysqli_stmt_close($lu);
         $_SESSION['fname'] = $user['fname'];
         $_SESSION['lname'] = $user['lname'];
         $_SESSION['eml']   = $user['eml'];
-        header("location:dashboard.php");
+        header("location:" . ($user['role'] === 'admin' && !empty($_GET['admin']) ? 'admin.php' : 'dashboard.php'));
         exit;
     } else {
-        $evalue = "Incorrect email or password.";
+        if ($evalue === "") {
+            $evalue = $locked ? "Too many attempts. Wait 15 minutes or reset your password." : "Incorrect email or password.";
+        }
+        if (!$locked && $email !== '') {
+            $fa = mysqli_prepare($conn, "INSERT INTO login_attempts (eml, ip) VALUES (?, ?)");
+            mysqli_stmt_bind_param($fa, 'ss', $email, $ip);
+            mysqli_stmt_execute($fa);
+            mysqli_stmt_close($fa);
+        }
     }
 }
 require 'ja-images.php';

@@ -1,6 +1,8 @@
 <?php
 $ja_title = "Plan a Trip"; $ja_active = "plan";
 require 'ml_client.php';
+require_once __DIR__ . '/ja-lib.php';
+$prefs = ja_user_prefs($_SESSION['eml'] ?? null);   // saved defaults (home city, budget, style, interests)
 
 // allowed interest vocabulary (mirrors the ML service)
 $ALL_INTERESTS = ['beach','trekking','food','nightlife','history','temples','museums',
@@ -9,7 +11,9 @@ $ALL_INTERESTS = ['beach','trekking','food','nightlife','history','temples','mus
 $STYLES = ['budget','mid-range','luxury','adventure','family','solo','backpacker'];
 $MODES  = ['day'=>'Day trip','weekend'=>'Weekend','short'=>'Short trip (3-5 days)','long'=>'Long trip'];
 
-$result = null; $nearby = null; $submitted = false; $mode='short'; $q = [];
+$result = null; $nearby = null; $submitted = false; $mode='short';
+$q = ['budget'=>$prefs['default_budget'], 'party'=>$prefs['party_size'], 'style'=>$prefs['travel_style'],
+      'interests'=>$prefs['interests'], 'origin'=>$prefs['home_city'], 'mode'=>'short'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $submitted = true;
     $budget   = max(1000, min(2000000, (int)($_POST['budget'] ?? 30000)));
@@ -34,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'eml' => $_SESSION['eml'] ?? null,
             'budget' => $budget, 'duration_days' => $duration, 'party_size' => $party,
             'month' => $month, 'travel_style' => $style, 'interests' => $interests, 'top_n' => 6,
+            'origin' => $origin, 'trip_mode' => $mode,   // rank by distance from where you start
         ]);
     }
 }
@@ -43,18 +48,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head><?php include 'ja-head.php'; ?></head>
 <body class="ja">
 
-<div class="ja-pagehead">
-  <div class="ja-container">
-    <div class="ja-eyebrow">✦ Personalised for you</div>
-    <h1>Plan a Trip</h1>
-    <p class="sub">Tell us your budget, time and what you love — JourneyAI blends real journals into
-      budget-aware, explainable recommendations.</p>
+<div class="ja-explore-hero" style="padding-top:8px">
+  <div class="ja-eyebrow" style="color:var(--ja-teal)"><?= ja_icon('sparkle',14) ?> One place to plan</div>
+  <h1>Where to next<?= !empty($_SESSION['fname']) ? ', ' . htmlspecialchars($_SESSION['fname']) : '' ?>?</h1>
+  <p class="sub">Type your trip in plain words. You'll get places, a route and the cost, all here.</p>
+
+  <form id="smartForm" class="ja-smart-box">
+    <?= ja_icon('search',22) ?>
+    <input type="text" id="smartInput" autocomplete="off"
+      placeholder="e.g. Weekend from Ahmedabad, temples &amp; food"
+      value="<?= htmlspecialchars($_GET['q'] ?? '') ?>">
+    <button type="submit" class="ja-btn ja-btn-primary">Plan it <?= ja_icon('arrow',18) ?></button>
+  </form>
+
+  <div class="ja-smart-examples">
+    <span>Try:</span>
+    <button type="button" class="ja-chip" data-ex="1 day near me, temples">1 day near me, temples</button>
+    <button type="button" class="ja-chip" data-ex="Weekend from Ahmedabad, food & gardens">Weekend food &amp; gardens</button>
+    <button type="button" class="ja-chip" data-ex="3 days beaches under 20000">3 days beaches under ₹20k</button>
+    <button type="button" class="ja-chip" data-ex="Udaipur to Jaipur route">Udaipur to Jaipur route</button>
   </div>
+  <div id="geoNote" style="font-size:.82rem;color:var(--text-mut);margin-top:10px;min-height:1em"></div>
 </div>
+
+<div id="smartResults" class="ja-smart-results"></div>
 
 <main class="ja-main">
   <div class="ja-container">
-    <div class="ja-card" style="margin-bottom:40px">
+    <details class="ja-fine" <?= $submitted ? 'open' : '' ?> style="margin-bottom:32px">
+    <summary class="ja-fine-sum">Want more control? Set budget, month, style and interests</summary>
+    <div class="ja-card" style="margin-top:14px">
       <form method="post" id="planForm">
         <div class="ja-field">
           <label>Budget: <strong id="budgetLabel">₹<?= number_format($q['budget'] ?? 30000) ?></strong></label>
@@ -120,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </button>
       </form>
     </div>
+    </details>
 
     <?php if ($submitted && $nearby !== null): ?>
       <?php // ---- REAL nearby places (OSM) for day/weekend trips ---- ?>
@@ -133,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="sub"><?= (int)$nearby['count'] ?> real spots within <?= (int)$nearby['radius_km'] ?> km · <?= htmlspecialchars($nearby['mode_label']) ?></p>
           </div>
           <a class="ja-btn ja-btn-primary" data-magnetic
-             href="route.php?place=<?= urlencode($q['origin']) ?>&mode=<?= urlencode($q['mode']) ?>&interests=<?= urlencode(implode(',',$q['interests'])) ?>">
+             href="trip.php?tab=route&place=<?= urlencode($q['origin']) ?>&mode=<?= urlencode($q['mode']) ?>&interests=<?= urlencode(implode(',',$q['interests'])) ?>">
             <?= ja_icon('compass',18) ?> Build a route</a>
         </div>
         <div class="ja-nearby-grid">
@@ -165,12 +189,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php require 'ja-cards.php'; ja_render_cards($result['recommendations'] ?? []); ?>
       <?php endif; ?>
 
-    <?php else: ?>
-      <div class="ja-empty" style="padding:56px 30px">
-        <div style="color:var(--ja-aqua);margin-bottom:14px"><?= ja_icon('compass',44) ?></div>
-        <p style="font-size:1.15rem;color:var(--text-dim);margin:0 0 6px">Ready when you are.</p>
-        <p style="color:var(--text-mut);margin:0">For a <strong>day trip</strong> or <strong>weekend</strong>, type where you're starting from and we'll find real places nearby. For longer trips, we'll recommend destinations.</p>
-      </div>
     <?php endif; ?>
   </div>
 </main>
@@ -232,4 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   if(geoBtn)geoBtn.addEventListener('click',detect);
 })();
 </script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/explore.js?v=<?= (int)@filemtime(__DIR__ . '/js/explore.js') ?>" defer></script>
 <?php include 'ja-footer.php'; ?>

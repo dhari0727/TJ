@@ -4813,9 +4813,29 @@ def _normalize(place):
     return first
 
 
+_INDIA = None
+
+
+def _india_towns():
+    """Wikivoyage-derived highlights for the rest of India (ml/scrape/build_highlights.py)."""
+    global _INDIA
+    if _INDIA is None:
+        import json
+        import os
+        path = os.path.join(os.path.dirname(__file__), "..", "data", "india_highlights.json")
+        try:
+            with open(path, encoding="utf8") as f:
+                _INDIA = json.load(f)
+        except (OSError, ValueError):
+            _INDIA = {}
+    return _INDIA
+
+
 def get_town(place):
-    """Return the curated TOWNS entry for a place string, or None if not covered."""
-    return TOWNS.get(_normalize(place))
+    """Return the TOWNS entry for a place string (hand-curated Gujarat first, then the
+    Wikivoyage-derived India-wide set), or None if not covered."""
+    key = _normalize(place)
+    return TOWNS.get(key) or _india_towns().get(key)
 
 
 def boost_and_inject(pois, place, town_lat=None, town_lon=None):
@@ -4864,9 +4884,11 @@ def boost_and_inject(pois, place, town_lat=None, town_lon=None):
             # OSM missed it entirely — inject using the town center as location
             # (approximate; still lets it appear in the list and on the map).
             if town_lat is not None and town_lon is not None:
+                has_ll = lm.get("lat") is not None and lm.get("lon") is not None
                 pois.append({
                     # dist_km must clear nearby_places()'s "> 0.6 skip origin" filter
-                    "name": lm["name"], "lat": town_lat, "lon": town_lon,
+                    "name": lm["name"], "lat": lm["lat"] if has_ll else town_lat,
+                    "lon": lm["lon"] if has_ll else town_lon,
                     "category": lm["category"], "dist_km": 1.0,
                     "fame": FAME_BOOST, "image": "", "wikidata": "", "wikipedia": "",
                     "cuisine": "", "curated": True, "note": lm["note"],

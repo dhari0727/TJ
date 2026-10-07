@@ -99,6 +99,7 @@ def build():
             "city": cat.get("city"),
             "country": cat.get("country"),
             "attractions": cat.get("attractions", []),
+            "description": cat.get("description", ""),
             "style_mix": grp["travel_style"].value_counts(normalize=True).to_dict(),
             "top_budget_bucket": grp["budget_bucket"].mode().iat[0] if len(grp) else None,
         }

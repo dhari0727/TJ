@@ -24,14 +24,15 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Bagel+Fat+One&display=swap" rel="stylesheet">
 
 <!-- JourneyAI design system -->
-<link rel="stylesheet" href="css/journeyai.css">
+<link rel="stylesheet" href="css/journeyai.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai.css') ?>">
 
 <!-- Motion libs (progressive enhancement; page works if these fail) -->
 <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.42/dist/lenis.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-<script src="js/journeyai.js" defer></script>
+<link rel="stylesheet" href="css/journeyai-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-community.css') ?>">
+<script src="js/journeyai.js?v=<?= (int)@filemtime(__DIR__ . '/js/journeyai.js') ?>" defer></script>
 
 <?php // ---- render the aurora background ---- ?>
 <div class="ja-aurora"></div>
@@ -43,18 +44,8 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
 // top navbar. This keeps the whole app consistent without rewriting each page.
 $ja_use_sidebar = $ja_logged_in && empty($ja_no_shell) && empty($ja_nav_overlay);
 if ($ja_use_sidebar):
-  $ja_side_nav = [
-    ['dashboard','dashboard.php','home','Dashboard'],
-    ['explore','explore.php','compass','Explore'],
-    ['plan','plan-trip.php','search','Plan a Trip'],
-    ['recs','recommendations.php','star','For You'],
-    ['feed','feed.php','heart','Feed'],
-    ['routes','my-routes.php','map-pin','My Routes'],
-    ['plans','my-plans.php','wallet','My Plans'],
-    ['entries','my-entries.php','book','My Journal'],
-    ['storybooks','my-storybooks.php','book','Storybooks'],
-    ['analytics','analytics.php','chart','Analytics'],
-  ];
+  require_once __DIR__ . '/ja-nav.php';   // single source of truth for the menu
+  echo '<script>window.JA_CSRF=' . json_encode(ja_csrf()) . ';</script><script src="js/pin.js?v=' . (int)@filemtime(__DIR__ . '/js/pin.js') . '" defer></script>';
 ?>
 <aside class="ja-sidebar" id="jaSidebar">
   <a class="ja-side-brand" href="dashboard.php"><img src="images/journeyai-logo.svg" class="ja-logo-mark" alt=""> <span>JourneyAI</span></a>
@@ -80,8 +71,8 @@ if ($ja_use_sidebar):
     </a>
     <div class="ja-navlinks">
       <?php if ($ja_logged_in): ?>
-        <a href="dashboard.php" class="<?= ja_nav_class('dashboard',$ja_active) ?>">Dashboard</a>
-        <a href="explore.php" class="<?= ja_nav_class('explore',$ja_active) ?>">Explore</a>
+        <a href="dashboard.php" class="<?= ja_nav_class('dashboard',$ja_active) ?>">Home</a>
+        <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan a Trip</a>
         <a href="login.php?logout=1" class="ja-theme-toggle" title="Logout" style="text-decoration:none"><?= ja_icon('logout',18) ?></a>
       <?php else: ?>
         <a href="index.php" class="<?= ja_nav_class('home',$ja_active) ?>">Home</a>

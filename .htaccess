@@ -1,0 +1,58 @@
+# JourneyAI — Apache hardening. Needs AllowOverride All (XAMPP default). See docs/DEPLOYMENT.md.
+Options -Indexes
+ServerSignature Off
+DirectoryIndex index.php
+
+# ---- PHP: never show errors to visitors (they go to the Apache/PHP error log), safer sessions ----
+<IfModule php_module>
+  php_flag display_errors off
+  php_flag display_startup_errors off
+  php_flag log_errors on
+  php_value error_reporting 32767
+  php_flag session.cookie_httponly on
+  php_value session.cookie_samesite Lax
+  php_flag session.use_strict_mode on
+  php_flag session.use_only_cookies on
+  php_value session.gc_maxlifetime 28800
+  php_value upload_max_filesize 40M
+  php_value post_max_size 128M
+  php_value max_file_uploads 12
+</IfModule>
+
+# ---- security headers ----
+<IfModule mod_headers.c>
+  Header unset X-Powered-By
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+</IfModule>
+
+# ---- only when served over HTTPS: secure cookies + HSTS ----
+<IfModule php_module>
+  <If "%{HTTPS} == 'on'">
+    php_flag session.cookie_secure on
+  </If>
+</IfModule>
+<IfModule mod_headers.c>
+  <If "%{HTTPS} == 'on'">
+    Header always set Strict-Transport-Security "max-age=31536000"
+  </If>
+</IfModule>
+
+# ---- never serve internals: source data, models, secrets, SQL, docs, tests, logs ----
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(config|sql|ml|docs|ops|tests|logs|\.git)(/|$) - [F,L]
+  RewriteRule ^(\.git|\.env|composer\.(json|lock)) - [F,L]
+</IfModule>
+<FilesMatch "\.(sql|md|log|pkl|py|bat|ps1|sh|ini|key|lock|example|bak|old|swp)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(CLAUDE|IMPLEMENTATION|IDEAS_BACKLOG)\.md$">
+  Require all denied
+</FilesMatch>
+
+# ---- friendly message instead of a blank page on a crash ----
+ErrorDocument 500 "Something went wrong on our side. Please try again in a moment."
+ErrorDocument 403 "You don't have access to this page."

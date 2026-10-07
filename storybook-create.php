@@ -1,5 +1,5 @@
 <?php
-$ja_title = "New Storybook"; $ja_active = "storybooks";
+$ja_title = "New Storybook"; $ja_active = "entries";
 session_start();
 require 'connection.php';
 require 'ja-media.php';

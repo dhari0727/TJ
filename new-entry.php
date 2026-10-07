@@ -1,5 +1,5 @@
 <?php
-$ja_title = "New Entry"; $ja_active = "new";
+$ja_title = "New Entry"; $ja_active = "entries"; $ja_jtab = "new";
 session_start();
 require 'connection.php';
 require 'ja-media.php';
@@ -23,7 +23,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               $_POST['dv']??'', $_POST['dr']??'', $_POST['hn']??'', $_POST['ad']??'',
               $_POST['ptv']??'', $_POST['tv']??'', $em];
         mysqli_stmt_bind_param($s,'sssssssssssds',$b[0],$b[1],$b[2],$b[3],$b[4],$b[5],$b[6],$b[7],$b[8],$b[9],$b[10],$budgetTargetVal,$b[11]);
-        mysqli_stmt_execute($s); mysqli_stmt_close($s);
+        mysqli_stmt_execute($s);
+        $newId = mysqli_insert_id($conn);   // must be read NOW: db1/db2/db3 have no auto-increment (it would be 0)
+        mysqli_stmt_close($s);
 
         // db1 — food + transport (positional 16)
         $food = num('breakfast')+num('lunch')+num('dinner')+num('snacks')+num('beverages');
@@ -51,7 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_bind_param($s,$t3,$d3[0],$d3[1],$d3[2],$d3[3],$d3[4],$d3[5],$d3[6],$d3[7],$d3[8],$d3[9],$d3[10],$d3[11],$d3[12],$d3[13],$d3[14],$d3[15],$d3[16]);
         mysqli_stmt_execute($s); mysqli_stmt_close($s);
 
-        $newId = mysqli_insert_id($conn);
+        // who can read it (private by default); a link/public choice gets a share token
+        $vis = in_array($_POST['visibility'] ?? '', ['private', 'link', 'public'], true) ? $_POST['visibility'] : 'private';
+        if ($vis !== 'private') {
+            $tok = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+            $vu = mysqli_prepare($conn, "UPDATE db SET visibility = ?, share_token = ?, published_at = IF(? = 'public', NOW(), NULL) WHERE entry_id = ? AND eml = ?");
+            mysqli_stmt_bind_param($vu, 'sssis', $vis, $tok, $vis, $newId, $em);
+            mysqli_stmt_execute($vu); mysqli_stmt_close($vu);
+        }
+        $postMedia = !empty($_POST['post_media']) ? 1 : 0;   // also show photos/videos in the Community feed
 
         // handle photo/video uploads (multiple) with per-file captions
         $place = trim(($_POST['city'] ?? '') . ', ' . ($_POST['coun'] ?? ''), ', ');
@@ -69,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'size' => $_FILES['media']['size'][$i],
                 ];
                 $cap = $_POST['media_caption'][$i] ?? '';
-                ja_handle_upload($conn, $f, $em, $newId, $cap, $place, 1, $mediaLat, $mediaLon);
+                ja_handle_upload($conn, $f, $em, $newId, $cap, $place, $postMedia, $mediaLat, $mediaLon);
             }
         }
         header('Location: display.php?id='.$newId.'&new=1'); exit;
@@ -84,8 +94,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="ja-pagehead">
   <div class="ja-container">
     <div class="ja-eyebrow">✦ Record a journey</div>
-    <h1>New Journal Entry</h1>
-    <p class="sub">Capture your trip — the details help JourneyAI learn and recommend better journeys to you and others.</p>
+    <h1>My Journal</h1>
+    <p class="sub">Capture your trip. The details help JourneyAI recommend better journeys to you and others.</p>
+    <?php include 'ja-journal-tabs.php'; ?>
   </div>
 </div>
 
@@ -163,6 +174,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="ja-field"><label>Shopping</label><input class="ja-input" type="number" name="shopping" min="0" value="0"></div>
         </div>
         <div class="ja-field"><label>Misc</label><input class="ja-input" type="number" name="misc" min="0" value="0"></div>
+      </div>
+
+      <div class="ja-card" style="margin-bottom:22px">
+        <h3>Sharing</h3>
+        <div class="ja-field"><label>Who can read this journal?</label>
+          <select class="ja-select" name="visibility">
+            <option value="private">Only me (you can share it later)</option>
+            <option value="link">Anyone with the link</option>
+            <option value="public">Everyone. List it in Read journals</option>
+          </select></div>
+        <label class="ja-switch"><input type="checkbox" name="post_media" value="1"> <span>Also post my photos and videos to the Community feed</span></label>
       </div>
 
       <div style="display:flex;gap:12px">

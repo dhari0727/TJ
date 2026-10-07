@@ -20,7 +20,7 @@ if ($token) {
     mysqli_stmt_close($s);
 
     if ($plan) {
-        $s = mysqli_prepare($conn, "SELECT * FROM packing_items WHERE plan_id=? ORDER BY sort_order ASC, item_id ASC");
+        $s = mysqli_prepare($conn, "SELECT i.label, i.category, i.is_checked, i.qty FROM packing_list_items i JOIN packing_lists l ON l.list_id = i.list_id WHERE l.plan_id=? ORDER BY i.sort_order ASC, i.item_id ASC");
         mysqli_stmt_bind_param($s, 'i', $plan['plan_id']);
         mysqli_stmt_execute($s);
         $packing = mysqli_fetch_all(mysqli_stmt_get_result($s), MYSQLI_ASSOC);

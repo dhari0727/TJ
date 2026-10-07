@@ -42,7 +42,8 @@ W_CONTENT = 0.38
 W_SEMANTIC = 0.22
 W_COLLAB = 0.30
 W_PROXIMITY = 0.10             # weight when an origin region is provided
-DISCOVERY_BOOST = 0.08         # additive bonus for strong lesser-known picks
+DISCOVERY_BOOST = 0.04         # additive bonus for strong lesser-known picks
+W_PROMINENCE = 0.12            # real-world attention prior (Wikipedia pageviews) so famous places aren't buried
 BUDGET_HARD_FACTOR = 1.25      # drop candidates above budget * this
 
 
@@ -74,6 +75,8 @@ class Recommender:
         ])
         self.sentiment = np.array([self.profiles[d]["sentiment_mean"] for d in self.dest_names])
         self.tiers = [self.profiles[d]["popularity_tier"] for d in self.dest_names]
+        self.prominence = self._load_prominence()
+        self.coords = self._load_coords()
         self.regions = [self.profiles[d].get("region") for d in self.dest_names]
 
         self._build_cf()
@@ -126,6 +129,55 @@ class Recommender:
         scores = self.item_sim @ w
         return _norm(scores)
 
+    def _load_coords(self):
+        """{destination: (lat, lon)} from ml/data/dest_coords.json (ml/geo/build_dest_coords.py)."""
+        import json
+        path = os.path.join(ARTIFACT_DIR, "..", "data", "dest_coords.json")
+        try:
+            with open(path, encoding="utf8") as f:
+                raw = json.load(f)
+        except (OSError, ValueError):
+            raw = {}
+        try:
+            with open(os.path.join(ARTIFACT_DIR, "..", "data", "dest_coords_overrides.json"), encoding="utf8") as f:
+                raw.update(json.load(f))
+        except (OSError, ValueError):
+            pass
+        return {k: (v[0], v[1]) for k, v in raw.items() if v and len(v) == 2}
+
+    # Road distance windows (km) that make sense for each trip length: inside = full fit, outside decays.
+    TRIP_WINDOWS = {"day": (0, 90), "weekend": (60, 380), "short": (180, 950), "long": (700, 4500)}
+    TRIP_IDEAL = {"day": 30.0, "weekend": 170.0, "short": 420.0, "long": 1600.0}   # the distance people typically pick
+
+    @staticmethod
+    def _window_fit(road_km, mode):
+        lo, hi = Recommender.TRIP_WINDOWS[mode]
+        if lo <= road_km <= hi:
+            # inside the window: still prefer the typical distance for this trip length (soft bell on log-distance)
+            z = np.log(max(road_km, 5.0) / Recommender.TRIP_IDEAL[mode]) / 0.75
+            return float(0.8 + 0.2 * np.exp(-0.5 * z * z))
+        gap = (lo - road_km) if road_km < lo else (road_km - hi)
+        scale = max(120.0, (hi - lo) * 0.35)
+        return float(0.8 * np.exp(-gap / scale))
+
+    def _load_prominence(self):
+        """0..1 per destination: log(Wikipedia daily views) for scraped destinations; curated
+        entries (no scraped views) fall back to their tier."""
+        import json
+        views = {}
+        path = os.path.join(ARTIFACT_DIR, "..", "data", "india_catalog.json")
+        if os.path.exists(path):
+            with open(path, encoding="utf8") as f:
+                views = {d["name"]: d.get("wiki_views", 0.0) for d in json.load(f)}
+        top = np.log1p(max(list(views.values()) + [1.0]))
+        out = []
+        for name, tier in zip(self.dest_names, self.tiers):
+            if name in views:
+                out.append(float(np.log1p(views[name]) / top))
+            else:
+                out.append(0.75 if tier == "mainstream" else 0.35)
+        return np.array(out)
+
     # -------------------------------------------------------------- scoring
     def _content_scores(self, interests):
         q = np.zeros(len(self.activities))
@@ -150,7 +202,7 @@ class Recommender:
 
     def recommend(self, eml=None, budget=None, duration_days=5, interests=None,
                   travel_style="mid-range", month=None, party_size=1, top_n=6,
-                  origin_region=None):
+                  origin_region=None, origin_latlon=None, trip_mode=None):
         interests = [i.lower() for i in (interests or [])]
         content = self._content_scores(interests)
         semantic = self._semantic_scores(interests)
@@ -186,7 +238,17 @@ class Recommender:
             prox = proximity_score(origin_region, self.regions[i]) if use_prox else 0.5
             season_fit = self._season_fit(dest, month)
 
-            score = base[i]
+            score = base[i] + W_PROMINENCE * self.prominence[i]
+            road_km = None
+            if origin_latlon and trip_mode in self.TRIP_WINDOWS and dest in self.coords:
+                from ml.geo.places import haversine
+                la, lo = self.coords[dest]
+                road_km = haversine(origin_latlon[0], origin_latlon[1], la, lo) * 1.3   # straight line -> rough road km
+                score = score * (0.3 + 0.7 * self._window_fit(road_km, trip_mode))
+                if trip_mode in ("short", "long"):
+                    score = score * (0.55 + 0.45 * self.prominence[i])   # trips should be to places people actually go
+            elif origin_latlon and trip_mode in self.TRIP_WINDOWS:
+                score = score * 0.6                                                      # unknown location: mild penalty
             if use_prox:
                 score = (1 - W_PROXIMITY) * score + W_PROXIMITY * prox
             score = score * (0.5 + 0.5 * fit)        # budget modulates
@@ -208,8 +270,12 @@ class Recommender:
                 "lesser_known": self.tiers[i] == "lesser_known",
                 "sentiment_mean": round(float(self.sentiment[i]), 3),
                 "n_journals": self.profiles[dest]["n_journals"],
+                "description": self.profiles[dest].get("description", ""),
                 "region": self.regions[i],
                 "distance_label": distance_label(origin_region, self.regions[i]) if use_prox else "",
+                "attractions": list(self.profiles[dest].get("attractions", []) or [])[:3],
+                "distance_km": int(round(road_km, -1)) if road_km is not None else None,
+                "drive_hours": (round(road_km / 55.0, 1) if road_km is not None and road_km <= 900 else None),
                 "best_season": self._season_text(dest),
                 "season_fit": round(float(season_fit), 2),
                 "reason_factors": {

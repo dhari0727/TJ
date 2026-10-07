@@ -41,11 +41,55 @@
         (eats ? '<div class="ja-rs-eat">' + svg('heart') + ' ' + eats + '</div>' : '') +
         '<a class="ja-rs-map" target="_blank" href="' + maps(s.lat, s.lon) + '">Google Maps</a></div></div>';
     }).join('');
-    var routeUrl = 'route.php?place=' + encodeURIComponent(d.origin_text) + '&mode=' + esc(d.intent.mode) + '&interests=' + encodeURIComponent((d.interests || []).join(','));
+    var routeUrl = 'trip.php?tab=route&place=' + encodeURIComponent(d.origin_text) + '&mode=' + esc(d.intent.mode) + '&interests=' + encodeURIComponent((d.interests || []).join(','));
+    var toggle = (r.alternative && r.alternative.route && r.alternative.route.length)
+      ? '<div class="ja-chips" id="miniToggle" style="margin-bottom:12px"><span class="ja-chip on" data-route="main">Recommended route</span><span class="ja-chip" data-route="alt">Alternative route</span></div>' : '';
     return section(svg('compass') + ' Your ' + d.days + '-day route from ' + esc(o.display.split(',')[0]),
       r.total_km + ' km · ' + r.stops + ' stops',
-      '<div class="ja-route-mini">' + stops + '</div>' +
-      '<a class="ja-btn ja-btn-primary" href="' + routeUrl + '">Open full route with map ' + svg('compass') + '</a>');
+      toggle +
+      '<div class="ja-route-mini" id="miniStops">' + stops + '</div>' +
+      '<div id="miniMap" class="ja-mini-map" style="height:300px;border-radius:14px;overflow:hidden;margin:14px 0"></div>' +
+      '<a class="ja-btn ja-btn-primary" href="' + routeUrl + '">Open full route (save, print, more detail) ' + svg('compass') + '</a>');
+  }
+
+  // Small interactive map under the route: pinned stops + switch between recommended / alternative route.
+  function stopsHtml(list) {
+    return list.map(function (s, i) {
+      var img = s.image ? '<div class="ja-rs-img" style="background-image:url(\'' + esc(s.image) + '\')"></div>' : '';
+      var eats = (s.eats || []).slice(0, 2).map(function (e) { return '<span class="ja-eat-chip">' + esc(e.name) + '</span>'; }).join('');
+      return '<div class="ja-rs"><div class="ja-rs-num">' + (i + 1) + '</div>' + img +
+        '<div class="ja-rs-body"><div class="ja-rs-name">' + esc(s.name) + '</div>' +
+        '<div class="ja-rs-do">' + svg('compass') + ' ' + esc(s.do || '') + '</div>' +
+        (eats ? '<div class="ja-rs-eat">' + svg('heart') + ' ' + eats + '</div>' : '') +
+        '<a class="ja-rs-map" target="_blank" href="' + maps(s.lat, s.lon) + '">Google Maps</a></div></div>';
+    }).join('');
+  }
+  function initMiniMap(d) {
+    var el = document.getElementById('miniMap');
+    if (!el || typeof L === 'undefined' || !d.route) return;
+    var r = d.route, o = r.origin, map = L.map(el, { scrollWheelZoom: false }), layer = L.layerGroup().addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    function draw(list) {
+      layer.clearLayers();
+      var pts = [[o.lat, o.lon]];
+      L.marker([o.lat, o.lon]).addTo(layer).bindPopup('Start');
+      list.forEach(function (s, i) { pts.push([s.lat, s.lon]); L.marker([s.lat, s.lon]).addTo(layer).bindPopup((i + 1) + '. ' + esc(s.name)); });
+      if (r.destination) { pts.push([r.destination.lat, r.destination.lon]); L.marker([r.destination.lat, r.destination.lon]).addTo(layer).bindPopup('Destination'); }
+      else pts.push([o.lat, o.lon]);
+      L.polyline(pts, { color: '#0E7C86', weight: 4, opacity: .8 }).addTo(layer);
+      map.fitBounds(pts, { padding: [30, 30] });
+    }
+    draw(r.route);
+    var tog = document.getElementById('miniToggle');
+    if (tog) tog.addEventListener('click', function (e) {
+      var c = e.target.closest('.ja-chip'); if (!c) return;
+      tog.querySelectorAll('.ja-chip').forEach(function (x) { x.classList.remove('on'); });
+      c.classList.add('on');
+      var list = (c.getAttribute('data-route') === 'alt' && r.alternative) ? r.alternative.route : r.route;
+      document.getElementById('miniStops').innerHTML = stopsHtml(list);
+      draw(list);
+    });
+    setTimeout(function () { map.invalidateSize(); }, 200);
   }
 
   function renderRouteBetween(d) {
@@ -59,7 +103,7 @@
         (eats ? '<div class="ja-rs-eat">' + svg('heart') + ' ' + eats + '</div>' : '') +
         '<a class="ja-rs-map" target="_blank" href="' + maps(s.lat, s.lon) + '">Google Maps</a></div></div>';
     }).join('');
-    var routeUrl = 'route.php?place=' + encodeURIComponent(d.origin_text) +
+    var routeUrl = 'trip.php?tab=route&place=' + encodeURIComponent(d.origin_text) +
       '&destination=' + encodeURIComponent(dest.place) +
       '&interests=' + encodeURIComponent((d.interests || []).join(','));
     return section(svg('compass') + ' ' + esc(o.display.split(',')[0]) + ' → ' + esc(dest.display.split(',')[0]),
@@ -72,7 +116,7 @@
     var cards = (d.nearby || []).map(placeCard).join('');
     return section(svg('pin') + ' Places near ' + esc(d.origin_text), (d.nearby || []).length + ' real spots',
       '<div class="ja-place-grid">' + cards + '</div>' +
-      '<a class="ja-btn ja-btn-primary" href="route.php?place=' + encodeURIComponent(d.origin_text) + '&mode=' + esc(d.intent.mode) + '">Turn into a route ' + svg('compass') + '</a>');
+      '<a class="ja-btn ja-btn-primary" href="trip.php?tab=route&place=' + encodeURIComponent(d.origin_text) + '&mode=' + esc(d.intent.mode) + '">Turn into a route ' + svg('compass') + '</a>');
   }
 
   function renderItinerary(d) {
@@ -80,7 +124,7 @@
     var highlights = (it.highlights || []).slice(0, 6).map(function (h) {
       return '<span class="ja-hl-chip">' + svg('pin') + ' ' + esc(h) + '</span>';
     }).join('');
-    var itinUrl = 'itinerary.php?dest=' + encodeURIComponent(it.destination || d.origin_text) +
+    var itinUrl = 'trip.php?tab=itinerary&dest=' + encodeURIComponent(it.destination || d.origin_text) +
       '&days=' + d.days + '&style=' + esc((d.intent || {}).travel_style || 'mid-range');
     return section(svg('compass') + ' Your ' + d.days + '-day trip to ' + esc((it.city || d.origin_text)),
       inr(it.total_cost) + ' total · ' + inr(it.per_day_cost) + '/day',
@@ -94,7 +138,7 @@
         '<div class="ja-rm-name">' + esc(r.destination) + '</div>' +
         '<div class="ja-rm-cost">' + inr(r.predicted_cost) + '</div>' +
         '<div class="ja-rm-why">' + esc((r.explanation || '').slice(0, 130)) + '</div>' +
-        '<a class="ja-btn ja-btn-ghost" href="itinerary.php?dest=' + encodeURIComponent(r.destination) + '&days=' + d.days + '">Build itinerary →</a></div>';
+        '<a class="ja-btn ja-btn-ghost" href="trip.php?tab=itinerary&dest=' + encodeURIComponent(r.destination) + '&days=' + d.days + '">Build itinerary →</a></div>';
     }).join('');
     return section(svg('star') + ' Best matches for your ' + d.days + '-day trip', (d.budget ? 'under ' + inr(d.budget) : 'ranked & explained'),
       '<div class="ja-reco-mini-grid">' + cards + '</div>');
@@ -116,6 +160,7 @@
     // cost strip
     if (d.est_cost) html += '<div class="ja-cost-strip">' + svg('heart') + ' Rough local budget: <strong>' + inr(d.est_cost) + '</strong> for ' + d.days + ' day(s)</div>';
     out.innerHTML = html;
+    if ((d.kind === 'route' || d.kind === 'route_between') && d.route) initMiniMap(d);
   }
 
   function run(text) {

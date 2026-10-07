@@ -8,7 +8,6 @@
 session_start();
 require 'connection.php';
 require 'ml_client.php';
-require 'ja-packing.php';
 
 $eml = $_SESSION['eml'] ?? null;
 if (!$eml) { header('Location: login.php'); exit; }
@@ -33,7 +32,7 @@ $it = ml_itinerary([
 ]);
 
 if (!empty($it['__error']) || ($it['status'] ?? '') === 'error') {
-    header('Location: itinerary.php?' . http_build_query(['dest'=>$dest,'days'=>$days,'style'=>$style,'month'=>$month,'party'=>$party]));
+    header('Location: trip.php?tab=itinerary&' . http_build_query(['dest'=>$dest,'days'=>$days,'style'=>$style,'month'=>$month,'party'=>$party]));
     exit;
 }
 
@@ -46,19 +45,7 @@ mysqli_stmt_execute($stmt);
 $planId = mysqli_insert_id($conn);
 mysqli_stmt_close($stmt);
 
-// Auto-generate starter packing checklist.
-$suggestions = ja_suggest_packing($dest, $days, $style, $month);
-if ($planId && $suggestions) {
-    $stmt = mysqli_prepare($conn,
-        "INSERT INTO packing_items (plan_id, label, category, sort_order) VALUES (?,?,?,?)");
-    $sort = 0;
-    foreach ($suggestions as $s) {
-        mysqli_stmt_bind_param($stmt, 'issi', $planId, $s['label'], $s['category'], $sort);
-        mysqli_stmt_execute($stmt);
-        $sort++;
-    }
-    mysqli_stmt_close($stmt);
-}
+// (The packing list is built on demand by packing.php?plan=ID, from the plan's days, season and style.)
 
 header('Location: my-plans.php?view=' . (int)$planId . '&saved=1');
 exit;

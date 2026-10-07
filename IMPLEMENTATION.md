@@ -86,31 +86,49 @@ One command: `ml/venv/Scripts/python.exe -m ml.rebuild_all --seed 42 --n 1500`
 | `destinations` | canonical destination reference (tier, region, base cost) |
 | `interactions` | user↔destination ratings/saves → collaborative filtering |
 | `journal_features` | NLP-derived features per journal (dest, budget, activities, style, sentiment) |
-| `media`, `hashtags`, `media_hashtags` | photos/videos on journals + hashtags (social layer, in progress) |
+| `media`, `hashtags`, `media_hashtags`, `media_likes`, `media_comments` | photos/videos (journal-linked or standalone posts) + hashtags, likes, comments |
+| `settings`, `email_log`, `login_attempts`, `user_prefs` | admin-editable settings (secrets encrypted), mail history, login throttling, per-user preferences |
 
-Migrations: `sql/migrations.sql` (core), `sql/media.sql` (social media layer).
+Migrations (run in this order, all safe to re-run): `sql/migrations.sql` (core), `sql/media.sql`, `sql/features.sql`,
+`sql/storybook.sql` + `sql/storybook-themes.sql`, `sql/admin.sql` (roles, settings, mail log, login throttle, user prefs),
+`sql/community.sql` (journal sharing, post comments), `sql/engage.sql` (packing lists, pinning, handles, journal likes/comments),
+`sql/prod.sql` (rate limits, indexes), `sql/create-db-user.sql` (least-privilege DB user).
 
 ---
 
 ## 5. Web App (PHP pages)
 
-**Design system:** one consistent editorial/cinematic theme (`css/journeyai.css`, `js/journeyai.js`),
-ocean/teal palette, compass logo + retro wordmark, SVG icons (`ja-icons.php`), shared head/footer
-(`ja-head.php`, `ja-footer.php`). Light + dark themes; motion (smooth scroll, reveals, carousel).
+**Design system:** one consistent editorial/cinematic theme (`css/journeyai.css`, `css/journeyai-community.css`,
+`js/journeyai.js`), ocean/teal palette, SVG icons (`ja-icons.php`), shared head/footer (`ja-head.php`,
+`ja-footer.php`). Light + dark themes.
 
-| Page | Purpose |
-|------|---------|
-| `index.php` | Cinematic landing with an auto-playing destination hero carousel. |
-| `login.php`, `register.php` | Split-screen editorial auth (bcrypt, hash-on-next-login migration). |
-| `dashboard.php` | Personal hub: quick actions, recommended-for-you, recent entries, saved plans. |
-| `plan-trip.php` | Trip planner: budget/interests/trip-mode/origin → recommendations OR real nearby places. |
-| `recommendations.php` | Session-history personalised picks. |
-| `itinerary.php` | Day-by-day itinerary page (timeline, cost donut, highlights, rebuild). |
-| `route.php` | Multi-stop route with a live Leaflet/OSM map. |
-| `analytics.php` | Personal + practical + corpus insights (Chart.js). |
-| `new-entry.php` | Create a journal entry (details, story, budget, **photo/video upload + hashtags**). |
-| `my-entries.php`, `display.php`, `update.php`, `delete.php` | Journal CRUD (prepared statements). |
-| `profile.php`, `change-pswd.php` | Account management. |
+**One menu, one place for each job.** The sidebar lives in a single file, [ja-nav.php](ja-nav.php):
+
+| Menu | Page | What it is for |
+|------|------|----------------|
+| Home | `dashboard.php` | Search box, picks for you (`recommendations.php`), recent entries, saved plans. |
+| Plan a Trip | `plan-trip.php` → `trip.php` | The ONLY search. Type a trip in plain words (or open "more control"). Results open in `trip.php`, one page with tabs **Day by day & cost** and **Route & map**. `explore.php`, `itinerary.php`, `route.php` just redirect here. |
+| My Trips | `my-plans.php`, `my-routes.php` | Everything you saved from planning (tabs: plans, routes). |
+| My Journal | `my-entries.php`, `my-storybooks.php`, `new-entry.php` | Tabs: entries, storybooks, new entry. Each entry can be shared (private / link / public) and posted to the feed. |
+| Community | `feed.php`, `share.php`, `read-journals.php` | Tabs: **Feed** (Instagram-style posts), **Share a post** (upload photos/videos with #tags, manage your posts), **Read journals** (public journals and storybooks). Reader: `journal.php`. |
+| Insights | `analytics.php` | Personal + community cost insights. |
+
+Also: `packing.php` (packing list builder, under My Trips), `traveller.php?h=handle` (public profile with pinned items), `engage.php` (comments, journal likes, pinning API), `health.php` (monitoring).
+| Admin | `admin*.php` | Only shown to admins (see below). |
+
+Account: `login.php`, `register.php`, `forgot-pswd.php` + `reset-password.php`, `profile.php` (details, **travel
+preferences** that pre-fill Plan a Trip and Home, data export, account deletion), `change-pswd.php`
+(asks for the current password). The floating chat assistant (`chat.php` → Flask `/chat`) is on every page;
+it uses Gemini when a key is set and falls back to the built-in planner on any failure.
+
+### Admin panel
+First admin: open `admin-setup.php` once (it only works while no admin exists). After that:
+- `admin.php` — health (recommendation service, email, AI key), counts, newest users, recent emails.
+- `admin-users.php` — search, suspend/reactivate, make/remove admin, send a password-reset link, delete user.
+- `admin-settings.php?tab=email` — **SMTP settings + "send test email"** (password stored encrypted; built-in
+  SMTP client in `ja-mailer.php`, no PHPMailer needed). Gmail: smtp.gmail.com, 587, TLS, an App password.
+- `admin-settings.php?tab=site` — site name, open/close registration, recommendation-service URL, Gemini key.
+Shared code: `ja-lib.php` (settings, encryption, auth guards, CSRF, per-user data helpers), `ja-mailer.php`, `mail.php`.
 
 **Shared includes:** `ml_client.php` (Flask cURL client), `ja-cards.php` (recommendation cards),
 `ja-images.php` (destination photos), `ja-media.php` (upload + hashtags).
@@ -127,7 +145,9 @@ ocean/teal palette, compass logo + retro wordmark, SVG icons (`ja-icons.php`), s
 
 ---
 
-## 7. How to Run
+## 7. How to Run (development)
+
+**Production deployment, backups, monitoring and the go-live checklist: see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).** Run `ops\check.ps1` before every release (syntax checks + the 70-check `tests/smoke.py`).
 
 ```bash
 # 1. Start XAMPP (Apache + MySQL)
@@ -153,6 +173,8 @@ http://localhost/travel_journel/index.php
 ---
 
 ## 8. Status & Roadmap
+
+**India coverage:** 561 destinations profiled from curated + Wikivoyage/Wikipedia data (`docs/INDIA_ROADMAP.md`); notebooks in `ml/notebooks/`.
 
 **Done:** full ML pipeline, all pages unified in the JourneyAI theme, recommender + cost +
 itinerary + nearby + route + analytics, security remediation, logo/branding, media upload

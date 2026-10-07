@@ -386,6 +386,8 @@ body.ja-has-overlay-nav{--nav-offset:0}
 .ja-why summary::-webkit-details-marker{display:none}
 .ja-why summary::before{content:"✧ ";}
 .ja-why p{color:var(--text-dim);font-size:.92rem;margin:10px 0 0;line-height:1.55}
+.ja-about{margin-top:10px!important;padding-top:10px;border-top:1px dashed var(--brd);
+  color:var(--text-mut)!important;font-size:.85rem!important;font-style:italic}
 .ja-donut{width:74px!important;height:74px!important;max-width:74px;max-height:74px;flex:none}
 .ja-evidence{margin-top:10px;font-size:.82rem;color:var(--text-mut)}
 .ja-evidence b{color:var(--text-dim);font-weight:600}
@@ -709,3 +711,34 @@ a.ja-cc:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
   .ja-typing span{animation:none;opacity:.6}
   .ja-chat-chip:hover,.ja-chat-send:hover,a.ja-cc:hover{transform:none}
 }
+
+/* Plan a Trip: optional fine-tune panel under the one-line search */
+.ja-fine-sum{cursor:pointer;color:var(--ja-teal);font-weight:600;list-style:none;padding:6px 2px}
+.ja-fine-sum::-webkit-details-marker{display:none}
+.ja-fine-sum::before{content:"+ ";font-weight:700}
+.ja-fine[open] .ja-fine-sum::before{content:"− "}
+.ja-tabs{display:flex;gap:8px;margin:10px 0 22px}
+.ja-tabs a{padding:8px 18px;border-radius:99px;border:1.5px solid var(--brd);color:var(--text-dim);font-weight:600;font-size:.9rem;text-decoration:none}
+.ja-tabs a.on{background:var(--ja-teal);border-color:var(--ja-teal);color:#fff}
+
+/* ---- admin panel ---- */
+.ja-muted{color:var(--text-mut)}
+.ja-health{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-bottom:22px}
+.ja-hc{border-radius:16px;padding:14px 16px;border:1.5px solid var(--brd);background:var(--surface);display:flex;flex-direction:column;gap:3px;font-size:.88rem}
+.ja-hc.ok{border-color:rgba(49,198,120,.5)} .ja-hc.warn{border-color:rgba(255,170,60,.6)} .ja-hc.bad{border-color:rgba(255,100,80,.7)}
+.ja-hc span{color:var(--text-dim)} .ja-hc a{color:var(--ja-teal);font-weight:600;margin-top:4px}
+.ja-stats-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:22px}
+.ja-stats-grid .ja-stat .n{font-size:2rem}
+.ja-two-col{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.ja-more{float:right;font-size:.82rem;font-weight:600;color:var(--ja-teal)}
+.ja-table{width:100%;border-collapse:collapse;font-size:.92rem}
+.ja-table th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mut);padding:12px 14px;border-bottom:1px solid var(--brd)}
+.ja-table td{padding:11px 14px;border-bottom:1px solid var(--brd);vertical-align:middle}
+.ja-filterbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.ja-filterbar .ja-input{flex:1;min-width:200px}
+.ja-rowact .ja-select{padding:6px 8px;font-size:.85rem}
+.ja-form-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));align-items:end}
+.ja-form-grid .ja-switch,.ja-form-grid .ja-form-actions{grid-column:1/-1}
+.ja-switch{display:flex;gap:10px;align-items:center;cursor:pointer;font-weight:500}
+.ja-switch input{width:18px;height:18px}
+.ja-form-actions{display:flex;gap:10px;flex-wrap:wrap}

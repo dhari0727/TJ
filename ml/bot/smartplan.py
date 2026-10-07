@@ -11,8 +11,9 @@ so it ALWAYS works even with no Gemini quota.
 """
 import re
 
-from ml.geo.places import nearby_places, build_route, build_route_between
+from ml.geo.places import nearby_places, build_route, build_route_between, geocode as geocode_place
 from ml.cost.predict import predict_cost
+from ml.nlp.lexicon import CANONICAL_ACTIVITIES
 
 _INTEREST_WORDS = {
     "temple": "temples", "temples": "temples", "spiritual": "temples", "religious": "temples",
@@ -98,6 +99,12 @@ def parse(text):
         if re.search(r"\b" + re.escape(w), t) and tag not in interests:
             interests.append(tag)
 
+    # anything else the shared gazetteer knows (snow, mountains, trek, desert, safari, ...)
+    from ml.nlp.lexicon import ACTIVITY_GAZETTEER
+    for w, tag in ACTIVITY_GAZETTEER.items():
+        if tag not in interests and len(w) > 3 and re.search(r"\b" + re.escape(w) + r"\b", t):
+            interests.append(tag)
+
     # trip mode from days
     if days is None:
         days = 2
@@ -108,6 +115,14 @@ def parse(text):
 
 def parse_with_llm(text):
     """Try the LLM for a cleaner parse; fall back to regex."""
+    # A bare place name ("Gir", "Dwarka", "Mount Abu") is a PLACE, not an interest: plan that place.
+    t = (text or "").strip()
+    base0 = parse(t)
+    if (re.fullmatch(r"[A-Za-z][A-Za-z .'-]{1,38}", t) and len(t.split()) <= 3 and not base0["origin"]
+            and not base0["interests"] and not base0["budget"]
+            and t.lower() not in ("hi", "hello", "hey", "help", "thanks", "thank you", "ok", "okay", "yes", "no")):
+        return {"origin": t.lower(), "destination": None, "days": 3, "budget": None, "interests": [],
+                "mode": "short", "place_only": True}
     try:
         from ml.bot import gemini
         if not gemini.has_key():
@@ -118,8 +133,7 @@ def parse_with_llm(text):
             "request names a fixed end point for a route, e.g. 'from Ahmedabad to "
             "Vadodara' or 'Surat to Diu road trip'; leave null for a normal "
             "single-place/nearby request), days(int), budget(int rupees or null), "
-            "interests(array from: temples,food,beach,history,nature,gardens,museums,"
-            "shopping,adventure,trekking,wildlife,nightlife,relaxation). "
+            "interests(array using ONLY these words: " + ",".join(CANONICAL_ACTIVITIES) + "). "
             "Request: " + text + "\nReturn ONLY the JSON object."
         )
         r = gemini.generate([{"role": "user", "parts": [{"text": prompt}]}])
@@ -129,8 +143,19 @@ def parse_with_llm(text):
         if mt:
             d = json.loads(mt.group(0))
             days = int(d.get("days") or 2)
-            return {"origin": d.get("origin"), "destination": d.get("destination"), "days": days,
-                    "budget": d.get("budget"), "interests": d.get("interests") or [],
+            base = parse(text)   # rule-based parse is the safety net: keep its interests too
+            llm_int = [i for i in (d.get("interests") or []) if i in CANONICAL_ACTIVITIES]
+            interests = llm_int + [i for i in base["interests"] if i not in llm_int]
+            origin, destination = d.get("origin") or base["origin"], d.get("destination")
+            two_point = bool(re.search(r"\bto\b|->|\u2192", text.lower()))
+            if not origin and destination and not two_point:
+                origin, destination = destination, None      # "weekend in Ahmedabad": one place, not a route
+            if destination and origin and destination.strip().lower() == origin.strip().lower():
+                destination = None
+            if not two_point:
+                destination = None                            # a route needs an explicit "A to B"
+            return {"origin": origin, "destination": destination, "days": days,
+                    "budget": d.get("budget") or base["budget"], "interests": interests,
                     "mode": "day" if days <= 1 else ("weekend" if days <= 2 else ("short" if days <= 5 else "long"))}
     except Exception:
         pass
@@ -141,6 +166,17 @@ def plan(text, travel_style="mid-range"):
     """Build a COMPLETE trip from one free-text line."""
     intent = parse_with_llm(text)
     origin = intent["origin"]
+    if not origin and (intent["interests"] or intent["budget"]):
+        # No starting point, but the user described a trip ("3 days beaches under 20000"):
+        # answer with ranked, explained destinations instead of asking again.
+        from ml.recommender.hybrid import get_recommender
+        from ml.recommender.explain import explain
+        recs = get_recommender().recommend(
+            budget=intent["budget"], duration_days=intent["days"], interests=intent["interests"],
+            travel_style=travel_style, top_n=4)
+        recs = [explain(r, budget=intent["budget"], interests=intent["interests"]) for r in recs]
+        return {"intent": intent, "origin_text": "", "days": intent["days"], "interests": intent["interests"],
+                "budget": intent["budget"], "recommendations": recs, "kind": "recommend", "status": "ok"}
     if not origin or origin == "near me":
         return {"error": "Tell me where you're starting from — e.g. 'weekend from Ahmedabad, temples & food'. "
                          "(Tip: allow location access for 'near me' to work.)",
@@ -153,6 +189,16 @@ def plan(text, travel_style="mid-range"):
 
     result = {"intent": intent, "origin_text": origin, "days": days,
               "interests": interests, "budget": intent["budget"]}
+
+    if intent.get("place_only"):
+        # one named place: a full itinerary if we know it, otherwise real places around it as a local route
+        from ml.itinerary.generate import generate as generate_itinerary
+        itin = generate_itinerary(origin, days=days, travel_style=travel_style, party_size=1)
+        if "error" not in itin:
+            result.update({"itinerary": itin, "kind": "itinerary",
+                           "est_cost": itin.get("total_cost", days * 2500)})
+            return result
+        mode = "weekend"; days = 2; result["days"] = 2
 
     if fixed_destination:
         # explicit "from X to Y" — a fixed two-point route, not a round trip
@@ -186,8 +232,11 @@ def plan(text, travel_style="mid-range"):
         # Only fall back to destination recommendations when no place was named
         # or it's not a destination our catalog/itinerary generator recognizes.
         from ml.itinerary.generate import generate as generate_itinerary
+        # "3 days FROM Nadiad" means the user starts there and wants somewhere to GO (Junagadh, Dwarka, Gir...),
+        # whereas "3 days in Goa" names the destination itself.
+        starts_from = bool(origin) and bool(re.search(r"\bfrom\s+" + re.escape(origin.lower()), text.lower()))
         itin = generate_itinerary(origin, days=days, travel_style=travel_style,
-                                   party_size=1) if origin else {"error": "no origin"}
+                                   party_size=1) if (origin and not starts_from) else {"error": "no origin"}
         if "error" not in itin:
             result["itinerary"] = itin
             result["kind"] = "itinerary"
@@ -197,9 +246,15 @@ def plan(text, travel_style="mid-range"):
         # LONGER trip, unrecognized place -> destination recommendations
         from ml.recommender.hybrid import get_recommender
         from ml.recommender.explain import explain
+        origin_latlon = None
+        if origin:
+            g = geocode_place(origin)
+            if g:
+                origin_latlon = (g[0], g[1])
         recs = get_recommender().recommend(
             budget=intent["budget"], duration_days=days, interests=interests,
-            travel_style=travel_style, top_n=4)
+            travel_style=travel_style, top_n=4,
+            origin_latlon=origin_latlon, trip_mode=(mode if mode in ("short", "long") else None))
         recs = [explain(r, budget=intent["budget"], interests=interests) for r in recs]
         result["recommendations"] = recs
         result["kind"] = "recommend"

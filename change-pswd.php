@@ -8,9 +8,16 @@ $err = ''; $ok = '';
 
 if (isset($_POST['Save'])) {
     $p = $_POST['PASS'] ?? '';
+    // must prove they know the current password (a stolen/unattended session can't lock the owner out)
+    $cq = mysqli_prepare($conn, "SELECT psw FROM signup WHERE eml = ?");
+    mysqli_stmt_bind_param($cq, 's', $eml); mysqli_stmt_execute($cq);
+    $stored = (string)(mysqli_fetch_row(mysqli_stmt_get_result($cq))[0] ?? ''); mysqli_stmt_close($cq);
+    $curOk = strlen($stored) >= 60 ? password_verify($_POST['CUR'] ?? '', $stored) : hash_equals($stored, (string)($_POST['CUR'] ?? ''));
     $valid = preg_match('@[A-Z]@',$p) && preg_match('@[a-z]@',$p) && preg_match('@[0-9]@',$p)
           && preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/',$p) && strlen($p) >= 8;
-    if (!$valid) {
+    if (!$curOk) {
+        $err = 'Your current password is not correct.';
+    } elseif (!$valid) {
         $err = 'Password must be at least 8 characters with an uppercase letter, a number, and a special character.';
     } else {
         $hash = password_hash($p, PASSWORD_DEFAULT);
@@ -40,6 +47,10 @@ if (isset($_POST['Save'])) {
     <?php if ($ok): ?><div class="ja-ok"><?= ja_icon('check',16) ?> <?= htmlspecialchars($ok) ?></div><?php endif; ?>
     <div class="ja-card">
       <form method="post">
+        <div class="ja-field">
+          <label>Current password</label>
+          <input class="ja-input" type="password" name="CUR" required autocomplete="current-password">
+        </div>
         <div class="ja-field">
           <label>New password</label>
           <input class="ja-input" type="password" name="PASS" required

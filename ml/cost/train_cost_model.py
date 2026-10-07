@@ -58,13 +58,13 @@ def load_training_frame():
                j.duration_days, j.dv, j.true_total,
                j.food_total, j.transport_total, j.accommodation_total,
                j.shopping_total, j.fees_misc_total,
-               d.region, d.popularity_tier
+               d.region, d.popularity_tier, d.base_daily_cost AS base_daily
         FROM journals j
         JOIN journal_features jf ON jf.entry_id = j.entry_id
         LEFT JOIN destinations d ON d.canonical_name = jf.canonical_dest
         WHERE jf.canonical_dest IS NOT NULL
     """)
-    num = ["duration_days", "true_total"] + CAT_COLS
+    num = ["duration_days", "true_total", "base_daily"] + CAT_COLS
     for c in num:
         df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0.0)
     df = df[df["true_total"] > 0].copy()
@@ -79,7 +79,7 @@ def load_training_frame():
 
 def build_pipeline(loss="squared_error", alpha=None):
     cat = ["dest", "region", "style", "season"]
-    num = ["duration_days", "party_size"]
+    num = ["duration_days", "party_size", "base_daily"]
     pre = ColumnTransformer([
         ("cat", OneHotEncoder(handle_unknown="ignore"), cat),
         ("num", "passthrough", num),
@@ -98,7 +98,7 @@ def train():
     # Model DAILY cost (true_total / duration) — removes the dominant duration
     # multiplier so the model learns destination/style/season effects cleanly.
     # The served total is (predicted daily) x duration.
-    features = ["dest", "region", "style", "season", "duration_days", "party_size"]
+    features = ["dest", "region", "style", "season", "duration_days", "party_size", "base_daily"]
     X = df[features]
     y_daily = (df["true_total"] / df["duration_days"]).values
     dur_all = df["duration_days"].values
@@ -150,7 +150,8 @@ def train():
     def q(dest, style, days=5, season="winter"):
         row = pd.DataFrame([{"dest": dest, "region": df[df.dest == dest]["region"].iloc[0],
                              "style": style, "season": season,
-                             "duration_days": days, "party_size": 1}])
+                             "duration_days": days, "party_size": 1,
+                             "base_daily": float(df[df.dest == dest]["base_daily"].iloc[0])}])
         return float(model.predict(row)[0]) * days  # daily -> total
     sample = df["dest"].iloc[0]
     print(f"\nSanity ({sample}, 5 days): "

@@ -8,12 +8,12 @@
  *   ?dest=xxx  filter by destination
  *   ?page=N    pagination (24 per page)
  */
-error_reporting(0);
-$ja_title = "Discover Feed"; $ja_active = "feed";
+$ja_title = "Community"; $ja_active = "feed";
 session_start();
 require 'connection.php';
 require_once 'ja-media.php';
 require_once 'ja-icons.php';
+require_once 'ja-lib.php';
 
 $eml = $_SESSION['eml'] ?? null;
 
@@ -86,11 +86,11 @@ if ($mediaIds) {
 
 // owner display name (first name via signup, fallback to email prefix)
 $ownerEmails = array_values(array_unique(array_column($posts, 'eml')));
-$ownerNames = [];
+$ownerNames = []; $ownerHandles = [];
 if ($ownerEmails) {
     $in = implode(',', array_fill(0, count($ownerEmails), '?'));
     $types3 = str_repeat('s', count($ownerEmails));
-    $s3 = mysqli_prepare($conn, "SELECT eml, fname FROM signup WHERE eml IN ($in)");
+    $s3 = mysqli_prepare($conn, "SELECT eml, fname, handle FROM signup WHERE eml IN ($in)");
     $refs3 = [];
     foreach ($ownerEmails as $k => $v) { $refs3[$k] = &$ownerEmails[$k]; }
     array_unshift($refs3, $types3);
@@ -99,14 +99,22 @@ if ($ownerEmails) {
     $ores = mysqli_stmt_get_result($s3);
     while ($row = mysqli_fetch_assoc($ores)) {
         $ownerNames[$row['eml']] = $row['fname'];
+        $ownerHandles[$row['eml']] = $row['handle'] ?: ja_ensure_handle($row['eml']);
     }
     mysqli_stmt_close($s3);
 }
 
+// comment counts per post
+$commentCounts = [];
+if ($mediaIds) {
+    $ids = implode(',', array_map('intval', $mediaIds));
+    $cr = mysqli_query($conn, "SELECT media_id, COUNT(*) n FROM media_comments WHERE media_id IN ($ids) GROUP BY media_id");
+    while ($cr && ($row = mysqli_fetch_assoc($cr))) $commentCounts[(int)$row['media_id']] = (int)$row['n'];
+}
+
 function ja_feed_owner_label($eml, $ownerNames) {
     if (!empty($ownerNames[$eml])) return $ownerNames[$eml];
-    $prefix = explode('@', $eml)[0];
-    return $prefix ?: 'traveler';
+    return 'Traveller';   // never show (part of) an email address
 }
 function ja_feed_initials($label) {
     $label = trim($label);
@@ -135,8 +143,9 @@ $hasMore = count($posts) === $perPage;
 <div class="ja-pagehead">
   <div class="ja-container">
     <div class="ja-eyebrow"><?= ja_icon('sparkle',14) ?> From real travelers</div>
-    <h1>Discover Feed</h1>
-    <p class="sub">Photos and moments shared by the JourneyAI community<?= $tagFilter ? ' · tagged #' . htmlspecialchars($tagFilter) : '' ?><?= $destFilter ? ' · in ' . htmlspecialchars($destFilter) : '' ?>.</p>
+    <h1>Community</h1>
+    <p class="sub">Photos and moments shared by travellers<?= $tagFilter ? ' · tagged #' . htmlspecialchars($tagFilter) : '' ?><?= $destFilter ? ' · in ' . htmlspecialchars($destFilter) : '' ?>.</p>
+    <?php $ja_ctab = 'feed'; include 'ja-community-tabs.php'; ?>
   </div>
 </div>
 
@@ -185,6 +194,8 @@ $hasMore = count($posts) === $perPage;
                 'liked' => $liked,
                 'tags' => $tags,
                 'created' => $m['created_at'],
+                'handle' => $ownerHandles[$m['eml']] ?? null,
+                'comments' => $commentCounts[(int)$m['media_id']] ?? 0,
             ]), ENT_QUOTES);
         ?>
         <article class="ja-feed-card reveal" data-tilt style="transition-delay:<?= min($i,12)*0.05 ?>s"
@@ -205,7 +216,8 @@ $hasMore = count($posts) === $perPage;
           <div class="ja-feed-body">
             <div class="ja-feed-owner">
               <span class="ja-feed-avatar"><?= htmlspecialchars(ja_feed_initials($label)) ?></span>
-              <span class="ja-feed-ownername"><?= htmlspecialchars($label) ?></span>
+              <?php if (!empty($ownerHandles[$m['eml']])): ?><a class="ja-feed-ownername" href="traveller.php?h=<?= urlencode($ownerHandles[$m['eml']]) ?>" onclick="event.stopPropagation()"><?= htmlspecialchars($label) ?></a>
+              <?php else: ?><span class="ja-feed-ownername"><?= htmlspecialchars($label) ?></span><?php endif; ?>
               <span class="ja-feed-date"><?= htmlspecialchars(date('M j', strtotime($m['created_at']))) ?></span>
             </div>
             <?php if ($m['caption']): ?><p class="ja-feed-caption"><?= htmlspecialchars($m['caption']) ?></p><?php endif; ?>
@@ -216,6 +228,9 @@ $hasMore = count($posts) === $perPage;
             <?php endif; ?>
             <button type="button" class="ja-feed-likebtn <?= $liked ? 'liked' : '' ?>" data-media-id="<?= (int)$m['media_id'] ?>" onclick="jaFeedToggleLike(event,this)">
               <?= ja_icon('heart',17) ?> <span class="ja-feed-likecount"><?= (int)$m['likes'] ?></span>
+            </button>
+            <button type="button" class="ja-feed-likebtn ja-feed-cmtbtn" onclick="event.stopPropagation();jaFeedOpenLightbox(<?= (int)$i ?>,true)" title="Comments">
+              &#128172; <span class="ja-feed-cmtcount" data-cmt-for="<?= (int)$m['media_id'] ?>"><?= (int)($commentCounts[(int)$m['media_id']] ?? 0) ?></span>
             </button>
           </div>
         </article>
@@ -253,12 +268,19 @@ $hasMore = count($posts) === $perPage;
       <button type="button" class="ja-feed-likebtn" id="jaFeedLbLike" onclick="jaFeedToggleLike(event,this)">
         <?= ja_icon('heart',18) ?> <span class="ja-feed-likecount" id="jaFeedLbLikeCount">0</span>
       </button>
+      <div class="ja-cmts" id="jaFeedCmts">
+        <div class="ja-cmts-list" id="jaFeedCmtList"></div>
+        <?php if ($eml): ?>
+        <form class="ja-cmts-form" id="jaFeedCmtForm"><input type="text" id="jaFeedCmtInput" maxlength="600" placeholder="Add a comment" autocomplete="off"><button type="submit">Post</button></form>
+        <?php else: ?><a href="login.php" class="ja-muted" style="font-size:.85rem">Log in to comment</a><?php endif; ?>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
 var JA_FEED_LOGGED_IN = <?= $eml ? 'true' : 'false' ?>;
+var JA_CSRF = <?= json_encode(ja_csrf()) ?>;
 var jaFeedPosts = [];
 var jaFeedIdx = 0;
 
@@ -306,15 +328,17 @@ function jaFeedRenderLightbox() {
   likeBtn.dataset.mediaId = p.id;
   likeBtn.classList.toggle('liked', !!p.liked);
   document.getElementById('jaFeedLbLikeCount').textContent = p.likes;
+  jaFeedLoadComments(p.id);
 }
 
-function jaFeedOpenLightbox(i) {
+function jaFeedOpenLightbox(i, focusComments) {
   jaFeedIdx = i;
   jaFeedRenderLightbox();
   var lb = document.getElementById('jaFeedLightbox');
   lb.classList.add('open');
   lb.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+  if (focusComments) { var ci = document.getElementById('jaFeedCmtInput'); if (ci) ci.focus(); }
 }
 function jaFeedCloseLightbox() {
   var lb = document.getElementById('jaFeedLightbox');
@@ -337,6 +361,42 @@ document.addEventListener('keydown', function (e) {
 });
 document.getElementById('jaFeedLightbox').addEventListener('click', function (e) {
   if (e.target === this) jaFeedCloseLightbox();
+});
+
+function jaEsc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+function jaFeedCmtHtml(c) {
+  var who = c.handle ? '<a href="traveller.php?h=' + encodeURIComponent(c.handle) + '">' + jaEsc(c.name) + '</a>' : jaEsc(c.name);
+  return '<div class="ja-cmt" data-cid="' + c.id + '"><b>' + who + '</b> ' + jaEsc(c.body) +
+    (c.can_delete ? ' <button type="button" class="ja-cmt-del" title="Delete">&times;</button>' : '') + '</div>';
+}
+function jaFeedSetCount(id, n) {
+  document.querySelectorAll('[data-cmt-for="' + id + '"]').forEach(function (el) { el.textContent = n; });
+  jaFeedPosts.forEach(function (p) { if (String(p.id) === String(id)) p.comments = n; });
+}
+function jaFeedLoadComments(id) {
+  var box = document.getElementById('jaFeedCmtList');
+  box.innerHTML = '<span class="ja-muted">Loading...</span>';
+  fetch('engage.php?action=comments&kind=media&id=' + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (d) {
+    if (String(jaFeedPosts[jaFeedIdx].id) !== String(id)) return;   // user already moved to another post
+    box.innerHTML = (d.comments && d.comments.length) ? d.comments.map(jaFeedCmtHtml).join('') : '<span class="ja-muted">No comments yet. Start the conversation.</span>';
+    jaFeedSetCount(id, d.count || 0);
+  }).catch(function () { box.innerHTML = ''; });
+}
+document.addEventListener('submit', function (e) {
+  if (e.target.id !== 'jaFeedCmtForm') return;
+  e.preventDefault();
+  var input = document.getElementById('jaFeedCmtInput'), id = jaFeedPosts[jaFeedIdx].id;
+  var fd = new FormData(); fd.append('action', 'comment_add'); fd.append('kind', 'media'); fd.append('id', id); fd.append('body', input.value); fd.append('csrf', JA_CSRF);
+  fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
+    if (d.error) { alert(d.error); return; }
+    input.value = ''; jaFeedLoadComments(id);
+  });
+});
+document.addEventListener('click', function (e) {
+  if (!e.target.classList.contains('ja-cmt-del')) return;
+  var row = e.target.closest('.ja-cmt'), id = jaFeedPosts[jaFeedIdx].id;
+  var fd = new FormData(); fd.append('action', 'comment_delete'); fd.append('kind', 'media'); fd.append('comment_id', row.dataset.cid); fd.append('csrf', JA_CSRF);
+  fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) { if (d.ok) jaFeedLoadComments(id); });
 });
 
 function jaFeedToggleLike(evt, btn) {

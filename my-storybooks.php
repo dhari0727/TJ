@@ -1,19 +1,19 @@
 <?php
-$ja_title = "My Storybooks"; $ja_active = "storybooks";
+$ja_title = "My Storybooks"; $ja_active = "entries"; $ja_jtab = "books";
 session_start();
 require 'connection.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 
 $sql = "SELECT s.book_id, s.eml, s.title, s.subtitle, s.theme, s.cover_img,
-          s.visibility, s.share_token, s.page_order, s.created_at, s.updated_at,
+          s.visibility, s.share_token, s.page_order, s.created_at, s.updated_at, s.is_pinned,
           COUNT(sp.page_id) AS page_count
    FROM storybooks s
    LEFT JOIN storybook_pages sp ON sp.book_id = s.book_id
    WHERE s.eml = ?
    GROUP BY s.book_id, s.eml, s.title, s.subtitle, s.theme, s.cover_img,
-            s.visibility, s.share_token, s.page_order, s.created_at, s.updated_at
-   ORDER BY s.updated_at DESC";
+            s.visibility, s.share_token, s.page_order, s.created_at, s.updated_at, s.is_pinned
+   ORDER BY s.is_pinned DESC, s.updated_at DESC";
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, 's', $em);
 mysqli_stmt_execute($stmt);
@@ -50,11 +50,12 @@ if ($bookIds) {
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
       <div>
         <div class="ja-eyebrow">✦ Your travel storybooks</div>
-        <h1>My Storybooks</h1>
+        <h1>My Journal</h1>
         <p class="sub"><?= count($books) ?> storybook<?= count($books)===1?'':'s' ?>.</p>
       </div>
       <a href="storybook-create.php" class="ja-btn ja-btn-primary" data-magnetic>+ New Storybook</a>
     </div>
+    <?php include 'ja-journal-tabs.php'; ?>
   </div>
 </div>
 
@@ -74,7 +75,7 @@ if ($bookIds) {
           $vis = $b['visibility'];
           $isPublic = ($vis === 'public');
         ?>
-          <div class="sb-my-card">
+          <div class="sb-my-card" data-pin-card>
             <a href="storybook-edit.php?id=<?= $bid ?>" class="sb-my-cover-link">
               <?php if ($cover): ?>
                 <img class="sb-my-cover" src="<?= htmlspecialchars($cover) ?>" alt="<?= htmlspecialchars($b['title']) ?>">
@@ -109,6 +110,7 @@ if ($bookIds) {
               <a href="storybook-edit.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" onclick="event.stopPropagation()">✏️ Edit</a>
               <a href="storybook-view.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">👁 View</a>
               <a href="storybook-print.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">🖨 Print</a>
+              <button type="button" data-pin-kind="book" data-pin-id="<?= $bid ?>" data-pinned="<?= (int)$b['is_pinned'] ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" title="Pin to your public profile">Pin</button>
               <button class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem;color:var(--ja-coral);border-color:var(--ja-coral)"
                 onclick="event.stopPropagation();deleteBook(<?= $bid ?>)">🗑 Delete</button>
             </div>

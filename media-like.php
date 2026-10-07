@@ -4,7 +4,6 @@
  * POST media_id -> toggles media_likes row, keeps media.likes counter in sync.
  * Returns JSON: {ok:true, liked:bool, likes:int} | {error:"..."}
  */
-error_reporting(0);
 session_start();
 require 'connection.php';
 header('Content-Type: application/json');
