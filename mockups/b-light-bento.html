@@ -1,0 +1,73 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JourneyAI — Mockup B · Light Bento</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--ink:#14161c;--mut:#6b7080;--line:#e6e4dc;--ac:#ff5a36;--ac2:#1f6feb}
+*{box-sizing:border-box;margin:0}body{background:var(--bg);color:var(--ink);font:16px/1.6 'Plus Jakarta Sans',system-ui,sans-serif;overflow-x:hidden}
+.w{max-width:1120px;margin:auto;padding:0 20px}
+header{position:sticky;top:12px;z-index:10;margin:12px auto 0;max-width:900px;display:flex;justify-content:space-between;align-items:center;padding:10px 12px 10px 22px;background:#ffffffcc;backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:99px}
+.logo{font-weight:800;letter-spacing:-.03em}.logo i{color:var(--ac);font-style:normal}
+nav a{color:var(--mut);text-decoration:none;margin-right:20px;font-size:.9rem}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:99px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;position:relative;transition:transform .15s;will-change:transform}
+.btn.o{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.hero{padding:90px 0 40px;text-align:center}
+h1{font-size:clamp(2.6rem,8vw,5.6rem);line-height:1;letter-spacing:-.05em;font-weight:800}
+h1 .w1{display:inline-block;overflow:hidden;vertical-align:bottom}h1 .w1 b{display:inline-block;transform:translateY(110%);animation:up .9s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes up{to{transform:none}}
+h1 em{font-style:normal;color:var(--ac)}
+.hero p{color:var(--mut);max-width:520px;margin:22px auto 30px}
+.collage{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:40px 0}
+.ph{border-radius:24px;aspect-ratio:3/4;position:relative;overflow:hidden;transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+.ph:nth-child(even){margin-top:36px}.ph:hover{transform:translateY(-8px) rotate(-1deg)}
+.ph span{position:absolute;left:14px;bottom:14px;background:#fff;border-radius:99px;padding:5px 12px;font-size:.8rem;font-weight:600}
+.g1{background:linear-gradient(160deg,#ffb36b,#ff5a36)}.g2{background:linear-gradient(160deg,#6bd6ff,#1f6feb)}.g3{background:linear-gradient(160deg,#9be38a,#1c8a5b)}.g4{background:linear-gradient(160deg,#d6a8ff,#6b3fd6)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px;padding:30px 0}
+.c{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:28px;transition:box-shadow .3s,transform .3s}
+.c:hover{box-shadow:0 20px 50px #14161c14;transform:translateY(-3px)}
+.c h3{font-size:1.25rem;letter-spacing:-.02em;margin-bottom:6px}.c p{color:var(--mut);font-size:.95rem}
+.big{font-size:3.6rem;font-weight:800;letter-spacing:-.05em;line-height:1}
+.c4{grid-column:span 4}.c5{grid-column:span 5}.c7{grid-column:span 7}.c8{grid-column:span 8}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;padding:4px 10px;border-radius:99px;background:#ff5a3620;color:var(--ac);margin-bottom:12px}
+.rv{opacity:0;transform:translateY(30px);transition:.9s cubic-bezier(.2,.8,.2,1)}.rv.in{opacity:1;transform:none}
+.cta{margin:30px 0 60px;background:var(--ink);color:#fff;border-radius:34px;padding:60px 30px;text-align:center}
+.cta h2{font-size:clamp(1.8rem,5vw,3.2rem);letter-spacing:-.04em;margin-bottom:20px}.cta .btn{background:#fff;color:var(--ink)}
+footer{text-align:center;color:var(--mut);padding:20px 0 40px;font-size:.88rem}
+@media(max-width:800px){.collage{grid-template-columns:repeat(2,1fr)}.c4,.c5,.c7,.c8{grid-column:span 12}nav{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}h1 .w1 b{transform:none}}
+.ic{width:1em;height:1em;vertical-align:-.14em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+</style></head><body>
+<header><div class="logo">Journey<i>AI</i></div><nav><a href="#">Explore</a><a href="#">Plan</a><a href="#">Journals</a></nav><a class="btn" href="#">Sign in</a></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11a7 7 0 0114 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 7h16a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M3 7l12-3v3"/><circle cx="16.5" cy="13.5" r="1"/></symbol>
+<symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-8-5-8-11a4.5 4.5 0 018-2.5A4.5 4.5 0 0120 9c0 6-8 11-8 11z"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3c.5 5 2 6.5 7 7-5 .5-6.5 2-7 7-.5-5-2-6.5-7-7 5-.5 6.5-2 7-7z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19C5 9 11 4 20 4c0 9-5 15-15 15z" fill="currentColor" stroke="none"/><path d="M5 19l8-8" stroke="#ffffff88"/></symbol>
+</defs></svg><div class="w"><section class="hero"><h1><span class="w1"><b>Travel</b></span> <span class="w1"><b style="animation-delay:.1s">smarter,</b></span><br><span class="w1"><b style="animation-delay:.2s">remember</b></span> <span class="w1"><b style="animation-delay:.3s"><em>everything.</em></b></span></h1>
+<p>AI-planned itineraries with honest costs, built from verified traveller journals across India.</p>
+<a class="btn mag" href="#">Plan a trip <svg class="ic"><use href="#i-arrow"/></svg></a> <a class="btn o mag" href="#">Browse journals</a></section>
+<div class="collage rv"><div class="ph g1"><span>Jaipur</span></div><div class="ph g2"><span>Leh</span></div><div class="ph g3"><span>Munnar</span></div><div class="ph g4"><span>Udaipur</span></div></div>
+<div class="grid">
+<div class="c c7 rv"><span class="tag">Recommender</span><h3>Where should you go next?</h3><p>Tell us budget, season and mood — get ranked destinations with reasons, not just a list.</p></div>
+<div class="c c5 rv"><div class="big" data-n="500" data-s="+">0</div><p>destinations with real cost data</p></div>
+<div class="c c4 rv"><span class="tag">Planner</span><h3>Day-by-day itinerary</h3><p>Any place, generated in seconds.</p></div>
+<div class="c c4 rv"><span class="tag">Journal</span><h3>Storybooks</h3><p>Turn photos into a printable book.</p></div>
+<div class="c c4 rv"><span class="tag">Trust</span><h3>Verified only</h3><p>Reports, review queue, no fake posts.</p></div>
+</div>
+<div class="cta rv"><h2>Your next trip starts here.</h2><a class="btn mag" href="#">Create free account</a></div></div>
+<footer>© JourneyAI · Mockup B — Light Bento</footer>
+<script>
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(!e.isIntersecting)return;e.target.classList.add('in');e.target.querySelectorAll('[data-n]').forEach(n=>{const t=+n.dataset.n;let v=0;const s=setInterval(()=>{v+=Math.ceil(t/30);if(v>=t){v=t;clearInterval(s)}n.textContent=v+(v==t?n.dataset.s||'':'')},30)});io.unobserve(e.target)}),{threshold:.2});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+document.querySelectorAll('.mag').forEach(b=>{b.addEventListener('pointermove',e=>{const r=b.getBoundingClientRect();b.style.transform='translate('+(e.clientX-r.left-r.width/2)*.2+'px,'+(e.clientY-r.top-r.height/2)*.3+'px)'});b.addEventListener('pointerleave',()=>b.style.transform='')});
+</script></body></html>

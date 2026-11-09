@@ -1,0 +1,162 @@
+/* ============================================================================
+   JourneyAI — "Calm Journey" layer. Loaded AFTER journeyai-watermelon.css and replaces its sticker look with
+   hairline cards, soft depth and serif headings. Same palette (cream paper, rind green, one melon accent),
+   quieter manners. Also holds the landing page's route / night / dot-nav components (.cj-*).
+   Motion respects prefers-reduced-motion.
+   ============================================================================ */
+:root{
+  --font-display:"Fraunces","Georgia",serif;
+  --hair:rgba(18,53,36,.14);
+  --shadow:0 14px 34px rgba(18,53,36,.09);--shadow-lg:0 24px 54px rgba(18,53,36,.16);
+  --btn-bg:#123524;--btn-fg:#fff;--soft-ring:0 0 0 4px rgba(230,52,87,.18);
+  --radius:20px;--radius-sm:14px;--radius-lg:28px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hair:rgba(244,235,217,.16);--shadow:0 14px 34px rgba(0,0,0,.35);--shadow-lg:0 24px 54px rgba(0,0,0,.5);--btn-bg:#F4EBD9;--btn-fg:#0D1F16}}
+:root[data-theme="dark"]{--hair:rgba(244,235,217,.16);--shadow:0 14px 34px rgba(0,0,0,.35);--shadow-lg:0 24px 54px rgba(0,0,0,.5);--btn-bg:#F4EBD9;--btn-fg:#0D1F16}
+:root[data-theme="light"]{--hair:rgba(18,53,36,.14);--shadow:0 14px 34px rgba(18,53,36,.09);--shadow-lg:0 24px 54px rgba(18,53,36,.16);--btn-bg:#123524;--btn-fg:#fff}
+
+/* ------------------------------------------------------------------ base */
+body.ja::before,body.ja::after{display:none}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.025em;line-height:1.08}
+.wm-progress{height:3px;background:linear-gradient(90deg,var(--rind),var(--melon))}
+.ja-eyebrow{font-weight:700;letter-spacing:.16em;font-size:.76rem}
+.ja-cost,.ja-stat .n{font-weight:600}
+
+/* ------------------------------------------------------------------ sidebar */
+.ja-sidebar{border-right:1px solid var(--hair)}
+.ja-side-brand{font-family:var(--font-display);font-weight:600}
+.ja-side-brand:hover{transform:none}
+.ja-side-nav a,.ja-side-bottom a{border:0;font-weight:500}
+.ja-side-nav a:hover,.ja-side-bottom a:hover{transform:none;background:rgba(30,123,79,.09)}
+.ja-side-nav a.active{background:rgba(30,123,79,.13);color:var(--rind);border:0;box-shadow:inset 3px 0 0 var(--melon);font-weight:600}
+.ja-side-nav a.active svg{color:var(--rind)}
+.ja-side-bottom{border-top:1px solid var(--hair)}
+
+/* ------------------------------------------------------------------ buttons, fields, chips */
+.ja-btn{position:relative;overflow:hidden;border:0;border-radius:99px;font-weight:600;box-shadow:0 8px 20px rgba(18,53,36,.18);
+  transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background .2s}
+.ja-btn:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(18,53,36,.24)}
+.ja-btn:active{transform:scale(.97);box-shadow:0 4px 10px rgba(18,53,36,.2)}
+.ja-btn-primary{background:var(--btn-bg);color:var(--btn-fg)}
+.ja-btn-primary:hover{background:var(--btn-bg);filter:brightness(1.12)}
+.ja-btn-ghost{background:var(--surface);color:var(--ink);border:1px solid var(--hair);box-shadow:0 4px 12px rgba(18,53,36,.06)}
+.ja-btn-ghost:hover{background:var(--bg-2)}
+.cj-rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.4);transform:scale(0);animation:cj-rip .6s ease-out forwards;pointer-events:none}
+@keyframes cj-rip{to{transform:scale(4);opacity:0}}
+.ja-input,.ja-select,.ja-field textarea,textarea.ja-input{border:1px solid var(--hair);border-radius:var(--radius-sm);box-shadow:none;background:var(--surface)}
+.ja-input:focus,.ja-select:focus,.ja-field textarea:focus{transform:none;border-color:var(--rind);box-shadow:var(--soft-ring)}
+.ja-field label{font-weight:600;text-transform:none;letter-spacing:0;font-size:.86rem}
+.ja-chip{border:1px solid var(--hair);font-weight:500}
+.ja-chip:hover{transform:translateY(-2px)}
+.ja-chip.on{background:var(--rind);color:#fff;border-color:var(--rind);box-shadow:none}
+.ja-pill{border:0;font-weight:600}
+.ja-pick span{border:1px solid var(--hair);font-weight:500}
+.ja-pick input:checked + span{background:var(--rind);color:#fff;border-color:var(--rind);box-shadow:none}
+.ja-fine-sum{border:1px solid var(--hair);box-shadow:none}.ja-fine-sum:hover{transform:none;box-shadow:none;background:var(--bg-2)}
+.ja-gem,.ja-eat-chip,.ja-hl-chip{border:0}
+
+/* ------------------------------------------------------------------ cards */
+.ja-card,.ja-reco,.ja-place-card,.ja-nearby-card,.ja-post,.ja-feed-card,.ja-hc,.ja-smart-section,.ja-rs,.ja-route-card,.ja-itin-day,.ja-pack-list,
+.ja-quick a,.ja-modcard,.ja-reco-mini,.ja-stat,body.ja .ja-feed-card{border:1px solid var(--hair);box-shadow:var(--shadow);border-radius:var(--radius)}
+.ja-card:hover,.ja-reco:hover,.ja-feed-card:hover,.ja-post:hover,.ja-place-card:hover,.ja-quick a:hover,.ja-nearby-card:hover,.ja-reco-mini:hover,
+body.ja .ja-feed-card:hover,.ja-quick a:nth-child(2n):hover{transform:translateY(-5px);box-shadow:var(--shadow-lg)}
+.ja-reco-top{border-bottom:0}
+.ja-reco-city{font-weight:600}
+.ja-empty{border:1px dashed var(--hair)}
+.ja-ok,.ja-err,.ja-warn{border:1px solid var(--hair);box-shadow:none}
+.ja-tabs a{border:1px solid var(--hair);box-shadow:none}
+.ja-tabs a:hover{transform:none;box-shadow:none;background:var(--bg-2)}
+.ja-tabs a.on{background:var(--btn-bg);color:var(--btn-fg);border-color:var(--btn-bg)}
+.ja-progress-bar,.sb-progress-bar{border:0;background:var(--bg-2);height:8px}
+body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm,body.ja .ja-feed-likebtn,body.ja .ja-feed-desttag{border:1px solid var(--hair)}
+body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm{border:0}
+.ja-smart-box{border:1px solid var(--hair);border-radius:99px;box-shadow:var(--shadow)}
+.ja-smart-box:focus-within{transform:none;box-shadow:var(--soft-ring),var(--shadow);border-color:var(--rind)}
+.ja-tl-dot,.ja-route-dot,.ja-rs-num,.ja-itin-daynum{border:0;font-family:var(--font-display);font-weight:600;background:var(--rind)}
+.ja-route-line::before,.ja-timeline::before{background:var(--hair);width:2px}
+.ja-feature{padding-top:30px}
+.ja-feature::before{border:0;box-shadow:none;background:rgba(230,52,87,.12);color:var(--melon);font-family:var(--font-display);font-weight:600;top:-13px}
+
+/* landing navigation: a floating pill */
+.ja-nav .inner{border:1px solid var(--hair);box-shadow:var(--shadow);border-radius:99px}
+.ja-brand{font-family:var(--font-display);font-weight:600;letter-spacing:-.02em}
+.ja-navlinks a{font-weight:500}
+.ja-navlinks a.active,.ja-navlinks a:hover{border-radius:99px;background:rgba(30,123,79,.12)}
+.ja-nav.overlay .ja-navlinks a:hover,.ja-nav.overlay .ja-navlinks a.active{background:rgba(30,123,79,.12);color:var(--rind)}
+
+/* quiet destination ticker */
+.wm-ticker{transform:none;background:none;color:var(--text-mut);border-block:1px solid var(--hair);margin:30px 0;padding:11px 0}
+.wm-ticker-track{font-family:var(--font-body);font-weight:500;font-size:.92rem;letter-spacing:.16em;text-transform:uppercase;animation-duration:60s}
+.wm-ticker-track span::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--melon);vertical-align:middle;margin-left:34px}
+
+/* small action animations used across the app */
+@keyframes cj-pop{40%{transform:scale(1.35)}}
+.cj-popping{animation:cj-pop .45s cubic-bezier(.3,1.6,.5,1)}
+.cj-heartfly{position:fixed;width:16px;height:16px;color:var(--melon);pointer-events:none;z-index:300}
+.cj-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,160%);background:#123524;color:#fff;padding:12px 20px;border-radius:99px;z-index:310;
+  box-shadow:0 14px 40px rgba(0,0,0,.3);transition:transform .5s cubic-bezier(.2,1.5,.4,1);font-size:.9rem}
+.cj-toast.on{transform:translate(-50%,0)}
+
+/* ------------------------------------------------------------------ landing: scroll route */
+.cj-torn{display:block;width:100%;height:80px;margin-bottom:-1px}
+.cj-torn path{filter:url(#cj-torn)}
+.cj-route{position:relative;background:var(--bg);padding:30px 0 0}
+.cj-route-head{text-align:center;padding:30px 22px 10px}
+.cj-route-head .hand{font-family:"Caveat",cursive;font-size:1.9rem;color:var(--rind);display:inline-block;transform:rotate(-4deg)}
+.cj-route-head h2{font-size:clamp(2rem,4.6vw,3.3rem)}
+.cj-route-head p{color:var(--text-mut);max-width:520px;margin:6px auto 0}
+.cj-map{position:relative;max-width:1000px;margin:0 auto}
+.cj-map svg.cj-path{display:block;width:100%;height:auto;overflow:visible}
+.cj-stop{position:absolute;width:min(300px,40vw);transform:translate(-50%,-50%) translateX(var(--dx)) scale(.7);opacity:0;
+  transition:transform .9s cubic-bezier(.2,1.3,.4,1),opacity .6s;padding:14px;z-index:2;background:var(--surface);border:1px solid var(--hair);
+  border-radius:var(--radius);box-shadow:var(--shadow-lg)}
+.cj-stop.on{opacity:1;transform:translate(-50%,-50%) translateX(var(--dx)) scale(1)}
+.cj-stop .scn{height:150px;border-radius:14px;overflow:hidden;margin-bottom:12px}
+.cj-stop .scn img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .9s}
+.cj-stop:hover .scn img{transform:scale(1.06)}
+.cj-stop .no{display:block;color:var(--melon);letter-spacing:.16em;font-size:.72rem;font-weight:700;margin-bottom:6px}
+.cj-stop h3{font-size:1.3rem}.cj-stop small{color:var(--text-mut)}
+.cj-stop .row{display:flex;gap:10px;margin-top:12px;align-items:center}
+.cj-stop .row .ja-btn{padding:9px 16px;font-size:.84rem}
+.cj-pin .bob{animation:cj-bob 1.8s ease-in-out infinite}@keyframes cj-bob{50%{transform:translateY(-6px)}}
+
+/* landing: night section with torn edges */
+.cj-night{position:relative;background:linear-gradient(#0e2a1d,#173f2b);color:#eaf3ec;padding:70px 0 44px;overflow:hidden}
+.cj-night h2{text-align:center;font-weight:500;font-size:clamp(1.8rem,4vw,3rem)}
+.cj-night .s{text-align:center;opacity:.78;max-width:580px;margin:8px auto 36px}
+.cj-star{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;animation:cj-tw 3s infinite}@keyframes cj-tw{50%{opacity:.15;transform:scale(.6)}}
+.cj-moon{position:absolute;right:12%;top:40px;width:64px;height:64px;border-radius:50%;box-shadow:inset -20px 0 0 0 #ffd77a;transform:rotate(-20deg)}
+.cj-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;position:relative}
+.cj-fc{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.2);backdrop-filter:blur(10px);border-radius:24px;padding:24px;text-align:center;transition:transform .4s,background .3s}
+.cj-fc:hover{transform:translateY(-6px);background:rgba(255,255,255,.15)}
+.cj-fc svg{color:#ffd77a;margin-bottom:10px}.cj-fc h3{font-size:1.1rem}.cj-fc p{font-size:.88rem;opacity:.82;margin:6px 0 0}
+
+/* landing: dot navigation + drifting leaves */
+.cj-dots{position:fixed;right:16px;top:50%;transform:translateY(-50%);display:grid;gap:12px;z-index:55}
+.cj-dots button{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:transparent;cursor:pointer;padding:0;opacity:.4;transition:transform .35s cubic-bezier(.3,1.8,.5,1),background .3s,opacity .3s}
+.cj-dots button.on{background:var(--melon);border-color:var(--melon);opacity:1;transform:scale(1.5)}
+.cj-dots button:hover{opacity:1}
+.cj-leaves{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+.cj-leaf{position:absolute;will-change:translate;opacity:.65}
+.cj-leaf i{display:block;animation:cj-sway var(--d,7s) ease-in-out infinite alternate}
+@keyframes cj-sway{from{transform:rotate(-18deg) translateX(-10px)}to{transform:rotate(22deg) translateX(14px)}}
+
+.cj-rv{opacity:0;transform:translateY(30px);transition:1s cubic-bezier(.2,.9,.3,1)}.cj-rv.in{opacity:1;transform:none}
+
+@media (max-width:860px){
+  .cj-cards{grid-template-columns:1fr 1fr}.cj-dots{right:8px}
+  .cj-stop{left:50% !important;width:min(290px,84vw);transform:translate(-50%,0) translateY(var(--dy)) scale(.7);--dx:0px}
+  .cj-stop.on{transform:translate(-50%,0) translateY(var(--dy)) scale(1)}
+}
+@media (max-width:520px){.cj-cards{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){
+  .cj-stop,.cj-rv{opacity:1 !important;transform:translate(-50%,-50%) translateX(var(--dx)) !important}.cj-rv{transform:none !important}
+  .cj-star,.cj-pin .bob,.cj-leaf i,.wm-ticker-track{animation:none}.cj-leaves{display:none}
+}
+@media print{.cj-dots,.cj-leaves,.cj-toast{display:none !important}}
+
+/* buttons keep readable text in both themes (older rules force white text on the primary button) */
+.ja-btn-primary,.ja-btn-primary:hover,.ja-nav .inner .ja-navlinks a.ja-btn-primary,.ja-hc-cta .ja-btn-primary{color:var(--btn-fg) !important}
+.ja-nav.overlay .inner .ja-navlinks a.ja-btn-primary{color:var(--btn-fg) !important;background:var(--btn-bg)}
+
+.cj-route,.cj-night{overflow-x:clip}

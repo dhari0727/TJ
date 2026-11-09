@@ -1,18 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="JourneyAI">
-  <!-- a slice of watermelon that doubles as a compass dial -->
-  <path d="M18 112 A102 102 0 0 0 222 112 Z" fill="#123524"/>
-  <path d="M30 112 A90 90 0 0 0 210 112 Z" fill="#7BC96F"/>
-  <path d="M40 112 A80 80 0 0 0 200 112 Z" fill="#FFF3E6"/>
-  <path d="M46 112 A74 74 0 0 0 194 112 Z" fill="#FF4D6D"/>
-  <!-- seeds -->
-  <g fill="#123524">
-    <ellipse cx="92" cy="146" rx="6" ry="10" transform="rotate(-24 92 146)"/>
-    <ellipse cx="120" cy="164" rx="6" ry="10"/>
-    <ellipse cx="148" cy="146" rx="6" ry="10" transform="rotate(24 148 146)"/>
-    <ellipse cx="72" cy="122" rx="5" ry="9" transform="rotate(-50 72 122)"/>
-    <ellipse cx="168" cy="122" rx="5" ry="9" transform="rotate(50 168 122)"/>
-  </g>
-  <!-- compass needle on the cut face -->
-  <path d="M120 24 L134 108 L120 98 L106 108 Z" fill="#123524"/>
-  <circle cx="120" cy="112" r="7" fill="#FFF3E6" stroke="#123524" stroke-width="4"/>
+  <!-- a map pin whose centre is a compass -->
+  <path d="M120 226 C60 160 38 128 38 94 a82 82 0 0 1 164 0 c0 34 -22 66 -82 132z" fill="#123524"/>
+  <circle cx="120" cy="94" r="52" fill="#FFF6EE"/>
+  <circle cx="120" cy="94" r="52" fill="none" stroke="#1E7B4F" stroke-width="5"/>
+  <path d="M148 66 L132 108 L90 122 L106 80Z" fill="#E63457"/>
+  <path d="M148 66 L132 108 L120 94Z" fill="#B6102F"/>
+  <circle cx="120" cy="94" r="7" fill="#123524"/>
 </svg>

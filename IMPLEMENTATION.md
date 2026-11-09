@@ -198,3 +198,11 @@ Answers "what if people post fake journals, and how do we keep recommendations u
 - **Data security:** global CSRF tokens (`js/csrf.js`, `ja_csrf_enforce()`), bcrypt, prepared statements, login audit and throttling.
 - **ML bias control:** `ml/nlp/extract_features.py` trains only on approved journals from email-verified, non-demo accounts, capped at 3 journals per user per destination.
 - **Tests:** `tests/trust_test.py` (43 checks) and `tests/smoke.py` (70 checks).
+
+---
+
+## Front-end theme layers
+
+`css/journeyai.css` (base) -> `css/journeyai-watermelon.css` (palette tokens, motion entrances) -> `css/journeyai-calm.css` (final look: hairline cards, soft depth, Fraunces headings, quiet buttons, plus the landing page's scroll route, trust section, dot navigation and drifting leaves).
+`js/journey.js` adds button ripples, like/pin pops, `cjToast()`, and (landing only, via `data-cj-landing`) the scroll route with a travelling pin. Everything respects `prefers-reduced-motion`.
+Design explorations that led here are in `mockups/` (open `mockups/index.html`); `f-calm-journey.html` is the chosen direction.
