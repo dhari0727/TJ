@@ -23,7 +23,7 @@ function ja_has_user_entry($destination) {
             $res = mysqli_query($GLOBALS['conn'],
                 "SELECT DISTINCT canonical_dest FROM journal_features jf
                  JOIN signup s ON s.eml = jf.eml
-                 WHERE jf.eml NOT LIKE '%@seed.journeyai' AND jf.canonical_dest IS NOT NULL");
+                 WHERE jf.eml NOT LIKE '%@seed.journeyai' AND jf.eml NOT LIKE '%@demo.journeyai' AND jf.eml NOT LIKE '%@real.journeyai' AND jf.canonical_dest IS NOT NULL");
             if ($res) while ($r = mysqli_fetch_assoc($res)) $cache[$r['canonical_dest']] = true;
         }
     }
@@ -83,7 +83,7 @@ function ja_render_cards($recs) {
         <article class="ja-reco reveal" data-tilt style="transition-delay:<?= $i*0.08 ?>s">
           <?php if ($gem): ?><div class="ja-gem"><?= ja_icon('gem',12) ?> Hidden Gem</div><?php endif; ?>
           <div class="ja-reco-top">
-            <img src="<?= $img ?>" alt="<?= $city ?>" loading="lazy" onerror="this.style.display='none'">
+            <?php if ($img): ?><img src="<?= htmlspecialchars($img) ?>" alt="<?= $city ?>" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'"><?php else: ?><div class="ja-reco-noimg" aria-hidden="true"></div><?php endif; ?>
             <div class="ja-reco-city"><?= $city ?></div>
             <?php if ($distKm): ?><div class="ja-usertag" style="left:auto;right:10px"><?= ja_icon('map-pin',11) ?> ~<?= (int)$distKm ?> km<?= $driveH ? ' · ' . $driveH . ' h drive' : ' · fly or train' ?></div><?php endif; ?>
             <?php if ($userEntry): ?><div class="ja-usertag"><?= ja_icon('user',11) ?> User Entry</div><?php endif; ?>

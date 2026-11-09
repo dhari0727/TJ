@@ -160,3 +160,6 @@ body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm{border:0}
 .ja-nav.overlay .inner .ja-navlinks a.ja-btn-primary{color:var(--btn-fg) !important;background:var(--btn-bg)}
 
 .cj-route,.cj-night{overflow-x:clip}
+
+/* destinations without a photo of their own: a quiet gradient, never a photo of somewhere else */
+.ja-reco-noimg{position:absolute;inset:0;background:radial-gradient(circle at 25% 20%,rgba(182,227,107,.35),transparent 55%),linear-gradient(135deg,#123524,#1E7B4F)}

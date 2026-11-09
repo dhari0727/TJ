@@ -10,7 +10,7 @@
 <?php else: ?>
 
 <!-- itinerary hero -->
-<header class="ja-itin-hero" style="background-image:linear-gradient(90deg,rgba(4,24,32,.9),rgba(6,32,42,.45) 70%,rgba(6,32,42,.2)),url('<?= htmlspecialchars($hero) ?>')">
+<header class="ja-itin-hero" style="background-image:linear-gradient(90deg,rgba(4,24,32,.9),rgba(6,32,42,.45) 70%,rgba(6,32,42,.2))<?= !empty($hero) ? ",url('" . htmlspecialchars($hero) . "')" : ',linear-gradient(135deg,#123524,#1E7B4F)' ?>">
   <div class="ja-container">
     <div class="ja-hc-eyebrow"><?= ja_icon('map-pin',14) ?> <?= htmlspecialchars($it['region']) ?></div>
     <h1><?= htmlspecialchars($it['city']) ?></h1>

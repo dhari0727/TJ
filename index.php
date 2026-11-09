@@ -37,7 +37,7 @@ $ed2 = $imgs['mountains'] ?? $ed1;
             <div class="ja-hc-card">
               <img src="<?= htmlspecialchars($o['src']) ?>" alt="<?= htmlspecialchars($o['name']) ?>">
               <div class="bk"><?= ja_icon('heart',14) ?></div>
-              <div class="lbl"><?= htmlspecialchars($o['name']) ?><small><?= ja_icon('star',10) ?> <?= $o['rating'] ?> · <?= htmlspecialchars($o['region']) ?></small></div>
+              <div class="lbl"><?= htmlspecialchars($o['name']) ?><small><?= ja_icon('map-pin',10) ?> <?= htmlspecialchars($o['region']) ?></small></div>
             </div>
           <?php endforeach; ?>
         </div>

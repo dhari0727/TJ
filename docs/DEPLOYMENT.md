@@ -139,7 +139,7 @@ the site footer carries the required attribution, **keep it**. Do not remove the
 - [ ] `ops\check.ps1` passes; `health.php` returns ok
 - [ ] Daily backup scheduled **and** one restore tested; `config/secret.key` backed up
 - [ ] ML service starts automatically after a reboot
-- [ ] Demo data removed if you do not want it: Admin > Users > "Include demo/seed accounts" then delete, or run `python -m ml.seed.generate_corpus --truncate` and `python -m ml.seed.load_real_entries --truncate` followed by `ml.rebuild_all --no-seed --no-real` once real users have entries
+- [x] No synthetic data: the seed and demo accounts, their journals, media and ratings were deleted (backup in C:/xampp/db_backups/). `ml.rebuild_all` no longer generates them unless you pass `--with-seed` (development only). Recommendations train only on real-sourced entries (Wikivoyage, blogs) and approved journals from verified people. Destination photos are Wikipedia lead images (`python -m ml.scrape.dest_images`); places without one show a plain gradient.
 
 ## 12. Known limitations (be honest with stakeholders)
 - **Single server.** PHP sessions and uploads are local files; scaling to several servers needs shared session storage and object storage for uploads.
