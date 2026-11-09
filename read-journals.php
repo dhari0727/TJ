@@ -7,7 +7,7 @@ require_once 'ja-icons.php';
 $q = trim($_GET['q'] ?? '');
 $page = max(1, (int)($_GET['p'] ?? 1)); $per = 12; $off = ($page - 1) * $per;
 
-$where = "d.visibility = 'public'"; $types = ''; $params = [];
+$where = "d.visibility = 'public' AND d.moderation_status = 'approved'"; $types = ''; $params = [];
 if ($q !== '') { $where .= " AND (d.Title LIKE ? OR d.City LIKE ? OR d.Country LIKE ? OR d.Description LIKE ?)"; $like = "%$q%"; $types = 'ssss'; $params = [$like, $like, $like, $like]; }
 $cs = mysqli_prepare($conn, "SELECT COUNT(*) FROM db d WHERE $where");
 if ($params) mysqli_stmt_bind_param($cs, $types, ...$params);
@@ -25,7 +25,7 @@ $pages = max(1, (int)ceil($total / $per));
 
 $books = [];
 $bq = @mysqli_query($conn, "SELECT b.book_id, b.title, b.subtitle, b.theme, b.cover_img, s.fname FROM storybooks b LEFT JOIN signup s ON s.eml = b.eml
-        WHERE b.visibility = 'public' ORDER BY b.updated_at DESC LIMIT 6");
+        WHERE b.visibility = 'public' AND b.moderation_status = 'approved' ORDER BY b.updated_at DESC LIMIT 6");
 while ($bq && ($r = mysqli_fetch_assoc($bq))) $books[] = $r;
 ?>
 <!DOCTYPE html>

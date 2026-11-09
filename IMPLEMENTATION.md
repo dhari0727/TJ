@@ -92,7 +92,7 @@ One command: `ml/venv/Scripts/python.exe -m ml.rebuild_all --seed 42 --n 1500`
 Migrations (run in this order, all safe to re-run): `sql/migrations.sql` (core), `sql/media.sql`, `sql/features.sql`,
 `sql/storybook.sql` + `sql/storybook-themes.sql`, `sql/admin.sql` (roles, settings, mail log, login throttle, user prefs),
 `sql/community.sql` (journal sharing, post comments), `sql/engage.sql` (packing lists, pinning, handles, journal likes/comments),
-`sql/prod.sql` (rate limits, indexes), `sql/create-db-user.sql` (least-privilege DB user).
+`sql/prod.sql` (rate limits, indexes), `sql/trust.sql` (email verification, moderation status, reports, audit log, media hashes), `sql/create-db-user.sql` (least-privilege DB user).
 
 ---
 
@@ -183,3 +183,18 @@ itinerary + nearby + route + analytics, security remediation, logo/branding, med
 **In progress / next:** switch geo lookups to a reliable keyed provider (Geoapify) for stronger
 place coverage + photos; "User Entry" photos on place cards; category filters on nearby results;
 social browse feed + reels + trending hashtags. See `IDEAS_BACKLOG.md`.
+
+---
+
+## Trust, verification and security layer
+
+Answers "what if people post fake journals, and how do we keep recommendations unbiased?"
+
+- **Real humans:** email verification (48h token), honeypot + too-fast-submit checks, disposable-email and common-password rejection, per-IP rate limits.
+- **Trust levels** (`ja-trust.php`): new -> verified -> trusted (3+ days old and 2+ approved journals); restricted after 2 upheld reports in 90 days. New/unverified accounts can only keep journals private or send them to a moderation queue; non-trusted accounts get 5 public posts/day.
+- **Content checks:** too short, link spam, repetition, shouting, exact and near-duplicate text (md5 + shingle similarity), implausible cost per day, bad dates. Flagged posts go to `pending`.
+- **Community moderation:** Report button (fake/spam/unsafe/copyright); 3 distinct reporters auto-hide the item; admins review in Admin > Moderation (queue, reports, audit log).
+- **Media security:** magic-byte type sniffing, GD re-encode (strips EXIF/GPS), size/pixel limits, sha256 duplicate detection, per-user quota. Requires the PHP `gd` extension.
+- **Data security:** global CSRF tokens (`js/csrf.js`, `ja_csrf_enforce()`), bcrypt, prepared statements, login audit and throttling.
+- **ML bias control:** `ml/nlp/extract_features.py` trains only on approved journals from email-verified, non-demo accounts, capped at 3 journals per user per destination.
+- **Tests:** `tests/trust_test.py` (43 checks) and `tests/smoke.py` (70 checks).

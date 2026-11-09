@@ -21,14 +21,14 @@ if ($bookId > 0) {
         mysqli_stmt_close($stmt);
         if ($book && $book['eml'] === $em) $isOwner = true;
     } else {
-        $stmt = mysqli_prepare($conn, "SELECT * FROM storybooks WHERE book_id = ? AND visibility = 'public'");
+        $stmt = mysqli_prepare($conn, "SELECT * FROM storybooks WHERE book_id = ? AND visibility = 'public' AND moderation_status = 'approved'");
         mysqli_stmt_bind_param($stmt, 'i', $bookId);
         mysqli_stmt_execute($stmt);
         $book = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
         mysqli_stmt_close($stmt);
     }
 } elseif ($shareToken) {
-    $stmt = mysqli_prepare($conn, "SELECT * FROM storybooks WHERE share_token = ? AND visibility IN ('link','public')");
+    $stmt = mysqli_prepare($conn, "SELECT * FROM storybooks WHERE share_token = ? AND visibility IN ('link','public') AND moderation_status = 'approved'");
     mysqli_stmt_bind_param($stmt, 's', $shareToken);
     mysqli_stmt_execute($stmt);
     $book = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -115,6 +115,7 @@ $jsonPages = json_encode(array_map(function($p) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Serif+Display&family=Lora:wght@400;500;600&family=Caveat:wght@400;500;600&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/storybook.css">
+<script src="js/csrf.js"></script>
   <style>
     .sb-viewer{display:flex;flex-direction:column;align-items:center;padding:32px 20px 40px;min-height:calc(100vh - 50px)}
     .sb-viewer .sb-page{margin-bottom:0;transition:opacity .25s ease,transform .25s ease}

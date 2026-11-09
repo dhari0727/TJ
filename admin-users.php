@@ -1,6 +1,6 @@
 <?php
 $ja_title = "Users"; $ja_active = "admin"; $ja_tab = "users";
-require_once __DIR__ . '/ja-lib.php';
+require_once __DIR__ . '/ja-trust.php';
 require_once __DIR__ . '/mail.php';
 $me = ja_require_admin();
 $msg = ''; $err = ''; $devLink = '';
@@ -44,6 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_bind_param($u, 'ss', $role, $target); mysqli_stmt_execute($u); mysqli_stmt_close($u);
                 $msg = $role === 'admin' ? "$target is now an admin." : "$target is now a regular user.";
             }
+        } elseif (in_array($act, ['trust', 'restrict', 'untrust', 'verify'], true)) {
+            if ($act === 'verify') { mysqli_query($conn, "UPDATE signup SET email_verified = 1, verify_token = NULL WHERE eml = '" . mysqli_real_escape_string($conn, $target) . "'"); $msg = "Marked $target as verified."; }
+            else {
+                $ov = ['trust' => 'trusted', 'restrict' => 'restricted', 'untrust' => 'none'][$act];
+                $u = mysqli_prepare($conn, "UPDATE signup SET trust_override = ? WHERE eml = ?");
+                mysqli_stmt_bind_param($u, 'ss', $ov, $target); mysqli_stmt_execute($u); mysqli_stmt_close($u);
+                $msg = ['trusted' => "$target can now publish instantly.", 'restricted' => "$target can no longer publish.", 'none' => "$target is back to automatic trust rules."][$ov];
+            }
+            ja_audit($me['eml'], 'admin_' . $act, $target);
         } elseif ($act === 'reset_link') {
             $token = bin2hex(random_bytes(32));
             $exp = date('Y-m-d H:i:s', time() + 3600);
@@ -118,6 +127,10 @@ $pages = max(1, (int)ceil($total / $per));
               <option value="<?= $u['is_active'] ? 'suspend' : 'activate' ?>"><?= $u['is_active'] ? 'Suspend' : 'Reactivate' ?></option>
             <?php endif; ?>
             <option value="reset_link">Send password reset</option>
+            <option value="verify">Mark email verified</option>
+            <option value="trust">Trust (publish instantly)</option>
+            <option value="restrict">Restrict (cannot publish)</option>
+            <option value="untrust">Reset trust to automatic</option>
             <?php if (!$isSelf): ?>
               <option value="<?= $u['role'] === 'admin' ? 'remove_admin' : 'make_admin' ?>"><?= $u['role'] === 'admin' ? 'Remove admin' : 'Make admin' ?></option>
               <option value="delete">Delete user…</option>

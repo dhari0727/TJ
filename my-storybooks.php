@@ -42,6 +42,7 @@ if ($bookIds) {
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
 <link rel="stylesheet" href="css/storybook.css">
+<script src="js/csrf.js"></script>
 </head>
 <body class="ja">
 

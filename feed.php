@@ -24,7 +24,7 @@ $perPage    = 24;
 $offset     = ($page - 1) * $perPage;
 
 // ---- build the feed query (prepared) ----
-$where  = "m.is_public = 1";
+$where  = "m.is_public = 1 AND m.moderation_status = 'approved'";
 $types  = "";
 $params = [];
 
@@ -268,6 +268,7 @@ $hasMore = count($posts) === $perPage;
       <button type="button" class="ja-feed-likebtn" id="jaFeedLbLike" onclick="jaFeedToggleLike(event,this)">
         <?= ja_icon('heart',18) ?> <span class="ja-feed-likecount" id="jaFeedLbLikeCount">0</span>
       </button>
+      <?php if ($eml): ?><select id="jaFeedReport" class="ja-report-select" aria-label="Report this post"><option value="">Report this post...</option><option value="fake">Fake or misleading</option><option value="spam">Spam</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Not their photo</option></select><span id="jaFeedReportMsg" class="ja-muted" style="font-size:.78rem"></span><?php endif; ?>
       <div class="ja-cmts" id="jaFeedCmts">
         <div class="ja-cmts-list" id="jaFeedCmtList"></div>
         <?php if ($eml): ?>
@@ -397,6 +398,15 @@ document.addEventListener('click', function (e) {
   var row = e.target.closest('.ja-cmt'), id = jaFeedPosts[jaFeedIdx].id;
   var fd = new FormData(); fd.append('action', 'comment_delete'); fd.append('kind', 'media'); fd.append('comment_id', row.dataset.cid); fd.append('csrf', JA_CSRF);
   fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) { if (d.ok) jaFeedLoadComments(id); });
+});
+
+document.addEventListener('change', function (e) {
+  if (e.target.id !== 'jaFeedReport' || !e.target.value) return;
+  var fd = new FormData(); fd.append('action', 'report'); fd.append('kind', 'media'); fd.append('id', jaFeedPosts[jaFeedIdx].id);
+  fd.append('reason', e.target.value); fd.append('csrf', JA_CSRF);
+  fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
+    document.getElementById('jaFeedReportMsg').textContent = d.message || d.error || ''; e.target.value = '';
+  });
 });
 
 function jaFeedToggleLike(evt, btn) {

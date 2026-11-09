@@ -1,22 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="JourneyAI">
-  <!-- outer ring -->
-  <circle cx="120" cy="120" r="106" fill="none" stroke="currentColor" stroke-width="9"/>
-  <!-- inner compass ring -->
-  <circle cx="120" cy="120" r="70" fill="none" stroke="currentColor" stroke-width="5" opacity="0.85"/>
-  <!-- bold 4-point compass star -->
-  <g fill="currentColor">
-    <polygon points="120,44 138,120 120,138 102,120"/>
-    <polygon points="120,196 102,120 120,102 138,120" opacity="0.6"/>
-    <polygon points="44,120 120,102 138,120 120,138" opacity="0.9"/>
-    <polygon points="196,120 120,138 102,120 120,102" opacity="0.75"/>
+  <!-- a slice of watermelon that doubles as a compass dial -->
+  <path d="M18 112 A102 102 0 0 0 222 112 Z" fill="#123524"/>
+  <path d="M30 112 A90 90 0 0 0 210 112 Z" fill="#7BC96F"/>
+  <path d="M40 112 A80 80 0 0 0 200 112 Z" fill="#FFF3E6"/>
+  <path d="M46 112 A74 74 0 0 0 194 112 Z" fill="#FF4D6D"/>
+  <!-- seeds -->
+  <g fill="#123524">
+    <ellipse cx="92" cy="146" rx="6" ry="10" transform="rotate(-24 92 146)"/>
+    <ellipse cx="120" cy="164" rx="6" ry="10"/>
+    <ellipse cx="148" cy="146" rx="6" ry="10" transform="rotate(24 148 146)"/>
+    <ellipse cx="72" cy="122" rx="5" ry="9" transform="rotate(-50 72 122)"/>
+    <ellipse cx="168" cy="122" rx="5" ry="9" transform="rotate(50 168 122)"/>
   </g>
-  <circle cx="120" cy="120" r="10" fill="currentColor"/>
-  <!-- AI circuit nodes -->
-  <g fill="currentColor">
-    <circle cx="158" cy="98" r="5"/><circle cx="160" cy="146" r="5"/>
-  </g>
-  <g stroke="currentColor" stroke-width="4" fill="none" opacity="0.9">
-    <line x1="140" y1="106" x2="154" y2="100"/>
-    <line x1="140" y1="134" x2="156" y2="143"/>
-  </g>
+  <!-- compass needle on the cut face -->
+  <path d="M120 24 L134 108 L120 98 L106 108 Z" fill="#123524"/>
+  <circle cx="120" cy="112" r="7" fill="#FFF3E6" stroke="#123524" stroke-width="4"/>
 </svg>

@@ -111,7 +111,7 @@ Rotate the log files weekly (Windows: a scheduled task that archives them; Linux
 - Copy backups off the server (another disk or cloud storage).
 
 ## 9. Releasing a change
-1. Run `powershell -File ops\check.ps1` — PHP/Python/JS syntax plus the 70-check smoke test (`tests/smoke.py`) against the running site. It must end with `ALL CHECKS PASSED`.
+1. Run `powershell -File ops\check.ps1` — PHP/Python/JS syntax plus the 70-check smoke test (`tests/smoke.py`); also run `tests/trust_test.py` (43 checks). Apply `sql/trust.sql` and enable `extension=gd` in php.ini first against the running site. It must end with `ALL CHECKS PASSED`.
 2. Take a backup (section 8).
 3. Copy the new files over the old ones. Run any new `sql/*.sql` (they are re-runnable). Restart the ML service if `ml/` changed.
 4. Open `health.php`, then click through Plan a Trip, Packing lists and Community.

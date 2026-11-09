@@ -17,7 +17,16 @@ import sys
 import requests
 
 BASE = os.environ.get("BASE_URL", "http://localhost/travel_journel").rstrip("/")
-PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+def _png():
+    import io
+    from PIL import Image
+    im = Image.new("RGB", (96, 64), (230, 52, 87))
+    for i in range(0, 96, 8):
+        im.paste((18, 53, 36), (i, (i * 3) % 60, i + 4, ((i * 3) % 60) + 4))
+    b = io.BytesIO(); im.save(b, "PNG"); return b.getvalue()
+
+
+PNG = _png()
 results = []
 
 
@@ -63,7 +72,16 @@ def main():
     check("no PHP version header", "X-Powered-By" not in r.headers)
 
     print("\n== account: register, preferences, plan-trip prefill")
+    user.get(f"{BASE}/register.php", timeout=30)
+    import time; time.sleep(4.5)   # the sign-up form rejects submissions faster than a person can type
     r = user.post(f"{BASE}/register.php", data={"fname": "Smoke", "lname": "Test", "eml": email, "psw": pw, "sn": "1"}, allow_redirects=False, timeout=60)
+    # sharing needs a verified account (tests/trust_test.py covers that strictly); here we only mark this throw-away user trusted
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    from ml.db import get_connection
+    _c = get_connection(dict_cursor=False)
+    with _c.cursor() as _cur:
+        _cur.execute("UPDATE signup SET email_verified=1, trust_override='trusted' WHERE eml=%s", (email,))
+    _c.commit(); _c.close()
     check("register -> dashboard", r.status_code == 302 and "dashboard.php" in r.headers.get("Location", ""), r.status_code)
     r = user.get(f"{BASE}/profile.php", timeout=60)
     tok = csrf_from(r.text)
@@ -131,7 +149,7 @@ def main():
         check("public profile never leaks the email", email not in r.text and "test.invalid" not in r.text)
 
     print("\n== journal: create, share, read, privacy")
-    r = user.post(f"{BASE}/new-entry.php", data={"title": "Smoke journey", "coun": "India", "city": "Goa", "dv": "2026-01-02", "dr": "2026-01-05", "desc": "A test story.",
+    r = user.post(f"{BASE}/new-entry.php", data={"csrf": tok, "title": "Smoke journey", "coun": "India", "city": "Goa", "dv": "2026-01-02", "dr": "2026-01-05", "desc": "We reached Goa by the morning train and walked to the beach before the crowds. " + secrets.token_hex(6) + " The shacks were calm, the fish thali was fresh and cheap, and we cycled to the old fort at sunset. Weekday visits were quiet, autos were easy to find, and the whole trip stayed inside our budget.",
                                                  "visibility": "private", "hotel": "2000", "dinner": "900"}, allow_redirects=False, timeout=60)
     eid = re.search(r"id=(\d+)", r.headers.get("Location", ""))
     if check("journal entry created with a real id", bool(eid) and eid.group(1) != "0", r.headers.get("Location")):

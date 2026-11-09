@@ -54,6 +54,12 @@ $ed2 = $imgs['mountains'] ?? $ed1;
   <div class="ja-hc-count"><span id="hcNum">01</span> / <?= str_pad(count($slides),2,'0',STR_PAD_LEFT) ?></div>
 </section>
 
+<!-- ============ TICKER ============ -->
+<div class="wm-ticker" aria-hidden="true"><div class="wm-ticker-track">
+  <?php $wm = ['Dwarka','Somnath','Junagadh','Sasan Gir','Diu','White Rann','Udaipur','Jaipur','Varanasi','Rishikesh','Munnar','Hampi','Leh','Goa','Kolkata','Darjeeling','Pushkar','Mysuru'];
+  for ($k = 0; $k < 2; $k++) foreach ($wm as $w) echo '<span>' . htmlspecialchars($w) . '</span>'; ?>
+</div></div>
+
 <!-- ============ EDITORIAL: how it works ============ -->
 <section class="ja-section">
   <div class="ja-container">
@@ -138,7 +144,7 @@ $ed2 = $imgs['mountains'] ?? $ed1;
         <div class="ja-eyebrow reveal" style="color:var(--ja-teal)">Personal & practical</div>
         <h2 class="reveal" style="font-size:clamp(2rem,4vw,3rem)">Close to home, or the trip of a lifetime.</h2>
         <p class="reveal" style="color:var(--text-dim);font-size:1.1rem">Tell us where you're travelling from and JourneyAI prioritises
-          destinations near you — with the best season to visit built into every recommendation across 90+ destinations.</p>
+          destinations near you — with the best season to visit built into every recommendation across 500+ destinations in India.</p>
         <a href="plan-trip.php" class="ja-btn ja-btn-primary ja-btn-lg reveal" data-magnetic style="margin-top:20px">Start planning <?= ja_icon('arrow',18) ?></a>
       </div>
       <img class="reveal" src="<?= htmlspecialchars($ed2) ?>" alt="Mountains">

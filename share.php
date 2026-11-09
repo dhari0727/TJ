@@ -8,7 +8,7 @@ $ja_title = "Share a post"; $ja_active = "feed"; $ja_ctab = "share";
 session_start();
 require 'connection.php';
 require 'ja-media.php';
-require_once 'ja-lib.php';
+require_once 'ja-trust.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 $msg = ''; $err = '';
@@ -40,9 +40,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (($_POST['do'] ?? '') === 'toggle_post') {
         $mid = (int)($_POST['media_id'] ?? 0);
-        $u = mysqli_prepare($conn, "UPDATE media SET is_public = 1 - is_public WHERE media_id = ? AND eml = ?");
-        mysqli_stmt_bind_param($u, 'is', $mid, $em); mysqli_stmt_execute($u); mysqli_stmt_close($u);
-        $msg = 'Visibility updated.';
+        $cq = mysqli_prepare($conn, "SELECT is_public FROM media WHERE media_id = ? AND eml = ?");
+        mysqli_stmt_bind_param($cq, 'is', $mid, $em); mysqli_stmt_execute($cq);
+        $cur = mysqli_fetch_row(mysqli_stmt_get_result($cq)); mysqli_stmt_close($cq);
+        if ($cur && (int)$cur[0] === 1) { $new = 0; $st = 'approved'; $why = null; }
+        elseif ($cur) {
+            $m = ja_moderation_for($em);
+            if ($m['status'] === null) { $new = 0; $err = $m['reason']; $st = 'approved'; $why = null; }
+            else { $new = 1; $st = $m['status']; $why = $m['reason']; }
+        }
+        if ($cur && !$err) {
+            $u = mysqli_prepare($conn, "UPDATE media SET is_public = ?, moderation_status = ?, mod_reason = ? WHERE media_id = ? AND eml = ?");
+            mysqli_stmt_bind_param($u, 'issis', $new, $st, $why, $mid, $em); mysqli_stmt_execute($u); mysqli_stmt_close($u);
+            $msg = $new ? ($st === 'pending' ? 'Submitted for review. It appears in the Feed once a moderator approves it.' : 'Now public.') : 'Now private.';
+        }
     } else {
         // new post (one or many files, each becomes a post sharing the caption)
         if (!ja_rate_limit('upload:' . strtolower($em), 40, 3600)) { $err = 'You are posting very fast. Please wait a little.'; }

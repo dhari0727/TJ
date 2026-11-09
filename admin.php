@@ -18,6 +18,9 @@ $stats = [
     'Storybooks'       => ja_count("SELECT COUNT(*) FROM storybooks"),
     'Saved plans'      => ja_count("SELECT COUNT(*) FROM saved_plans"),
     'Saved routes'     => ja_count("SELECT COUNT(*) FROM saved_routes"),
+    'Waiting for review' => ja_count("SELECT (SELECT COUNT(*) FROM db WHERE moderation_status='pending') + (SELECT COUNT(*) FROM media WHERE moderation_status='pending' AND entry_id IS NULL) + (SELECT COUNT(*) FROM storybooks WHERE moderation_status='pending')"),
+    'Open reports'     => ja_count("SELECT COUNT(DISTINCT kind, item_id) FROM reports WHERE status='open'"),
+    'Unverified users' => ja_count("SELECT COUNT(*) FROM signup WHERE email_verified = 0"),
     'Suspended'        => ja_count("SELECT COUNT(*) FROM signup WHERE is_active = 0"),
     'Emails failed (7d)' => ja_count("SELECT COUNT(*) FROM email_log WHERE status <> 'sent' AND created_at > (NOW() - INTERVAL 7 DAY)"),
 ];

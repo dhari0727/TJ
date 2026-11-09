@@ -8,7 +8,7 @@ $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 12;
 $offset = ($page - 1) * $perPage;
 
-$where = "s.visibility = 'public'";
+$where = "s.visibility = 'public' AND s.moderation_status = 'approved'";
 $types = "";
 $params = [];
 
@@ -57,7 +57,7 @@ mysqli_stmt_execute($stmt);
 $books = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 mysqli_stmt_close($stmt);
 
-$themesRes = mysqli_query($conn, "SELECT DISTINCT theme FROM storybooks WHERE visibility = 'public' AND theme IS NOT NULL AND theme != '' ORDER BY theme");
+$themesRes = mysqli_query($conn, "SELECT DISTINCT theme FROM storybooks WHERE visibility = 'public' AND moderation_status = 'approved' AND theme IS NOT NULL AND theme != '' ORDER BY theme");
 $themes = [];
 if ($themesRes) {
     while ($row = mysqli_fetch_assoc($themesRes)) {
@@ -98,6 +98,7 @@ function sb_cover_url($book) {
 <head>
 <?php include 'ja-head.php'; ?>
 <link rel="stylesheet" href="css/storybook.css">
+<script src="js/csrf.js"></script>
 </head>
 <body class="ja">
 

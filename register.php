@@ -2,7 +2,7 @@
 $ja_title = "Sign up"; $ja_active = "register";
 include("connection.php");
 session_start();
-require_once __DIR__ . '/ja-lib.php';
+require_once __DIR__ . '/ja-trust.php';
 $regOpen = ja_setting('allow_registration', '1') === '1';
 $err = ""; $err2 = $regOpen ? "" : "New sign-ups are currently closed.";
 if (isset($_POST["sn"]) && !$regOpen) { $err2 = "New sign-ups are currently closed."; }
@@ -23,7 +23,16 @@ elseif (isset($_POST["sn"])) {
            && preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/',$psw) && strlen($psw) >= 8;
     $validate = filter_var($eml, FILTER_VALIDATE_EMAIL);
 
-    if (!ja_rate_limit('register:ip:' . ja_client_ip(), 10, 3600)) {
+    // bot traps: a hidden field humans never fill, and a form that is submitted faster than a person can type
+    $tooFast = (time() - (int)($_SESSION['reg_t'] ?? 0)) < 4;
+    if (!empty($_POST['website']) || $tooFast) {
+        $err2 = "That looked automated. Please wait a moment and try again.";
+        ja_audit($eml, 'register_bot_trap', $tooFast ? 'too fast' : 'honeypot');
+    } else if (ja_disposable_email($eml)) {
+        $err2 = "Please use a permanent email address (temporary inboxes are not accepted).";
+    } else if (ja_common_password($psw)) {
+        $err = "That password is too common. Pick something less guessable.";
+    } else if (!ja_rate_limit('register:ip:' . ja_client_ip(), 10, 3600)) {
         $err2 = "Too many sign-ups from this network. Please try again later.";
     } else if ($emailExists) {
         $err2 = "That email is already registered.";
@@ -37,11 +46,18 @@ elseif (isset($_POST["sn"])) {
         mysqli_stmt_bind_param($sql, 'ssss', $fname, $lname, $eml, $hash);
         if (mysqli_stmt_execute($sql)) {
             ja_ensure_handle($eml);   // public profile handle (never derived from the email)
+            $v = ja_send_verification($eml);
+            ja_audit($eml, 'register', $v['status']);
+            if ($v['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1' && in_array(ja_client_ip(), ['127.0.0.1', '::1'], true)) {
+                $_SESSION['ja_flash'] = 'Email is not set up yet (admin: Admin > Email). Local test link: ' . $v['url'];
+            }
+            session_regenerate_id(true);
             $_SESSION["fname"] = $fname; $_SESSION["lname"] = $lname; $_SESSION['eml'] = $eml;
             header("location: dashboard.php"); exit();
         }
     }
 }
+$_SESSION['reg_t'] = time();   // when the form was shown (for the too-fast check)
 require 'ja-images.php';
 $img = ja_local_images()['bali'] ?? (ja_local_images()['kerala'] ?? '');
 ?>
@@ -54,7 +70,7 @@ $img = ja_local_images()['bali'] ?? (ja_local_images()['kerala'] ?? '');
     <div class="ja-auth-quote">
       <div class="ja-eyebrow" style="color:var(--ja-aqua-2)">✦ Start exploring</div>
       <h2>Travel smarter,<br>from real journeys.</h2>
-      <p>Budget-aware, explainable recommendations across 90+ destinations — free to join.</p>
+      <p>Budget-aware, explainable recommendations across 500+ destinations in India — free to join.</p>
     </div>
   </div>
   <div class="ja-auth-form">
@@ -69,6 +85,7 @@ $img = ja_local_images()['bali'] ?? (ja_local_images()['kerala'] ?? '');
           <div class="ja-field"><label>First name</label><input class="ja-input" name="fname" required></div>
           <div class="ja-field"><label>Last name</label><input class="ja-input" name="lname" required></div>
         </div>
+        <div style="position:absolute;left:-5000px" aria-hidden="true"><label>Website</label><input name="website" tabindex="-1" autocomplete="off"></div>
         <div class="ja-field"><label>Email</label><input class="ja-input" type="email" name="eml" required></div>
         <div class="ja-field"><label>Password</label><input class="ja-input" type="password" name="psw" required placeholder="8+ chars, 1 uppercase, 1 number, 1 symbol"></div>
         <button class="ja-btn ja-btn-primary" type="submit" name="sn" data-magnetic style="width:100%">Create account</button>

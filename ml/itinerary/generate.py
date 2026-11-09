@@ -136,6 +136,9 @@ def generate(destination, days=5, travel_style="mid-range", month=None,
 
     def pick_for(slot, exclude=()):
         pool = [a for a in activities if a not in exclude]
+        # small places have only 1-2 activity tags: when the exclusions use them all up, reuse them
+        # instead of failing (e.g. Nadiad, Anand, other towns with few listed highlights)
+        pool = pool or activities[:] or ["nature", "food", "history"]
         if slot == "morning":
             pool = [a for a in pool if a not in EVENING_ONLY] or pool
             pref = [a for a in pool if a in MORNING_PREF]

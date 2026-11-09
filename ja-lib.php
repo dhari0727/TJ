@@ -233,6 +233,21 @@ function ja_ensure_handle($eml) {
     return null;
 }
 
+/** Reject a state-changing POST that does not carry this session's token (header X-CSRF-Token or field csrf). */
+function ja_csrf_enforce() {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') return;
+    $sent = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf'] ?? '');
+    if ($sent !== '' && !empty($_SESSION['csrf']) && hash_equals($_SESSION['csrf'], (string)$sent)) return;
+    http_response_code(403);
+    if (isset($_SERVER['HTTP_X_CSRF_TOKEN']) || stripos($_SERVER['HTTP_ACCEPT'] ?? '', 'json') !== false) {
+        header('Content-Type: application/json');
+        echo json_encode(['error' => 'Your session expired. Reload the page and try again.']);
+    } else {
+        echo 'Your session expired. Go back, refresh the page and try again.';
+    }
+    exit;
+}
+
 function ja_client_ip() { return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'; }
 function ja_base_url() {
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';

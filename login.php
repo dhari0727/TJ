@@ -2,7 +2,7 @@
 $ja_title = "Login"; $ja_active = "login";
 include('connection.php');
 session_start();
-require_once __DIR__ . '/ja-lib.php';
+require_once __DIR__ . '/ja-trust.php';
 $evalue = "";
 if (!empty($_GET['suspended'])) $evalue = "This account has been suspended. Contact the site admin.";
 
@@ -60,6 +60,7 @@ if (isset($_POST['lgn'])) {
     }
     if ($ok) {
         session_regenerate_id(true);
+        ja_audit($user['eml'], 'login', '');
         $lu = mysqli_prepare($conn, "UPDATE signup SET last_login = NOW() WHERE eml = ?");
         mysqli_stmt_bind_param($lu, 's', $user['eml']);
         mysqli_stmt_execute($lu);
@@ -73,6 +74,7 @@ if (isset($_POST['lgn'])) {
         if ($evalue === "") {
             $evalue = $locked ? "Too many attempts. Wait 15 minutes or reset your password." : "Incorrect email or password.";
         }
+        ja_audit($email, $locked ? 'login_locked' : 'login_failed', '');
         if (!$locked && $email !== '') {
             $fa = mysqli_prepare($conn, "INSERT INTO login_attempts (eml, ip) VALUES (?, ?)");
             mysqli_stmt_bind_param($fa, 'ss', $email, $ip);

@@ -1,0 +1,225 @@
+/* ============================================================================
+   JourneyAI — "Watermelon" theme layer. Loaded AFTER journeyai.css and re-skins it through the tokens plus
+   a short list of component rules. Idea: a postcard from a fruit stall. Cream paper, rind-green ink, one hot
+   melon accent, sticker cards with hard offset shadows that squish when pressed, a slowly turning slice.
+   Everything animated is switched off for people who ask for reduced motion.
+   ============================================================================ */
+
+:root{
+  --ink:#123524;            /* rind-dark green, used for text outlines and shadows */
+  --melon:#E63457;          /* the accent */
+  --melon-2:#FF6B86;
+  --rind:#1E7B4F;           /* link / secondary accent */
+  --lime:#B6E36B;           /* rind highlight */
+  --seed:#17140F;
+  --paper:#FFF6EE;
+
+  --ja-deep:#123524;--ja-teal:var(--rind);--ja-aqua:var(--melon);--ja-aqua-2:var(--melon-2);
+  --ja-sand:#FFE8D6;--ja-coral:#D62839;--ja-coral-2:#FF6B86;--ja-ink:#0E1F16;
+
+  --bg:var(--paper);--bg-2:#FFE9DC;
+  --surface:#FFFFFF;--surface-solid:#FFFFFF;--glass:#FFFFFF;--glass-brd:var(--ink);
+  --text:#1B2A21;--text-dim:#4A5F52;--text-mut:#6F8176;
+  --brd:rgba(18,53,36,.16);
+  --shadow:4px 4px 0 var(--ink);--shadow-lg:8px 8px 0 var(--ink);
+  --grad-hero:linear-gradient(135deg,#123524 0%,#1E7B4F 55%,#E63457 100%);
+  --grad-aqua:linear-gradient(120deg,#E63457,#FF6B86);--grad-coral:linear-gradient(120deg,#E63457,#FF6B86);
+  --radius:18px;--radius-sm:12px;--radius-lg:26px;
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#F4EBD9;--paper:#0D1F16;--bg:#0D1F16;--bg-2:#14291E;--surface:#142A1F;--surface-solid:#142A1F;--glass:#142A1F;--glass-brd:#2F5A43;
+    --text:#F4EBD9;--text-dim:#B9CBBE;--text-mut:#86A08F;--brd:rgba(244,235,217,.16);
+    --shadow:4px 4px 0 #000;--shadow-lg:8px 8px 0 #000;--rind:#7BD389;--melon:#FF5A78;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#F4EBD9;--paper:#0D1F16;--bg:#0D1F16;--bg-2:#14291E;--surface:#142A1F;--surface-solid:#142A1F;--glass:#142A1F;--glass-brd:#2F5A43;
+  --text:#F4EBD9;--text-dim:#B9CBBE;--text-mut:#86A08F;--brd:rgba(244,235,217,.16);
+  --shadow:4px 4px 0 #000;--shadow-lg:8px 8px 0 #000;--rind:#7BD389;--melon:#FF5A78;
+}
+:root[data-theme="light"]{
+  --ink:#123524;--paper:#FFF6EE;--bg:#FFF6EE;--bg-2:#FFE9DC;--surface:#fff;--surface-solid:#fff;--glass:#fff;--glass-brd:#123524;
+  --text:#1B2A21;--text-dim:#4A5F52;--text-mut:#6F8176;--brd:rgba(18,53,36,.16);
+  --shadow:4px 4px 0 #123524;--shadow-lg:8px 8px 0 #123524;--rind:#1E7B4F;--melon:#E63457;
+}
+
+/* ------------------------------------------------------------------ base */
+body.ja{background:var(--bg);font-feature-settings:"ss01","cv11";letter-spacing:.005em}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:800;letter-spacing:-.035em;line-height:1.02}
+h1{font-size:clamp(2.2rem,5vw,3.6rem)}
+::selection{background:var(--melon);color:#fff}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{
+  outline:3px solid var(--melon);outline-offset:3px;border-radius:10px}
+/* the old aurora blobs and grain are replaced by a paper texture and the turning slice */
+.ja-aurora,.ja-grain{display:none}
+body.ja::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.5;
+  background:radial-gradient(circle at 1px 1px,rgba(18,53,36,.13) 1.2px,transparent 1.6px) 0 0/22px 22px}
+body.ja::after{content:"";position:fixed;right:-190px;bottom:-190px;width:480px;height:480px;z-index:-1;pointer-events:none;opacity:.95;
+  background:url("../images/journeyai-slice.svg") center/contain no-repeat;animation:wm-turn 90s linear infinite}
+@keyframes wm-turn{to{transform:rotate(360deg)}}
+.wm-progress{position:fixed;top:0;left:0;height:4px;width:0;background:var(--melon);z-index:200;transition:width .12s linear}
+
+/* ------------------------------------------------------------------ sidebar */
+.ja-sidebar{background:var(--surface);backdrop-filter:none;border-right:2.5px solid var(--ink);padding:20px 14px}
+.ja-side-brand{font-size:1.45rem;color:var(--ink);transition:transform .35s var(--ease-spring)}
+.ja-side-brand:hover{transform:rotate(-2deg) scale(1.04)}
+.ja-side-brand .ja-logo-mark{width:44px;height:44px}
+.ja-side-nav a,.ja-side-bottom a{border:2px solid transparent;border-radius:14px;color:var(--text-dim);font-weight:600;
+  transition:transform .25s var(--ease-spring),background .2s,border-color .2s}
+.ja-side-nav a:hover,.ja-side-bottom a:hover{background:var(--bg-2);color:var(--ink);transform:translateX(4px)}
+.ja-side-nav a.active{background:var(--melon);color:#fff;border-color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.ja-side-nav a.active svg{color:#fff}
+.ja-side-bottom{border-top:2px dashed var(--brd)}
+
+/* ------------------------------------------------------------------ buttons and fields */
+.ja-btn{border:2.5px solid var(--ink);border-radius:14px;font-weight:700;letter-spacing:.01em;box-shadow:3px 3px 0 var(--ink);
+  transition:transform .18s var(--ease-spring),box-shadow .18s var(--ease-spring),background .2s}
+.ja-btn:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+.ja-btn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+.ja-btn-primary{background:var(--melon);color:#fff}
+.ja-btn-primary:hover{background:var(--melon-2)}
+.ja-btn-ghost{background:var(--surface);color:var(--ink)}
+.ja-btn-ghost:hover{background:var(--bg-2)}
+.ja-btn[disabled]{opacity:.55;box-shadow:none;transform:none}
+.ja-input,.ja-select,.ja-field textarea,textarea.ja-input{border:2.5px solid var(--ink);border-radius:14px;background:var(--surface);color:var(--text);
+  box-shadow:2px 2px 0 var(--ink);transition:box-shadow .2s var(--ease-spring),transform .2s var(--ease-spring)}
+.ja-input:focus,.ja-select:focus,.ja-field textarea:focus{outline:none;transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--melon);border-color:var(--ink)}
+.ja-field label{font-weight:700;font-size:.82rem;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim)}
+.ja-chip{border:2px solid var(--ink);border-radius:99px;background:var(--surface);color:var(--ink);font-weight:600;
+  transition:transform .2s var(--ease-spring),background .2s}
+.ja-chip:hover{transform:translateY(-2px) rotate(-1deg)}
+.ja-chip.on{background:var(--rind);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+.ja-pill{border:1.5px solid var(--ink);font-weight:700}
+.ja-pill.near{background:var(--lime);color:var(--ink)}
+.ja-pill.season{background:#FFD3DB;color:#8A1230}
+
+/* ------------------------------------------------------------------ cards: sticker style */
+.ja-card,.ja-reco,.ja-place-card,.ja-nearby-card,.ja-post,.ja-feed-card,.ja-hc,.ja-smart-section,.ja-rs,.ja-route-card,.ja-itin-day,.ja-pack-list,
+.ja-quick a,.ja-modcard,.ja-reco-mini,.ja-stat{
+  background:var(--surface);border:2.5px solid var(--ink);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:none}
+.ja-card,.ja-reco,.ja-feed-card,.ja-post,.ja-place-card,.ja-quick a,.ja-nearby-card,.ja-reco-mini{
+  transition:transform .28s var(--ease-spring),box-shadow .28s var(--ease-spring)}
+.ja-card:hover,.ja-reco:hover,.ja-feed-card:hover,.ja-post:hover,.ja-place-card:hover,.ja-quick a:hover,.ja-nearby-card:hover,.ja-reco-mini:hover{
+  transform:translate(-3px,-3px) rotate(-.25deg);box-shadow:8px 8px 0 var(--ink)}
+.ja-card[data-tilt]{transform:none}
+.ja-quick a:nth-child(2n):hover{transform:translate(-3px,-3px) rotate(.4deg)}
+.ja-pack-list li{background:transparent}
+.ja-empty{border:2.5px dashed var(--ink);border-radius:var(--radius);background:transparent}
+.ja-ok{background:#E3F6D4;color:#1B5A2E;border:2px solid var(--ink);border-radius:14px;box-shadow:3px 3px 0 var(--ink)}
+.ja-err{background:#FFDDE3;color:#8A1230;border:2px solid var(--ink);border-radius:14px;box-shadow:3px 3px 0 var(--ink)}
+.ja-warn{background:#FFF0B8;color:#6B4B00;border:2px solid var(--ink);border-radius:14px;box-shadow:3px 3px 0 var(--ink)}
+.ja-tabs a{border:2px solid var(--ink);background:var(--surface);color:var(--ink);box-shadow:2px 2px 0 var(--ink);
+  transition:transform .2s var(--ease-spring),box-shadow .2s var(--ease-spring)}
+.ja-tabs a:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.ja-tabs a.on{background:var(--melon);border-color:var(--ink);color:#fff}
+.ja-more{color:var(--rind);font-weight:700}
+.ja-table th{color:var(--ink)}
+.ja-progress-bar,.sb-progress-bar{border:2px solid var(--ink);height:12px;background:var(--surface)}
+.ja-progress-bar span{background:var(--melon)}
+.ja-cost,.ja-stat .n{font-family:var(--font-display);font-weight:800;color:var(--ink)}
+.ja-score-fill{background:var(--melon)}
+.ja-gem{background:var(--lime);color:var(--ink);border:2px solid var(--ink);font-weight:800}
+
+/* ------------------------------------------------------------------ page headers and heroes */
+.ja-pagehead{background:transparent}
+.ja-eyebrow{color:var(--melon);font-weight:800;letter-spacing:.14em}
+.ja-explore-hero h1,.ja-pagehead h1{text-wrap:balance}
+.ja-smart-box{border:3px solid var(--ink);border-radius:20px;background:var(--surface);box-shadow:6px 6px 0 var(--ink);
+  transition:transform .25s var(--ease-spring),box-shadow .25s var(--ease-spring)}
+.ja-smart-box:focus-within{transform:translate(-2px,-2px);box-shadow:9px 9px 0 var(--melon);border-color:var(--ink)}
+.ja-smart-box svg{color:var(--melon)}
+.ja-smart-examples .ja-chip{font-size:.82rem}
+/* landing nav + auth */
+.ja-nav .inner{border:2.5px solid var(--ink);background:var(--surface);backdrop-filter:none;box-shadow:4px 4px 0 var(--ink);border-radius:18px}
+.ja-navlinks a{font-weight:600;color:var(--ink)}
+.ja-navlinks a.active,.ja-navlinks a:hover{background:var(--lime);border-radius:10px}
+.ja-brand{font-family:"Bagel Fat One",var(--font-display);color:var(--ink)}
+.ja-auth-form{background:var(--bg)}
+.ja-auth-box h1{font-size:clamp(2rem,4vw,2.8rem)}
+.ja-footer{background:var(--ink);color:#F4EBD9;border-top:0}
+:root[data-theme="dark"] .ja-footer{background:#07130D}
+.ja-footer a{color:#F4EBD9}
+.ja-credits{color:inherit;opacity:.7}
+
+/* itinerary / route timeline accents */
+.ja-tl-dot,.ja-route-dot,.ja-rs-num,.ja-itin-daynum{background:var(--melon);color:#fff;border:2.5px solid var(--ink);font-family:var(--font-display);font-weight:800}
+.ja-route-line::before,.ja-timeline::before{background:repeating-linear-gradient(var(--ink) 0 6px,transparent 6px 12px);width:3px}
+.ja-eat-chip,.ja-hl-chip{border:1.5px solid var(--ink);background:var(--lime);color:var(--ink);font-weight:600}
+
+/* ------------------------------------------------------------------ destination ticker */
+.wm-ticker{overflow:hidden;border-block:2.5px solid var(--ink);background:var(--melon);color:#fff;transform:rotate(-1deg);margin:34px -4vw;padding:10px 0}
+.wm-ticker-track{display:flex;gap:34px;width:max-content;animation:wm-marquee 38s linear infinite;font-family:var(--font-display);font-weight:800;
+  font-size:1.35rem;letter-spacing:-.01em;white-space:nowrap}
+.wm-ticker:hover .wm-ticker-track{animation-play-state:paused}
+.wm-ticker-track span::after{content:"\2726";margin-left:34px;color:var(--lime)}
+@keyframes wm-marquee{to{transform:translateX(-50%)}}
+
+/* ------------------------------------------------------------------ entrance motion (set by js/motion.js) */
+.wm-pre{opacity:0;transform:translateY(22px) scale(.97)}
+.wm-in{opacity:1;transform:none;transition:opacity .55s ease,transform .6s var(--ease-spring);transition-delay:calc(var(--i,0) * 55ms)}
+@keyframes wm-page{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ja-app-content,.ja-main,.ja-section{animation:wm-page .5s ease both}
+
+@media (prefers-reduced-motion:reduce){
+  body.ja::after,.wm-ticker-track,.ja-app-content,.ja-main,.ja-section{animation:none}
+  .wm-pre{opacity:1;transform:none}.wm-in{transition:none}
+  .ja-btn,.ja-card,.ja-reco,.ja-chip,.ja-tabs a,.ja-side-nav a{transition:none}
+  .ja-btn:hover,.ja-card:hover,.ja-reco:hover,.ja-chip:hover{transform:none}
+}
+@media (max-width:880px){
+  body.ja::after{width:320px;height:320px;right:-150px;bottom:-150px}
+  .ja-card,.ja-reco{box-shadow:3px 3px 0 var(--ink)}
+}
+@media print{body.ja::before,body.ja::after,.wm-progress,.wm-ticker{display:none !important}.ja-card,.ja-reco{box-shadow:none}}
+
+/* ------------------------------------------------------------------ fixes found by looking at real screenshots */
+/* destination cards: the title sits on a dark rind-green fade (the old fade went to white = unreadable) */
+.ja-reco{overflow:hidden}
+.ja-reco-top{border-bottom:2.5px solid var(--ink)}
+.ja-reco-top img{opacity:1}
+.ja-reco-top::after{background:linear-gradient(180deg,rgba(18,53,36,0) 35%,rgba(18,53,36,.82) 100%)}
+.ja-reco-city{font-family:var(--font-display);font-weight:800;font-size:1.6rem;letter-spacing:-.03em;text-shadow:0 2px 0 rgba(0,0,0,.35)}
+/* the turning slice stays a quiet background accent */
+body.ja::after{opacity:.3;right:-230px;bottom:-230px}
+.ja-discover,.ja-gem-card{position:relative;z-index:1}
+.ja-smart-examples .ja-chip,.ja-chips .ja-chip{text-transform:none}
+.ja-pick span{border:2px solid var(--ink);color:var(--ink);font-weight:600}
+.ja-pick input:checked + span{background:var(--rind);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+.ja-fine-sum{display:inline-block;padding:9px 18px;border:2.5px solid var(--ink);border-radius:99px;background:var(--surface);color:var(--ink);
+  box-shadow:3px 3px 0 var(--ink);font-weight:700;transition:transform .2s var(--ease-spring),box-shadow .2s var(--ease-spring)}
+.ja-fine-sum:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--ink)}
+.ja-fine[open] .ja-fine-sum{background:var(--lime)}
+/* pages that load their own stylesheet after the theme (feed) need a more specific selector */
+body.ja .ja-feed-card{border:2.5px solid var(--ink);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;background:var(--surface);backdrop-filter:none}
+body.ja .ja-feed-card:hover{box-shadow:8px 8px 0 var(--ink);transform:translate(-3px,-3px) rotate(-.25deg)}
+body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm{border:1.5px solid var(--ink);background:var(--lime);color:var(--ink);font-weight:600}
+body.ja .ja-feed-likebtn{border:2px solid var(--ink);border-radius:99px;background:var(--surface);color:var(--ink);font-weight:700}
+body.ja .ja-feed-likebtn.liked{background:var(--melon);color:#fff}
+body.ja .ja-feed-desttag{background:var(--surface);color:var(--ink);border:2px solid var(--ink);font-weight:700}
+/* feature cards: a numbered sticker instead of the generic icon tile above every heading */
+.ja-grid.stagger{counter-reset:feat}
+.ja-feature{counter-increment:feat;position:relative;padding-top:34px}
+.ja-feature .ic{display:none}
+.ja-feature::before{content:counter(feat,decimal-leading-zero);position:absolute;top:-16px;left:18px;padding:3px 12px;border:2.5px solid var(--ink);border-radius:99px;
+  background:var(--lime);color:var(--ink);font-family:var(--font-display);font-weight:800;font-size:.9rem;box-shadow:2px 2px 0 var(--ink)}
+@media (max-width:880px){.ja-sidebar:not(.open){box-shadow:none;border-right-width:0}}
+
+/* top nav (logged-out pages): readable on the cream pill in both themes; compact on phones */
+.ja-nav.overlay .inner .ja-brand,.ja-nav.overlay .inner .ja-navlinks a,.ja-nav.overlay.scrolled .inner .ja-brand,.ja-nav.overlay.scrolled .inner .ja-navlinks a{color:var(--ink)}
+.ja-nav .inner .ja-navlinks a.ja-btn-primary{color:#fff}
+.ja-nav.overlay .ja-navlinks a:hover,.ja-nav.overlay .ja-navlinks a.active{background:var(--lime);color:#123524}
+@media (max-width:700px){
+  .ja-nav .ja-navlinks a:not(.ja-btn):not([href="login.php"]){display:none}
+  .ja-nav .inner{padding-inline:12px}
+}
+/* inline-styled grids on several pages (analytics, journal, profile) must collapse on phones */
+@media (max-width:760px){
+  [style*="grid-template-columns:2fr 1fr"],[style*="grid-template-columns:1.5fr 1fr"],[style*="grid-template-columns:1.4fr 1fr"],
+  [style*="minmax(320px"],[style*="minmax(340px"],[style*="minmax(300px"]{grid-template-columns:1fr !important}
+  .ja-card,.ja-grid>*{min-width:0}
+  canvas{max-width:100% !important;height:auto !important}
+}

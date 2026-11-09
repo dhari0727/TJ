@@ -28,11 +28,11 @@ function rows($conn, $sql, $eml) {
 }
 $posts = $journals = $books = [];
 if ($u) {
-    $posts = rows($conn, "SELECT media_id, kind, filepath, caption, destination, likes, is_pinned FROM media WHERE eml = ? AND is_public = 1 ORDER BY is_pinned DESC, media_id DESC LIMIT 48", $u['eml']);
+    $posts = rows($conn, "SELECT media_id, kind, filepath, caption, destination, likes, is_pinned FROM media WHERE eml = ? AND is_public = 1 AND moderation_status = 'approved' ORDER BY is_pinned DESC, media_id DESC LIMIT 48", $u['eml']);
     $journals = rows($conn, "SELECT d.entry_id, d.Title, d.City, d.Country, d.is_pinned,
-        (SELECT m.filepath FROM media m WHERE m.entry_id = d.entry_id AND m.kind = 'photo' AND m.is_public = 1 ORDER BY m.media_id LIMIT 1) AS cover
-        FROM db d WHERE d.eml = ? AND d.visibility = 'public' ORDER BY d.is_pinned DESC, d.published_at DESC LIMIT 30", $u['eml']);
-    $books = rows($conn, "SELECT book_id, title, subtitle, cover_img, is_pinned FROM storybooks WHERE eml = ? AND visibility = 'public' ORDER BY is_pinned DESC, updated_at DESC LIMIT 30", $u['eml']);
+        (SELECT m.filepath FROM media m WHERE m.entry_id = d.entry_id AND m.kind = 'photo' AND m.is_public = 1 AND m.moderation_status = 'approved' ORDER BY m.media_id LIMIT 1) AS cover
+        FROM db d WHERE d.eml = ? AND d.visibility = 'public' AND d.moderation_status = 'approved' ORDER BY d.is_pinned DESC, d.published_at DESC LIMIT 30", $u['eml']);
+    $books = rows($conn, "SELECT book_id, title, subtitle, cover_img, is_pinned FROM storybooks WHERE eml = ? AND visibility = 'public' AND moderation_status = 'approved' ORDER BY is_pinned DESC, updated_at DESC LIMIT 30", $u['eml']);
 }
 $name = $u ? trim($u['fname'] . ' ' . mb_substr((string)$u['lname'], 0, 1) . '.') : '';
 ?>

@@ -58,3 +58,18 @@
 
 .ja-credits{margin:40px 0 10px;font-size:.74rem;color:var(--text-mut);line-height:1.5}
 .ja-credits a{color:inherit;text-decoration:underline}
+
+/* trust: notices, report controls, moderation chips */
+.ja-warn{background:rgba(255,170,60,.16);color:#8a5200;padding:11px 15px;border-radius:12px;border:1px solid rgba(255,170,60,.45);margin-bottom:14px}
+.ja-warn a{color:inherit;font-weight:700;text-decoration:underline}
+.ja-notice{margin:0 0 16px}
+.ja-report{margin-top:22px;font-size:.85rem}
+.ja-report summary{cursor:pointer;color:var(--text-mut)}
+.ja-report form{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.ja-report select,.ja-report input,.ja-report-select{padding:7px 10px;border:1px solid var(--brd);border-radius:10px;background:transparent;color:inherit;font-size:.82rem}
+.ja-report button{padding:7px 14px;border-radius:99px;border:none;background:var(--text-mut);color:#fff;cursor:pointer}
+.ja-vis.pending{background:rgba(255,170,60,.2);color:#8a5200}
+.ja-vis.hidden,.ja-vis.rejected{background:rgba(255,100,80,.18);color:#b3261e}
+.ja-modcard{margin-bottom:14px}
+.ja-modact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ja-modact input{flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--brd);border-radius:10px;background:transparent;color:inherit}

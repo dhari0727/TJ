@@ -11,7 +11,7 @@
  */
 session_start();
 require 'connection.php';
-require_once 'ja-lib.php';
+require_once 'ja-trust.php';
 header('Content-Type: application/json');
 $em = $_SESSION['eml'] ?? null;
 $action = $_REQUEST['action'] ?? '';
@@ -32,19 +32,20 @@ function one($conn, $sql, $types, ...$args) {
 /** Load the item + its owner and decide whether the current viewer may see it. */
 function item_for($conn, $kind, $id, $em, $token) {
     if ($kind === 'media') {
-        $r = one($conn, "SELECT eml, is_public FROM media WHERE media_id = ?", 'i', $id);
+        $r = one($conn, "SELECT eml, is_public, moderation_status FROM media WHERE media_id = ?", 'i', $id);
         if (!$r) return null;
-        $r['can_view'] = (int)$r['is_public'] === 1 || ($em && strcasecmp($r['eml'], $em) === 0);
+        $r['can_view'] = ((int)$r['is_public'] === 1 && $r['moderation_status'] === 'approved') || ($em && strcasecmp($r['eml'], $em) === 0);
     } elseif ($kind === 'journal') {
-        $r = one($conn, "SELECT eml, visibility, share_token FROM db WHERE entry_id = ?", 'i', $id);
+        $r = one($conn, "SELECT eml, visibility, share_token, moderation_status FROM db WHERE entry_id = ?", 'i', $id);
         if (!$r) return null;
         $owner = $em && strcasecmp($r['eml'], $em) === 0;
-        $r['can_view'] = $owner || $r['visibility'] === 'public' || ($r['visibility'] === 'link' && $token !== '' && hash_equals((string)$r['share_token'], $token));
+        $ok = $r['moderation_status'] === 'approved';
+        $r['can_view'] = $owner || ($ok && ($r['visibility'] === 'public' || ($r['visibility'] === 'link' && $token !== '' && hash_equals((string)$r['share_token'], $token))));
     } elseif ($kind === 'book') {
-        $r = one($conn, "SELECT eml, visibility, share_token FROM storybooks WHERE book_id = ?", 'i', $id);
+        $r = one($conn, "SELECT eml, visibility, share_token, moderation_status FROM storybooks WHERE book_id = ?", 'i', $id);
         if (!$r) return null;
         $owner = $em && strcasecmp($r['eml'], $em) === 0;
-        $r['can_view'] = $owner || $r['visibility'] === 'public';
+        $r['can_view'] = $owner || ($r['visibility'] === 'public' && $r['moderation_status'] === 'approved');
     } else return null;
     $r['owner'] = $em && strcasecmp($r['eml'], $em) === 0;
     return $r;
@@ -84,6 +85,7 @@ if ($action === 'comment_add') {
     if (!$item || !$item['can_view']) fail('Not found.', 404);
     $body = trim(preg_replace('/\s+/u', ' ', (string)($_POST['body'] ?? '')));
     if ($body === '' || mb_strlen($body) > 600) fail('Write 1 to 600 characters.');
+    if (preg_match_all('/https?:\/\/|www\./i', $body) > 1) fail('Comments can contain at most one link.');
     // basic flood control: 10 comments per minute per user
     $recent = 0;
     foreach (['media_comments', 'journal_comments'] as $t) { $r = mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM `$t` WHERE eml = '" . mysqli_real_escape_string($conn, $em) . "' AND created_at > (NOW() - INTERVAL 1 MINUTE)")); $recent += (int)$r[0]; }
@@ -117,6 +119,31 @@ if ($action === 'like') {
     mysqli_stmt_bind_param($s, 'is', $id, $em); mysqli_stmt_execute($s); mysqli_stmt_close($s);
     $n = (int)mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(*) FROM journal_likes WHERE entry_id = " . $id))[0];
     echo json_encode(['ok' => true, 'liked' => !$had, 'likes' => $n]); exit;
+}
+
+if ($action === 'report') {
+    $map = ['media' => 'media', 'journal' => 'journal', 'book' => 'book', 'comment' => 'comment'];
+    if (!isset($map[$kind])) fail('Bad kind.');
+    $reason = in_array($_POST['reason'] ?? '', ['fake', 'spam', 'unsafe', 'copyright', 'other'], true) ? $_POST['reason'] : 'other';
+    $detail = mb_substr(trim((string)($_POST['detail'] ?? '')), 0, 300);
+    if ($kind !== 'comment') {
+        $item = item_for($conn, $kind, $id, $em, $token);
+        if (!$item || !$item['can_view']) fail('Not found.', 404);
+        if ($item['owner']) fail('You cannot report your own item.');
+    }
+    if (!ja_rate_limit('report:' . strtolower($em), 20, 3600)) fail('Too many reports. Try again later.', 429);
+    $s = mysqli_prepare($conn, "INSERT IGNORE INTO reports (reporter, kind, item_id, reason, detail) VALUES (?,?,?,?,?)");
+    mysqli_stmt_bind_param($s, 'ssiss', $em, $kind, $id, $reason, $detail); mysqli_stmt_execute($s);
+    $new = mysqli_stmt_affected_rows($s) > 0; mysqli_stmt_close($s);
+    if (!$new) { echo json_encode(['ok' => true, 'message' => 'You already reported this. Thank you.']); exit; }
+    ja_audit($em, 'report', "$kind #$id $reason");
+    $n = (int)mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(DISTINCT reporter) FROM reports WHERE kind='" . mysqli_real_escape_string($conn, $kind) . "' AND item_id=" . (int)$id . " AND status='open'"))[0];
+    $hidden = false;
+    if ($n >= JA_AUTO_HIDE_REPORTS && $kind !== 'comment') {
+        ja_set_moderation($kind, $id, 'hidden', "Hidden automatically after $n reports", 'system');
+        $hidden = true;
+    }
+    echo json_encode(['ok' => true, 'message' => 'Thanks. A moderator will look at this.' . ($hidden ? '' : ''), 'hidden' => $hidden]); exit;
 }
 
 if ($action === 'pin') {

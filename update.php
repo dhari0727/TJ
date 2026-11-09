@@ -2,6 +2,8 @@
 $ja_title = "Edit Entry"; $ja_active = "entries";
 session_start();
 require 'connection.php';
+require_once __DIR__ . '/ja-trust.php';
+ja_csrf_enforce();
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 $id = (int)($_GET['id'] ?? ($_POST['id'] ?? 0));
@@ -22,6 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     mysqli_stmt_execute($stmt);
     mysqli_stmt_close($stmt);
     $saved = true;
+    // an already-shared journal is checked again after an edit (otherwise publish clean, then edit into spam)
+    $cur = mysqli_fetch_row(mysqli_query($conn, "SELECT visibility FROM db WHERE entry_id = " . (int)$id . " AND eml = '" . mysqli_real_escape_string($conn, $em) . "'"));
+    if ($cur && in_array($cur[0], ['link', 'public'], true)) {
+        $pr = ja_publish_journal($id, $em, $cur[0]);
+        if ($pr['ok'] && $pr['status'] === 'pending') $_SESSION['ja_flash'] = $pr['message'];
+    }
 }
 
 $stmt = mysqli_prepare($conn, "SELECT * FROM db WHERE entry_id = ? AND eml = ? LIMIT 1");

@@ -107,12 +107,25 @@ def classify_style(budget_bucket, activities, text):
 
 def extract():
     print("Loading journals view...")
+    # Only journals that passed the trust layer reach the models: approved by moderation, written by a verified
+    # account (system/demo accounts: the synthetic corpus is in, demo community content is out).
     df = fetch_df(
-        "SELECT entry_id, eml, Title, Description, Country, City, ptv, "
-        "duration_days, true_total FROM journals WHERE eml NOT LIKE '%%@demo.journeyai'")
+        "SELECT j.entry_id, j.eml, j.Title, j.Description, j.Country, j.City, j.ptv, j.duration_days, j.true_total "
+        "FROM journals j JOIN db d ON d.entry_id = j.entry_id JOIN signup s ON s.eml = j.eml "
+        "WHERE j.eml NOT LIKE '%%@demo.journeyai' AND d.moderation_status = 'approved' AND s.email_verified = 1")
     if df.empty:
         print("No journals found — seed the corpus first.")
         return
+
+    # Bias control: one account can add at most 3 journals per destination, so a single person (or a farm of
+    # copies from one person) cannot tilt a destination's profile. The synthetic/real-sourced corpus is exempt.
+    df["_dest"] = [canonical_name(c, co, (d or "") + " " + (p or "")) for c, co, d, p in zip(df["City"], df["Country"], df["Description"], df["ptv"])]
+    is_user = ~df["eml"].str.contains(r"@(?:seed|real|demo)\.journeyai$", regex=True)
+    rank = df.groupby(["eml", "_dest"], dropna=False).cumcount()
+    capped = int((is_user & (rank >= 3)).sum())
+    df = df[~(is_user & (rank >= 3))].reset_index(drop=True)
+    if capped:
+        print(f"Trust layer: ignored {capped} journals beyond 3 per user per destination")
 
     df["duration_days"] = pd.to_numeric(df["duration_days"], errors="coerce").fillna(1).clip(lower=1)
     df["true_total"] = pd.to_numeric(df["true_total"], errors="coerce").fillna(0.0)

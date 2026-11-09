@@ -14,16 +14,17 @@ $me = $_SESSION['eml'] ?? null;
 $id = (int)($_GET['id'] ?? 0);
 $token = (string)($_GET['token'] ?? '');
 
-$q = mysqli_prepare($conn, "SELECT j.*, s.fname, s.lname, d.visibility, d.share_token
+$q = mysqli_prepare($conn, "SELECT j.*, s.fname, s.lname, d.visibility, d.share_token, d.moderation_status, d.mod_reason
         FROM journals j JOIN db d ON d.entry_id = j.entry_id LEFT JOIN signup s ON s.eml = j.eml WHERE j.entry_id = ?");
 mysqli_stmt_bind_param($q, 'i', $id); mysqli_stmt_execute($q);
 $e = mysqli_fetch_assoc(mysqli_stmt_get_result($q)); mysqli_stmt_close($q);
 
 $owner = $e && $me && strcasecmp($e['eml'], $me) === 0;
-$allowed = $e && ($owner || $e['visibility'] === 'public' || ($e['visibility'] === 'link' && $token !== '' && hash_equals((string)$e['share_token'], $token)));
+$visible = $e && $e['moderation_status'] === 'approved';   // pending / hidden / rejected journals are visible to their owner only
+$allowed = $e && ($owner || ($visible && ($e['visibility'] === 'public' || ($e['visibility'] === 'link' && $token !== '' && hash_equals((string)$e['share_token'], $token)))));
 if (!$allowed) { http_response_code(404); }
 $media = $allowed ? ja_entry_media($conn, $id) : [];
-if ($allowed && !$owner) $media = array_values(array_filter($media, function ($m) use ($e) { return (int)$m['is_public'] === 1 || $e['visibility'] === 'link'; }));
+if ($allowed && !$owner) $media = array_values(array_filter($media, function ($m) use ($e) { return ((int)$m['is_public'] === 1 || $e['visibility'] === 'link') && ($m['moderation_status'] ?? 'approved') === 'approved'; }));
 $place = $allowed ? trim(($e['City'] ?? '') . ', ' . ($e['Country'] ?? ''), ', ') : '';
 $authorHandle = $allowed ? ja_ensure_handle($e['eml']) : null;
 $likes = 0; $iLiked = false;
@@ -44,6 +45,10 @@ $author = $allowed ? trim(($e['fname'] ?? 'A traveller') . ' ' . mb_substr((stri
     <a href="read-journals.php" class="ja-btn ja-btn-primary" style="margin-top:14px">Read other journals</a></div>
 <?php else: ?>
   <a href="read-journals.php" class="ja-muted" style="font-size:.85rem">&larr; All journals</a>
+  <?php if ($owner && $e['moderation_status'] !== 'approved'): ?>
+    <div class="ja-warn" style="margin-top:10px"><strong><?= ['pending' => 'Waiting for review', 'hidden' => 'Hidden after reports', 'rejected' => 'Not approved'][$e['moderation_status']] ?? 'Under review' ?>.</strong>
+      Only you can see this right now.<?= $e['mod_reason'] ? ' ' . htmlspecialchars($e['mod_reason']) : '' ?></div>
+  <?php endif; ?>
   <?php if ($owner && $e['visibility'] === 'private'): ?><div class="ja-ok" style="margin-top:10px">Only you can see this. <a href="my-entries.php" style="color:var(--ja-teal);font-weight:600">Share it from My entries</a>.</div><?php endif; ?>
   <h1 style="font-size:clamp(2rem,5vw,3.2rem);margin:10px 0 6px"><?= htmlspecialchars($e['Title']) ?></h1>
   <p class="sub"><?= htmlspecialchars($place) ?> &middot; <?= (int)$e['duration_days'] ?> days &middot; by <?php if ($authorHandle): ?><a href="traveller.php?h=<?= urlencode($authorHandle) ?>" style="color:inherit;text-decoration:underline"><?= htmlspecialchars($author) ?></a><?php else: ?><?= htmlspecialchars($author) ?><?php endif; ?><?= $e['dv'] ? ' &middot; ' . htmlspecialchars(date('M Y', strtotime($e['dv']))) : '' ?></p>
@@ -107,6 +112,13 @@ $author = $allowed ? trim(($e['fname'] ?? 'A traveller') . ' ' . mb_substr((stri
     document.getElementById('jCmtList').addEventListener('click',function(e){ if(!e.target.classList.contains('ja-cmt-del'))return; post({action:'comment_delete',comment_id:e.target.closest('.ja-cmt').dataset.cid}).then(function(d){ if(d.ok) load(); }); });
   })();
   </script>
+
+  <?php if ($me && !$owner): ?>
+  <details class="ja-report"><summary>Report this journal</summary>
+    <form id="jReport"><select name="reason"><option value="fake">Looks fake or made up</option><option value="spam">Spam or advertising</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Copied from somewhere else</option><option value="other">Something else</option></select>
+    <input name="detail" maxlength="300" placeholder="Optional detail"><button type="submit">Send report</button><span id="jReportMsg" class="ja-muted"></span></form></details>
+  <script>document.getElementById('jReport').addEventListener('submit',function(e){e.preventDefault();var f=e.target,fd=new FormData();fd.append('action','report');fd.append('kind','journal');fd.append('id',<?= (int)$id ?>);fd.append('reason',f.reason.value);fd.append('detail',f.detail.value);fd.append('csrf',<?= json_encode(ja_csrf()) ?>);<?= $token !== '' ? "fd.append('token'," . json_encode($token) . ");" : '' ?>fetch('engage.php',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){document.getElementById('jReportMsg').textContent=d.message||d.error||'';});});</script>
+  <?php endif; ?>
 
   <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
     <a class="ja-btn ja-btn-primary" href="trip.php?dest=<?= urlencode($place) ?>&days=<?= max(1, (int)$e['duration_days']) ?>"><?= ja_icon('compass',16) ?> Plan a similar trip to <?= htmlspecialchars(explode(',', $place)[0]) ?></a>

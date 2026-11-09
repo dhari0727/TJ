@@ -6,6 +6,8 @@
  */
 session_start();
 require 'connection.php';
+require_once __DIR__ . '/ja-lib.php';
+ja_csrf_enforce();
 
 $eml = $_SESSION['eml'] ?? null;
 if (!$eml) { header('Location: login.php'); exit; }

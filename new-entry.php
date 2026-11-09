@@ -3,6 +3,8 @@ $ja_title = "New Entry"; $ja_active = "entries"; $ja_jtab = "new";
 session_start();
 require 'connection.php';
 require 'ja-media.php';
+require_once __DIR__ . '/ja-trust.php';
+ja_csrf_enforce();
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 $saved = false; $err = '';
@@ -53,14 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mysqli_stmt_bind_param($s,$t3,$d3[0],$d3[1],$d3[2],$d3[3],$d3[4],$d3[5],$d3[6],$d3[7],$d3[8],$d3[9],$d3[10],$d3[11],$d3[12],$d3[13],$d3[14],$d3[15],$d3[16]);
         mysqli_stmt_execute($s); mysqli_stmt_close($s);
 
-        // who can read it (private by default); a link/public choice gets a share token
+        // who can read it is decided AFTER the photos are saved, by the trust layer (ja_publish_journal below)
         $vis = in_array($_POST['visibility'] ?? '', ['private', 'link', 'public'], true) ? $_POST['visibility'] : 'private';
-        if ($vis !== 'private') {
-            $tok = rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
-            $vu = mysqli_prepare($conn, "UPDATE db SET visibility = ?, share_token = ?, published_at = IF(? = 'public', NOW(), NULL) WHERE entry_id = ? AND eml = ?");
-            mysqli_stmt_bind_param($vu, 'sssis', $vis, $tok, $vis, $newId, $em);
-            mysqli_stmt_execute($vu); mysqli_stmt_close($vu);
-        }
         $postMedia = !empty($_POST['post_media']) ? 1 : 0;   // also show photos/videos in the Community feed
 
         // handle photo/video uploads (multiple) with per-file captions
@@ -81,6 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cap = $_POST['media_caption'][$i] ?? '';
                 ja_handle_upload($conn, $f, $em, $newId, $cap, $place, $postMedia, $mediaLat, $mediaLon);
             }
+        }
+        if ($vis !== 'private') {
+            $pr = ja_publish_journal($newId, $em, $vis);
+            $_SESSION['ja_flash'] = $pr['ok'] ? ($pr['message'] ?: 'Saved.') : ('Saved privately. ' . $pr['message']);
         }
         header('Location: display.php?id='.$newId.'&new=1'); exit;
     }

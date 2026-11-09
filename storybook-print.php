@@ -80,6 +80,7 @@ function sb_slot($src, $label = 'Photo') {
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Serif+Display&family=Lora:wght@400;600&family=Caveat:wght@400;600&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/storybook.css">
+<script src="js/csrf.js"></script>
 <style>
 .no-print {
   position: fixed;

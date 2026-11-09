@@ -7,7 +7,7 @@ if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 
 $stmt = mysqli_prepare($conn,
-  "SELECT j.entry_id, j.Title, j.City, j.Country, j.cd, j.duration_days, j.true_total, d.visibility, d.share_token, d.is_pinned,
+  "SELECT j.entry_id, j.Title, j.City, j.Country, j.cd, j.duration_days, j.true_total, d.visibility, d.share_token, d.is_pinned, d.moderation_status,
           (SELECT COUNT(*) FROM media m WHERE m.entry_id = j.entry_id) AS n_media
    FROM journals j JOIN db d ON d.entry_id = j.entry_id WHERE j.eml = ? ORDER BY d.is_pinned DESC, j.entry_id DESC");
 mysqli_stmt_bind_param($stmt, 's', $em);
@@ -78,7 +78,7 @@ mysqli_stmt_close($stmt);
             </div>
             <div class="ja-cost" style="font-size:1.5rem;margin:16px 0 2px">₹<?= number_format((float)$r['true_total']) ?></div>
             <div style="color:var(--text-mut);font-size:.82rem;margin-bottom:18px">Total trip cost</div>
-            <div style="margin-bottom:12px"><span class="ja-vis <?= htmlspecialchars($r['visibility']) ?>" id="vis-<?= (int)$r['entry_id'] ?>"><?= ['private'=>'Private','link'=>'Link-shared','public'=>'Public'][$r['visibility']] ?? 'Private' ?></span>
+            <div style="margin-bottom:12px"><?php $ja_pend = $r['visibility'] === 'public' && $r['moderation_status'] !== 'approved'; ?><span class="ja-vis <?= $ja_pend ? htmlspecialchars($r['moderation_status']) : htmlspecialchars($r['visibility']) ?>" id="vis-<?= (int)$r['entry_id'] ?>"><?= $ja_pend ? ['pending'=>'Under review','hidden'=>'Hidden','rejected'=>'Not approved'][$r['moderation_status']] : (['private'=>'Private','link'=>'Link-shared','public'=>'Public'][$r['visibility']] ?? 'Private') ?></span>
               <span class="ja-muted" style="font-size:.78rem;margin-left:6px"><?= (int)$r['n_media'] ?> photo/video<?= (int)$r['n_media'] === 1 ? '' : 's' ?></span></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <a href="display.php?id=<?= (int)$r['entry_id'] ?>" class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem">View</a>
@@ -124,7 +124,7 @@ mysqli_stmt_close($stmt);
           post(id, r.value, function(res){
             if (res.error) { alert(res.error); return; }
             btn.setAttribute('data-vis', res.visibility);
-            var chip = document.getElementById('vis-'+id); chip.className = 'ja-vis ' + res.visibility; chip.textContent = LABEL[res.visibility];
+            var chip = document.getElementById('vis-'+id); var pend = res.status && res.status !== 'approved' && res.visibility === 'public'; chip.className = 'ja-vis ' + (pend ? 'pending' : res.visibility); chip.textContent = pend ? 'Under review' : LABEL[res.visibility]; if (res.message) { var note = document.getElementById('lnk'+id); if (note) note.insertAdjacentHTML('beforebegin', '<div class="ja-muted" style="margin-top:6px">'+res.message.replace(/</g,'&lt;')+'</div>'); }
             showLink(res.url);
           });
         });

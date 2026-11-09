@@ -1,7 +1,10 @@
 <?php
 session_start();
 require 'connection.php';
+require_once __DIR__ . '/ja-lib.php';
+ja_csrf_enforce();
 require 'ja-media.php';
+require_once __DIR__ . '/ja-trust.php';
 header('Content-Type: application/json');
 
 $em = $_SESSION['eml'] ?? '';
@@ -73,7 +76,7 @@ function sb_book_by_page($conn, $page_id) {
 function sb_can_view_book($book, $em, $token) {
     if (!$book) return false;
     if ($em !== '' && $book['eml'] === $em) return true;
-    if ($book['visibility'] === 'public') return true;
+    if ($book['visibility'] === 'public' && ($book['moderation_status'] ?? 'approved') === 'approved') return true;
     if ($book['visibility'] === 'link' && $token && $token === $book['share_token']) return true;
     return false;
 }
@@ -93,7 +96,7 @@ case 'get_book':
     if (!$book) sb_fail('Book not found', 404);
 
     $isOwner = ($book['eml'] === $em);
-    $isPublic = ($book['visibility'] === 'public');
+    $isPublic = ($book['visibility'] === 'public' && $book['moderation_status'] === 'approved');
     $hasToken = !empty($_GET['token']) && $_GET['token'] === $book['share_token'];
     if (!$isOwner && !$isPublic && !$hasToken) sb_fail('Not authorized', 403);
 
@@ -168,6 +171,20 @@ case 'update_book':
     $fields = [];
     $types  = '';
     $vals   = [];
+    // Sharing needs a verified account; public books from newer accounts wait for a moderator.
+    $newVis = $_POST['visibility'] ?? null;
+    if ($newVis !== null && !in_array($newVis, ['private', 'link', 'public'], true)) sb_fail('Invalid visibility');
+    if (in_array($newVis, ['link', 'public'], true)) {
+        $t = ja_trust($em);
+        if (!$t['can_publish']) sb_fail($t['why'], 403);
+        if ($newVis === 'public') {
+            if (!ja_public_quota_ok($em)) sb_fail('Daily limit for public items reached. Try again tomorrow.', 429);
+            $m = ja_moderation_for($em);
+            $fields[] = 'moderation_status = ?'; $types .= 's'; $vals[] = $m['status'];
+            $fields[] = 'mod_reason = ?';        $types .= 's'; $vals[] = $m['reason'];
+        }
+        ja_audit($em, 'share_book', "#$book_id -> $newVis");
+    }
     foreach (['title', 'subtitle', 'theme', 'visibility', 'page_order', 'cover_img'] as $f) {
         if (isset($_POST[$f])) {
             $fields[] = "$f = ?";
@@ -205,7 +222,8 @@ case 'update_book':
     $rrow = mysqli_fetch_assoc(mysqli_stmt_get_result($rs));
     mysqli_stmt_close($rs);
 
-    sb_ok(['ok' => 1, 'visibility' => $rrow['visibility'] ?? null, 'share_token' => $rrow['share_token'] ?? null]);
+    $msRow = mysqli_fetch_row(mysqli_query($conn, 'SELECT moderation_status FROM storybooks WHERE book_id = ' . (int)$book_id));
+    sb_ok(['ok' => 1, 'visibility' => $rrow['visibility'] ?? null, 'share_token' => $rrow['share_token'] ?? null, 'moderation' => $msRow[0] ?? 'approved']);
     break;
 
 // ── 4. delete_book ───────────────────────────────────────────────────
