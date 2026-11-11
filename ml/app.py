@@ -384,6 +384,40 @@ def analytics_personal():
     })
 
 
+# --------------------------------------------------------------- similar destinations
+@app.post("/similar")
+def similar_endpoint():
+    data = _body()
+    dest = str(data.get("destination", "")).strip()[:120]
+    if not dest:
+        return jsonify({"status": "error", "error": "destination required"}), 400
+    same = data.get("same_region")
+    same = same if isinstance(same, bool) else None
+    from ml.recommender.similar import get_model
+    res = get_model().similar(dest, top_n=_clamp_int(data.get("top_n"), 1, 12, 6), same_region=same)
+    if res is None:
+        return jsonify({"status": "error", "error": "unknown destination"}), 404
+    res["status"] = "ok"
+    return jsonify(res)
+
+
+# --------------------------------------------------------------- journal authenticity (advisory)
+@app.post("/authenticity")
+def authenticity_endpoint():
+    data = _body()
+    text = str(data.get("text", ""))[:20000]
+    if not text.strip():
+        return jsonify({"status": "error", "error": "text required"}), 400
+    author = data.get("eml")
+    author = str(author)[:190] if author else None
+    eid = data.get("entry_id")
+    eid = int(eid) if isinstance(eid, int) or (isinstance(eid, str) and eid.isdigit()) else None
+    from ml.trust.authenticity import score
+    res = score(text, author=author, exclude_entry_id=eid)
+    res["status"] = "ok"
+    return jsonify(res)
+
+
 if __name__ == "__main__":
     import logging
     import os

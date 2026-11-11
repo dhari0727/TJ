@@ -56,6 +56,21 @@ def main():
     check("health.php ok (db + recommender up)", r.status_code == 200 and r.json().get("status") == "ok", r.text[:120])
     check("health.php public output is minimal", "details" not in r.json())
 
+    print(chr(10) + "== ML: similar places and authenticity")
+    ml = "http://127.0.0.1:5000"
+    r = requests.post(f"{ml}/similar", json={"destination": "Manali", "top_n": 4}, timeout=30)
+    sim = r.json().get("similar", []) if r.ok else []
+    check("similar places: Manali returns 4 others, not itself", len(sim) == 4 and all("Manali" not in x["destination"] for x in sim), r.text[:150])
+    check("similar places: Manali's top match is a Himalayan destination", bool(sim) and sim[0]["region"] == "Himalayas", sim[:1])
+    check("similar places: unknown destination is a clean 404", requests.post(f"{ml}/similar", json={"destination": "Atlantis"}, timeout=30).status_code == 404)
+    spam = requests.post(f"{ml}/authenticity", json={"text": "buy cheap tickets call +91 98765 43210 www.deals.com click now best price free offer"}, timeout=60).json()
+    real = requests.post(f"{ml}/authenticity", json={"text": "We took the early train to Jaipur, paid Rs 450 for the Amber Fort ticket and spent two days wandering the old bazaars. The dal baati near Hawa Mahal was the best meal of the trip and our guide explained how the old water system worked."}, timeout=60).json()
+    check("authenticity: promo spam scores low with reasons", spam.get("score", 100) < 45 and spam.get("reasons"), spam.get("score"))
+    check("authenticity: a specific honest journal scores high", real.get("score", 0) >= 70, real.get("score"))
+    check("authenticity: empty text is a 400", requests.post(f"{ml}/authenticity", json={"text": " "}, timeout=30).status_code == 400)
+    r = anon.get(f"{BASE}/trip.php?dest=Jaipur%2C+India&days=3", timeout=120)
+    check("trip page shows similar places", r.status_code == 200 and "If you like this, try" in r.text, r.status_code)
+
     print("\n== protected pages redirect to login")
     for path in ["dashboard.php", "my-entries.php", "share.php", "profile.php", "admin.php", "packing.php", "new-entry.php"]:
         r = anon.get(f"{BASE}/{path}", allow_redirects=False, timeout=30)

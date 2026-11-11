@@ -57,3 +57,13 @@ ml/venv/Scripts/python.exe -m ml.app      # or double-click ml/start_service.bat
 
 All models load once at boot from `ml/artifacts/` (regenerable, git-ignored).
 Service binds to `127.0.0.1` only; CORS limited to localhost.
+
+## Similar destinations and journal authenticity
+
+- `ml/recommender/similar.py` (`POST /similar`): latent-semantic embeddings (truncated SVD over each destination's TF-IDF
+  profile) combined with activity mix, log daily cost and region; cosine nearest neighbours with a plain-language reason.
+  Shown as "If you like this, try" on the trip page.
+- `ml/trust/authenticity.py` (`POST /authenticity`): advisory 0-100 score from near-duplicate detection (TF-IDF cosine
+  against other authors), repetition and lexical diversity, link/phone/promo stuffing, specificity, and an
+  IsolationForest fitted on the real journal corpus. Always returns reasons. Shown to moderators in the queue; it never
+  hides or deletes anything on its own.

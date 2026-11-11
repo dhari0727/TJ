@@ -87,6 +87,16 @@ function ml_itinerary($params) {
     return ml_request('POST', '/itinerary', $params, 10);
 }
 
+/** Destinations most like this one (latent-semantic similarity over real journals and guides). */
+function ml_similar($destination, $topN = 4) {
+    return ml_request('POST', '/similar', ['destination' => $destination, 'top_n' => $topN], 6);
+}
+
+/** Advisory authenticity score for a piece of journal text (moderators only; never auto-rejects). */
+function ml_authenticity($text, $eml = null, $entryId = null) {
+    return ml_request('POST', '/authenticity', ['text' => $text, 'eml' => $eml, 'entry_id' => $entryId], 20);
+}
+
 /** Render a standard offline banner (call when a result has __error). */
 function ml_offline_banner($result) {
     if (empty($result['__error'])) return '';

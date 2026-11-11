@@ -65,6 +65,19 @@ if ($tab === 'itinerary') {
     $hero = ja_image_for($dest);
     $hasError = !empty($it['__error']) || ($it['status'] ?? '') === 'error';
     include 'ja-trip-itinerary.php';
+    $sim = ml_similar($dest, 4);
+    if (empty($sim['__error']) && !empty($sim['similar'])): ?>
+<section class="ja-card" style="margin-top:18px"><h3 style="margin:0 0 4px">If you like this, try</h3>
+  <p class="ja-muted" style="margin:0 0 12px;font-size:.88rem">Matched on what travellers wrote, what you do there, cost and region.</p>
+  <div class="ja-similar" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">
+  <?php foreach ($sim['similar'] as $x): $pic = ja_image_for($x['destination']); ?>
+    <a href="trip.php?<?= htmlspecialchars(http_build_query(['dest' => $x['destination'], 'days' => $days])) ?>" style="text-decoration:none;color:inherit;display:block">
+      <?php if ($pic): ?><img src="<?= htmlspecialchars($pic) ?>" alt="" loading="lazy" style="width:100%;height:110px;object-fit:cover;border-radius:10px"><?php else: ?><div class="ja-reco-noimg" style="height:110px;border-radius:10px"></div><?php endif; ?>
+      <strong style="display:block;margin-top:8px"><?= htmlspecialchars(explode(',', $x['destination'])[0]) ?></strong>
+      <span class="ja-muted" style="font-size:.84rem"><?= htmlspecialchars($x['why']) ?></span>
+    </a>
+  <?php endforeach; ?></div></section>
+<?php endif;
 } else {
     $reqBody = ['place' => $place, 'mode' => $mode, 'interests' => array_values($interests), 'stops' => $stops];
     if ($destination !== '') $reqBody['destination'] = $destination;

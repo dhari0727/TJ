@@ -1,6 +1,7 @@
 <?php
 $ja_title = "Moderation"; $ja_active = "admin"; $ja_tab = "moderation";
 require_once __DIR__ . '/ja-trust.php';
+require_once __DIR__ . '/ml_client.php';
 $me = ja_require_admin();
 $view = in_array($_GET['v'] ?? '', ['queue', 'reports', 'audit'], true) ? $_GET['v'] : 'queue';
 $msg = ''; $err = '';
@@ -25,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 function rows_q($sql) { global $conn; $r = mysqli_query($conn, $sql); return $r ? mysqli_fetch_all($r, MYSQLI_ASSOC) : []; }
-$pendJ = rows_q("SELECT d.entry_id id, d.Title, d.City, d.eml, d.mod_reason, d.published_at, LEFT(d.Description, 260) txt FROM db d WHERE d.moderation_status='pending' ORDER BY d.entry_id DESC LIMIT 50");
+$pendJ = rows_q("SELECT d.entry_id id, d.Title, d.City, d.eml, d.mod_reason, d.published_at, LEFT(d.Description, 260) txt, CONCAT_WS(' ', d.Title, d.Description) full FROM db d WHERE d.moderation_status='pending' ORDER BY d.entry_id DESC LIMIT 50");
 $pendM = rows_q("SELECT m.media_id id, m.kind, m.filepath, m.caption, m.eml, m.mod_reason, m.created_at FROM media m WHERE m.moderation_status='pending' AND m.entry_id IS NULL ORDER BY m.media_id DESC LIMIT 60");
 $pendB = rows_q("SELECT b.book_id id, b.title, b.eml, b.mod_reason FROM storybooks b WHERE b.moderation_status='pending' ORDER BY b.book_id DESC LIMIT 30");
 $nPending = count($pendJ) + count($pendM) + count($pendB);
@@ -60,6 +61,9 @@ function mod_form($kind, $id, $acts) {
   <?php foreach ($pendJ as $j): ?>
     <div class="ja-card ja-modcard"><div><span class="ja-vis pending">Journal</span> <strong><?= htmlspecialchars($j['Title']) ?></strong> <span class="ja-muted">in <?= htmlspecialchars($j['City']) ?> by <?= author_label($j['eml']) ?></span></div>
       <?php if ($j['mod_reason']): ?><div class="ja-warn" style="margin:8px 0"><?= htmlspecialchars($j['mod_reason']) ?></div><?php endif; ?>
+      <?php $au = ml_authenticity($j['full'] ?? $j['txt'], $j['eml'], (int)$j['id']); if (empty($au['__error']) && isset($au['score'])): ?>
+        <div class="ja-muted" style="margin:6px 0;font-size:.88rem">Authenticity check: <strong><?= (int)$au['score'] ?>/100, <?= htmlspecialchars($au['level']) ?></strong><?= $au['reasons'] ? ' (' . htmlspecialchars(implode('; ', $au['reasons'])) . ')' : '' ?>. Advisory only.</div>
+      <?php endif; ?>
       <p class="ja-muted" style="margin:6px 0"><?= htmlspecialchars($j['txt']) ?>…</p>
       <a href="journal.php?id=<?= (int)$j['id'] ?>" target="_blank" class="ja-more" style="float:none">Open full journal</a>
       <?= mod_form('journal', $j['id'], ['approve' => 'Approve', 'reject' => 'Reject']) ?></div>
