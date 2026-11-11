@@ -149,7 +149,7 @@ $topCost = array_slice($costByDest, 0, 12);
     if(A.cost&&A.cost.length)new Chart(document.getElementById('costChart'),{type:'bar',
       data:{labels:A.cost.map(x=>x.d),datasets:[{data:A.cost.map(x=>x.c),backgroundColor:A.cost.map(x=>x.tier==='lesser_known'?coral:aqua),borderRadius:8}]},
       options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+c.raw.toLocaleString('en-IN')}}},
-        scales:{y:{ticks:{callback:v=>'₹'+(v/1000)+'k'},grid:{color:'rgba(125,146,154,.12)'}},x:{grid:{display:false}}},animation:{duration:900}}});
+        scales:{y:{ticks:{callback:v=>'₹'+(Math.round(v/100)/10)+'k'},grid:{color:'rgba(125,146,154,.12)'}},x:{grid:{display:false}}},animation:{duration:900}}});
 
     if(A.sentiment&&A.sentiment.length){var order={positive:0,neutral:1,negative:2},cmap={positive:aqua,neutral:'#9bb5bc',negative:coral};
       var s=A.sentiment.slice().sort((a,b)=>order[a.label]-order[b.label]);
@@ -163,7 +163,7 @@ $topCost = array_slice($costByDest, 0, 12);
       new Chart(document.getElementById('monthsChart'),{type:'bar',
         data:{labels:labels,datasets:[{data:vals,backgroundColor:vals.map(v=>v===min?teal:aqua),borderRadius:6}]},
         options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'₹'+c.raw.toLocaleString('en-IN')+'/day'}}},
-          scales:{y:{ticks:{callback:v=>'₹'+(v/1000).toFixed(0)+'k'},grid:{color:'rgba(125,146,154,.12)'}},x:{grid:{display:false}}},animation:{duration:900}}});}
+          scales:{y:{ticks:{callback:v=>'₹'+(Math.round(v/100)/10)+'k'},grid:{color:'rgba(125,146,154,.12)'}},x:{grid:{display:false}}},animation:{duration:900}}});}
 
     if(A.myCat){var bd=A.myCat,LBL={food:'Food',transport:'Transport',accommodation:'Stay',shopping:'Shopping',fees_misc:'Fees'};
       new Chart(document.getElementById('myCat'),{type:'doughnut',

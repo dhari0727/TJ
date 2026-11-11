@@ -39,6 +39,23 @@
     }, 80);
   });
 
+  /* ---- accessibility: every field gets an accessible name (label[for], aria-label from the nearest label or placeholder) ---- */
+  function nameFields(root) {
+    var n = 0;
+    [].forEach.call((root || document).querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=checkbox]):not([type=radio]),select,textarea'), function (el) {
+      if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.closest('label')) return;
+      if (el.id && document.querySelector('label[for="' + el.id.replace(/"/g, '\\"') + '"]')) return;
+      var lab = null, prev = el.previousElementSibling;
+      if (prev && prev.tagName === 'LABEL' && !prev.htmlFor) lab = prev;
+      if (!lab && el.parentElement) { var c = el.parentElement.querySelector(':scope > label:not([for])'); if (c) lab = c; }
+      if (lab) { if (!el.id) el.id = 'cj-f' + (++n) + Math.random().toString(36).slice(2, 6); lab.htmlFor = el.id; return; }
+      var t = el.getAttribute('placeholder') || el.getAttribute('title') || el.name;
+      if (t) el.setAttribute('aria-label', t.replace(/[_-]+/g, ' '));
+    });
+  }
+  nameFields();
+  new MutationObserver(function (m) { m.forEach(function (x) { x.addedNodes.forEach(function (nd) { if (nd.nodeType === 1) nameFields(nd); }); }); }).observe(document.body, { childList: true, subtree: true });
+
   /* ---- landing page ---- */
   var land = $('[data-cj-landing]'); if (!land) return;
 

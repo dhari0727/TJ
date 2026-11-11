@@ -26,7 +26,7 @@ $ed2 = $imgs['mountains'] ?? $ed1;
       <div class="ja-hc-inner">
         <div class="ja-hc-copy">
           <div class="ja-hc-eyebrow"><?= ja_icon('map-pin',14) ?> <?= htmlspecialchars($s['region']) ?></div>
-          <h1 class="ja-hc-title"><?= htmlspecialchars($s['name']) ?></h1>
+          <<?= $idx===0 ? 'h1' : 'h2' ?> class="ja-hc-title"><?= htmlspecialchars($s['name']) ?></<?= $idx===0 ? 'h1' : 'h2' ?>>
           <p class="ja-hc-sub"><?= htmlspecialchars($s['sub']) ?></p>
           <div class="ja-hc-cta">
             <a href="plan-trip.php" class="ja-btn ja-btn-primary ja-btn-lg" data-magnetic>Plan this trip <?= ja_icon('arrow',18) ?></a>

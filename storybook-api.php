@@ -187,9 +187,11 @@ case 'update_book':
     }
     foreach (['title', 'subtitle', 'theme', 'visibility', 'page_order', 'cover_img'] as $f) {
         if (isset($_POST[$f])) {
+            $val = $_POST[$f];
+            if ($f === 'cover_img') { $val = ja_safe_media_path($val); if ($val === null) sb_fail('Invalid cover.'); }
             $fields[] = "$f = ?";
             $types  .= 's';
-            $vals[]  = $_POST[$f];
+            $vals[]  = $val;
         }
     }
 
@@ -283,14 +285,15 @@ case 'update_page':
     if (isset($_POST['decorations'])) {
         $fields[] = "decorations = ?";
         $types  .= 's';
-        $decVal = $_POST['decorations'];
-        $vals[]  = is_string($decVal) ? $decVal : json_encode($decVal);
+        $vals[]  = ja_clean_json($_POST['decorations']);
     }
     foreach (['photo_1','photo_2','photo_3','photo_4'] as $ph) {
         if (isset($_POST[$ph])) {
+            $safe = ja_safe_media_path($_POST[$ph]);
+            if ($safe === null) sb_fail('Invalid photo.');
             $fields[] = "$ph = ?";
             $types  .= 's';
-            $vals[]  = $_POST[$ph] !== '' ? $_POST[$ph] : null;
+            $vals[]  = $safe !== '' ? $safe : null;
         }
     }
     foreach (['photo_1_cap','photo_2_cap','photo_3_cap','photo_4_cap'] as $pc) {

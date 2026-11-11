@@ -100,7 +100,7 @@ def main():
     r = user.get(f"{BASE}/trip.php?place=Anand&mode=day", timeout=120)
     check("trip page (route tab) renders", r.status_code == 200 and "ja-route-stop" in r.text)
     r = user.post(f"{BASE}/smart-plan.php", json={"text": "3 days beaches under 20000"}, timeout=120)
-    check("one-box search returns destination matches", r.ok and r.json().get("kind") == "recommend" and r.json().get("recommendations"))
+    check("one-box search returns destination matches", r.ok and r.json().get("kind") == "recommend" and r.json().get("recommendations"), f"{r.status_code} {r.text[:200]}")
     for old in ["explore.php?q=x", "itinerary.php?dest=Goa", "route.php?place=Anand"]:
         r = user.get(f"{BASE}/{old}", allow_redirects=False, timeout=30)
         check(f"{old.split('?')[0]} redirects", r.status_code == 302)

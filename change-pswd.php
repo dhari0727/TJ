@@ -21,9 +21,9 @@ if (isset($_POST['Save'])) {
         $err = 'Password must be at least 8 characters with an uppercase letter, a number, and a special character.';
     } else {
         $hash = password_hash($p, PASSWORD_DEFAULT);
-        $stmt = mysqli_prepare($conn, "UPDATE signup SET psw = ? WHERE eml = ?");
+        $stmt = mysqli_prepare($conn, "UPDATE signup SET psw = ?, session_epoch = session_epoch + 1 WHERE eml = ?");
         mysqli_stmt_bind_param($stmt, 'ss', $hash, $eml);
-        if (mysqli_stmt_execute($stmt)) $ok = 'Password updated successfully.';
+        if (mysqli_stmt_execute($stmt)) { $ok = 'Password updated successfully. Other devices have been signed out.'; $_SESSION['ep'] = (int)($_SESSION['ep'] ?? 0) + 1; }
         mysqli_stmt_close($stmt);
     }
 }

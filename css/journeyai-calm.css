@@ -163,3 +163,42 @@ body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm{border:0}
 
 /* destinations without a photo of their own: a quiet gradient, never a photo of somewhere else */
 .ja-reco-noimg{position:absolute;inset:0;background:radial-gradient(circle at 25% 20%,rgba(182,227,107,.35),transparent 55%),linear-gradient(135deg,#123524,#1E7B4F)}
+
+/* ===== QA round: fixes from the visual / accessibility review ===== */
+/* contrast: muted text and eyebrows meet WCAG AA on the light paper */
+:root,:root[data-theme="light"]{--text-mut:#586B5F}
+.ja-eyebrow{color:#C0173D}
+:root[data-theme="dark"] .ja-eyebrow{color:var(--melon)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ja-eyebrow{color:var(--melon)}}
+/* chips: dark label on lime in every theme (the lime does not change, so neither can the text) */
+.ja-feed-tagchip,.ja-feed-tagchip-sm,.ja-eat-chip,.ja-hl-chip,.ja-gem,.ja-pill.near,body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm{color:#0D1F16 !important}
+/* stat numbers: solid text, the dark gradient vanished on dark cards */
+.ja-stat .n,.ja-stats-grid .ja-stat .n{background:none;-webkit-text-fill-color:currentColor;color:var(--ink)}
+.ja-stat .l,.ja-credits{font-size:.86rem}
+/* storybook discovery cards follow the theme */
+.sb-discover-card{background:var(--surface);color:var(--text)}
+.sb-discover-title{color:var(--text)}
+/* long notices (verify links) wrap instead of clipping */
+.ja-ok,.ja-warn,.ja-err,.ja-notice{overflow-wrap:anywhere}
+/* nav button never wraps; mobile menu button is a real hamburger */
+.ja-nav .ja-btn,.ja-nav .inner a{white-space:nowrap}
+.ja-side-toggle svg{display:block}
+/* tabs: one line each, scroll sideways instead of wrapping into circles */
+.ja-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.ja-tabs::-webkit-scrollbar{display:none}
+.ja-tabs a{white-space:nowrap;flex:none;scroll-snap-align:start}
+/* the chat button never sits on top of the last content */
+.ja-app-content{padding-bottom:96px}
+@media (max-width:640px){
+  .ja-smart-box{border-radius:22px;flex-wrap:wrap;padding:10px}
+  .ja-smart-box input{min-width:0;flex:1 1 100%}
+  .ja-smart-box .ja-btn{flex:1 1 100%}
+  .ja-nav .inner{gap:8px}
+  .ja-nav .ja-brand{font-size:1.1rem}
+  .ja-nav .ja-navlinks a[href="login.php"]{display:none}
+}
+/* range sliders and the smart box show keyboard focus */
+input[type=range]:focus-visible{outline:3px solid var(--melon);outline-offset:4px}
+.ja-smart-box:focus-within{box-shadow:var(--soft-ring),var(--shadow)}
+/* itinerary hero: stronger scrim so the subtitle stays readable on bright photos */
+.ja-itin-hero{background-blend-mode:normal}

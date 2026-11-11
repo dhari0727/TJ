@@ -30,3 +30,37 @@ $conn = (function () {
     mysqli_set_charset($c, 'utf8mb4');
     return $c;
 })();
+
+/* ---- security headers (sent once per request; harmless on JSON endpoints) ---- */
+if (!headers_sent()) {
+    header_remove('X-Powered-By');
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+        . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; "
+        . "img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://nominatim.openstreetmap.org https://cdn.jsdelivr.net; "
+        . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'");
+    header('Permissions-Policy: camera=(), microphone=(), payment=(), usb=()');
+    header('Cross-Origin-Opener-Policy: same-origin');
+}
+
+/**
+ * A password change/reset bumps signup.session_epoch; any session carrying an older epoch is signed out.
+ * Sessions created before this feature carry no epoch and count as 0, which matches until a first change.
+ */
+if (!function_exists('ja_enforce_session_epoch')) {
+function ja_enforce_session_epoch($c = null) {
+    if ($c === null) $c = $GLOBALS['conn'] ?? null;
+    if (!$c) return;
+    if (session_status() !== PHP_SESSION_ACTIVE || empty($_SESSION['eml']) || !empty($GLOBALS['ja_epoch_checked'])) return;
+    $GLOBALS['ja_epoch_checked'] = true;
+    $q = mysqli_prepare($c, "SELECT session_epoch FROM signup WHERE eml = ?");
+    if (!$q) return;
+    mysqli_stmt_bind_param($q, 's', $_SESSION['eml']); mysqli_stmt_execute($q);
+    $r = mysqli_fetch_row(mysqli_stmt_get_result($q)); mysqli_stmt_close($q);
+    if ($r === null || (int)$r[0] !== (int)($_SESSION['ep'] ?? 0)) {
+        $_SESSION = []; session_destroy();
+        if (!headers_sent()) { header('Location: login.php?expired=1'); }
+        exit;
+    }
+}
+}
+ja_enforce_session_epoch($conn);

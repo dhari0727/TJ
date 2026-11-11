@@ -15,8 +15,8 @@ mysqli_stmt_close($stmt);
 if (!$book) { header('Location: my-storybooks.php'); exit; }
 
 $isOwner = ($book['eml'] === $em);
-$isPublic = ($book['visibility'] === 'public');
-$hasToken = !empty($_GET['token']) && $_GET['token'] === ($book['share_token'] ?? '');
+$isPublic = ($book['visibility'] === 'public' && ($book['moderation_status'] ?? 'approved') === 'approved');
+$hasToken = !empty($_GET['token']) && hash_equals((string)($book['share_token'] ?? ''), (string)$_GET['token']);
 if (!$isOwner && !$isPublic && !$hasToken) { header('Location: my-storybooks.php'); exit; }
 
 $pageOrderSql = ($book['page_order'] === 'chronological')

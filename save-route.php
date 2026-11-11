@@ -27,8 +27,9 @@ $mode   = substr($_POST['mode'] ?? 'day', 0, 20);
 $data   = $_POST['data'] ?? '{}';
 $total  = (float)($_POST['total_km'] ?? 0);
 // validate JSON
-json_decode($data);
+$decoded = json_decode($data, true);
 if (json_last_error() !== JSON_ERROR_NONE) { echo json_encode(['error'=>'Bad data.']); exit; }
+if (empty($decoded)) { echo json_encode(['error'=>'Nothing to save: this route is empty.']); exit; }
 
 $s = mysqli_prepare($conn,
     "INSERT INTO saved_routes (eml, title, origin, mode, data, total_km) VALUES (?,?,?,?,?,?)");

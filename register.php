@@ -48,11 +48,11 @@ elseif (isset($_POST["sn"])) {
             ja_ensure_handle($eml);   // public profile handle (never derived from the email)
             $v = ja_send_verification($eml);
             ja_audit($eml, 'register', $v['status']);
-            if ($v['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1' && in_array(ja_client_ip(), ['127.0.0.1', '::1'], true)) {
+            if ($v['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1' && ja_is_local_dev()) {
                 $_SESSION['ja_flash'] = 'Email is not set up yet (admin: Admin > Email). Local test link: ' . $v['url'];
             }
             session_regenerate_id(true);
-            $_SESSION["fname"] = $fname; $_SESSION["lname"] = $lname; $_SESSION['eml'] = $eml;
+            $_SESSION["fname"] = $fname; $_SESSION["lname"] = $lname; $_SESSION['eml'] = $eml; $_SESSION['ep'] = 0;
             header("location: dashboard.php"); exit();
         }
     }

@@ -17,12 +17,12 @@ $mediaId = (int)($_POST['media_id'] ?? 0);
 if ($mediaId <= 0) { echo json_encode(['error' => 'Invalid media.']); exit; }
 
 // does the media post exist?
-$s = mysqli_prepare($conn, "SELECT media_id, likes FROM media WHERE media_id=?");
+$s = mysqli_prepare($conn, "SELECT media_id, likes, eml, is_public, moderation_status FROM media WHERE media_id=?");
 mysqli_stmt_bind_param($s, 'i', $mediaId);
 mysqli_stmt_execute($s);
 $media = mysqli_fetch_assoc(mysqli_stmt_get_result($s));
 mysqli_stmt_close($s);
-if (!$media) { echo json_encode(['error' => 'Post not found.']); exit; }
+if (!$media || !($media['eml'] === $eml || ((int)$media['is_public'] === 1 && $media['moderation_status'] === 'approved'))) { echo json_encode(['error' => 'Post not found.']); exit; }
 
 // already liked?
 $s = mysqli_prepare($conn, "SELECT 1 FROM media_likes WHERE media_id=? AND eml=?");

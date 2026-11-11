@@ -3,18 +3,20 @@ $ja_title = "New Storybook"; $ja_active = "entries";
 session_start();
 require 'connection.php';
 require 'ja-media.php';
+require_once __DIR__ . '/ja-lib.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    ja_csrf_enforce();
     $title = trim($_POST['title'] ?? '');
     if ($title === '') {
         $err = 'Please give your storybook a title.';
     } else {
         $subtitle  = trim($_POST['subtitle'] ?? '');
         $theme     = trim($_POST['theme'] ?? 'floral');
-        $vis       = trim($_POST['visibility'] ?? 'private');
+        $vis       = 'private';   // publishing goes through the trust and moderation gate in storybook-api.php (update_book)
 
         $s = mysqli_prepare($conn, "INSERT INTO storybooks (eml, title, subtitle, theme, visibility) VALUES (?, ?, ?, ?, ?)");
         mysqli_stmt_bind_param($s, 'sssss', $em, $title, $subtitle, $theme, $vis);

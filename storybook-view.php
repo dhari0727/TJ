@@ -14,7 +14,7 @@ $isOwner = false;
 
 if ($bookId > 0) {
     if ($loggedIn) {
-        $stmt = mysqli_prepare($conn, "SELECT * FROM storybooks WHERE book_id = ? AND (eml = ? OR visibility = 'public')");
+        $stmt = mysqli_prepare($conn, "SELECT * FROM storybooks WHERE book_id = ? AND (eml = ? OR (visibility = 'public' AND moderation_status = 'approved'))");
         mysqli_stmt_bind_param($stmt, 'is', $bookId, $em);
         mysqli_stmt_execute($stmt);
         $book = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -248,7 +248,7 @@ $jsonPages = json_encode(array_map(function($p) {
 
   function esc(s) {
     if (s == null) return '';
-    var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
+    var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function renderDecos(page) {

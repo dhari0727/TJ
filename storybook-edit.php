@@ -203,7 +203,7 @@ $theme = htmlspecialchars($book['theme']);
   }
   function esc(s) {
     if (s == null) return '';
-    var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
+    var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function tplClass(tpl) {
     var m = {cover:'sb-tpl-cover','photo-caption':'sb-tpl-photo-caption','two-photo':'sb-tpl-two-photo',story:'sb-tpl-story','cost-card':'sb-tpl-cost-card',photos:'sb-tpl-photo-grid'};

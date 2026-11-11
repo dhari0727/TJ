@@ -10,6 +10,7 @@ if (!isset($ja_title))  $ja_title = "JourneyAI";
 if (!isset($ja_active)) $ja_active = "";
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/ja-icons.php';
+if (function_exists('ja_enforce_session_epoch')) ja_enforce_session_epoch();
 $ja_logged_in = isset($_SESSION['eml']);
 function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
 ?>
@@ -65,7 +66,7 @@ if ($ja_use_sidebar):
     <a href="login.php?logout=1"><?= ja_icon('logout',20) ?><span>Log out</span></a>
   </div>
 </aside>
-<button class="ja-side-toggle" id="jaSideToggle" aria-label="Menu"><?= ja_icon('compass',22) ?></button>
+<button class="ja-side-toggle" id="jaSideToggle" aria-label="Open menu" aria-expanded="false" aria-controls="jaSidebar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 <div class="ja-app-main"><div class="ja-app-content">
 <?php
   if (!empty($_SESSION['ja_flash'])) { echo '<div class="ja-ok ja-notice">' . htmlspecialchars($_SESSION['ja_flash']) . '</div>'; unset($_SESSION['ja_flash']); }

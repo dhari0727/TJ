@@ -36,7 +36,7 @@ $already = $me ? (int)mysqli_fetch_row(mysqli_query($conn, "SELECT email_verifie
   <?php if ($resent): ?>
     <?php if ($resent['ok']): ?><div class="ja-ok">We sent a new link. Check your inbox (and spam).</div>
     <?php elseif ($resent['status'] === 'limited'): ?><div class="ja-err">Too many requests. Try again in an hour.</div>
-    <?php elseif ($resent['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1' && in_array(ja_client_ip(), ['127.0.0.1', '::1'], true)): ?>
+    <?php elseif ($resent['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1' && ja_is_local_dev()): ?>
       <div class="ja-ok">Email isn't set up yet. Local test link: <a href="<?= htmlspecialchars($resent['url']) ?>"><?= htmlspecialchars($resent['url']) ?></a></div>
     <?php else: ?><div class="ja-err">We could not send the email right now. Please try later.</div><?php endif; ?>
   <?php endif; ?>

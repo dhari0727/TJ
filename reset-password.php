@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/ja-trust.php';
 $ja_title = "Reset password"; $ja_active = "login";
 include("connection.php");
 session_start();
@@ -18,13 +19,13 @@ $valid = $row && strtotime($row['reset_expires']) >= time();
 if ($valid && isset($_POST['next'])) {
     $psw = $_POST['psw'] ?? '';
     $strong = preg_match('@[A-Z]@',$psw) && preg_match('@[a-z]@',$psw) && preg_match('@[0-9]@',$psw)
-           && preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/',$psw) && strlen($psw) >= 8;
+           && preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/',$psw) && strlen($psw) >= 8 && !ja_common_password($psw);
 
     if (!$strong) {
         $err = "Password needs 8+ characters with an uppercase letter, a number and a symbol.";
     } else {
         $hash = password_hash($psw, PASSWORD_DEFAULT);
-        $up = mysqli_prepare($conn, "UPDATE signup SET psw = ?, reset_token = NULL, reset_expires = NULL WHERE eml = ?");
+        $up = mysqli_prepare($conn, "UPDATE signup SET psw = ?, reset_token = NULL, reset_expires = NULL, session_epoch = session_epoch + 1 WHERE eml = ?");
         mysqli_stmt_bind_param($up, 'ss', $hash, $row['eml']);
         mysqli_stmt_execute($up);
         mysqli_stmt_close($up);

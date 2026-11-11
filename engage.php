@@ -137,7 +137,7 @@ if ($action === 'report') {
     $new = mysqli_stmt_affected_rows($s) > 0; mysqli_stmt_close($s);
     if (!$new) { echo json_encode(['ok' => true, 'message' => 'You already reported this. Thank you.']); exit; }
     ja_audit($em, 'report', "$kind #$id $reason");
-    $n = (int)mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(DISTINCT reporter) FROM reports WHERE kind='" . mysqli_real_escape_string($conn, $kind) . "' AND item_id=" . (int)$id . " AND status='open'"))[0];
+    $n = (int)mysqli_fetch_row(mysqli_query($conn, "SELECT COUNT(DISTINCT reporter) FROM reports JOIN signup rs ON rs.eml = reports.reporter AND rs.email_verified = 1 AND rs.created_at < (NOW() - INTERVAL 3 DAY) WHERE reports.kind='" . mysqli_real_escape_string($conn, $kind) . "' AND reports.item_id=" . (int)$id . " AND reports.status='open'"))[0];
     $hidden = false;
     if ($n >= JA_AUTO_HIDE_REPORTS && $kind !== 'comment') {
         ja_set_moderation($kind, $id, 'hidden', "Hidden automatically after $n reports", 'system');

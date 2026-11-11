@@ -66,18 +66,21 @@ def _post(payload, timeout=45):
         raise RuntimeError("No Gemini API key configured.")
     data = json.dumps(payload).encode("utf-8")
     last_err = None
+    deadline = time.time() + timeout   # total budget across all models/retries, not per request
     for model in _model_chain():
+        if time.time() >= deadline:
+            break
         url = API.format(model=model, key=key)
         for attempt in range(2):   # one retry per model on 429
             try:
                 req = urllib.request.Request(url, data=data,
                                              headers={"Content-Type": "application/json"})
-                with urllib.request.urlopen(req, timeout=timeout) as r:
+                with urllib.request.urlopen(req, timeout=max(1, deadline - time.time())) as r:
                     return json.loads(r.read().decode("utf-8"))
             except urllib.error.HTTPError as e:
                 last_err = e
                 if e.code in (429, 500, 502, 503, 504):   # rate-limit / overload: retry, then next model
-                    if attempt == 0:
+                    if attempt == 0 and time.time() + 2 < deadline:
                         time.sleep(2)   # brief backoff then retry same model
                         continue
                     break               # give up on this model, try next

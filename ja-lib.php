@@ -249,7 +249,43 @@ function ja_csrf_enforce() {
 }
 
 function ja_client_ip() { return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'; }
+/**
+ * Base URL used in emails and share links. Never trusts the Host header blindly: a configured `site_url` setting wins,
+ * otherwise the Host must be a local development name, else we fall back to localhost (stops host-header poisoning
+ * of password-reset links).
+ */
 function ja_base_url() {
+    $path = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\');
+    $cfg = function_exists('ja_setting') ? trim((string)ja_setting('site_url')) : '';
+    if ($cfg !== '' && preg_match('#^https?://[A-Za-z0-9.\-]+(:\d+)?(/[^\s]*)?$#', $cfg)) return rtrim($cfg, '/');
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/\\');
+    $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+    if (!preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i', $host)) $host = 'localhost';
+    return $scheme . '://' . $host . $path;
+}
+
+/** True only for a direct request from this machine (no proxy headers, local Host). Used for dev-only conveniences. */
+function ja_is_local_dev() {
+    if (!in_array(ja_client_ip(), ['127.0.0.1', '::1'], true)) return false;
+    foreach (['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_FORWARDED', 'HTTP_X_FORWARDED_HOST'] as $h) if (!empty($_SERVER[$h])) return false;
+    return (bool)preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i', (string)($_SERVER['HTTP_HOST'] ?? ''));
+}
+
+/** A stored upload path (uploads/<name>.<img ext>) or null. Blocks quotes/angle brackets/anything that could break out of an attribute. */
+function ja_safe_media_path($p) {
+    $p = trim((string)$p);
+    if ($p === '') return '';
+    return preg_match('#^uploads/[A-Za-z0-9_\-/]{1,120}\.(jpe?g|png|webp|gif)$#i', $p) && strpos($p, '..') === false ? $p : null;
+}
+
+/** JSON in, JSON out, with every string stripped of characters that matter inside HTML attributes. */
+function ja_clean_json($raw) {
+    $d = is_string($raw) ? json_decode($raw, true) : $raw;
+    if (!is_array($d)) return '[]';
+    $walk = function ($v) use (&$walk) {
+        if (is_array($v)) { $o = []; foreach ($v as $k => $x) { $o[preg_replace('/[^A-Za-z0-9_\-]/', '', (string)$k)] = $walk($x); } return $o; }
+        if (is_string($v)) return mb_substr(preg_replace('/["\'<>\\\\`]/u', '', $v), 0, 200);
+        return is_scalar($v) ? $v : null;
+    };
+    return json_encode($walk($d), JSON_UNESCAPED_UNICODE);
 }

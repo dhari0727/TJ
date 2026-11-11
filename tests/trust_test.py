@@ -205,7 +205,7 @@ def main():
     reporters = []
     for i in range(3):
         s, e, _ = new_user("r%d" % i); created.append(e)
-        db("UPDATE signup SET email_verified=1 WHERE eml=%s", (e,)); reporters.append((s, e))
+        db("UPDATE signup SET email_verified=1, created_at=(NOW() - INTERVAL 5 DAY) WHERE eml=%s", (e,)); reporters.append((s, e))
     for i, (s, e) in enumerate(reporters):
         t = csrf(s)
         r = s.post(f"{BASE}/engage.php", data={"csrf": t, "action": "report", "kind": "media", "id": mid, "reason": "fake"}, timeout=30).json()
@@ -233,6 +233,15 @@ def main():
     n_all = db("SELECT COUNT(*) FROM journals j JOIN db d ON d.entry_id=j.entry_id JOIN signup s ON s.eml=j.eml WHERE d.moderation_status='approved' AND s.email_verified=1")[0][0]
     n_mine = db("SELECT COUNT(*) FROM journals j JOIN db d ON d.entry_id=j.entry_id JOIN signup s ON s.eml=j.eml WHERE d.moderation_status='approved' AND s.email_verified=1 AND j.eml=%s", (ea,))[0][0]
     check("pending journals are excluded from the training query", n_mine == 0 and n_all > 0, (n_all, n_mine))
+
+    print("\n== a password change signs the other devices out")
+    D = requests.Session()
+    D.get(f"{BASE}/login.php", timeout=30)
+    D.post(f"{BASE}/login.php", data={"lgn": "1", "eml": ea, "password": PW}, allow_redirects=False, timeout=30)
+    check("second device is logged in", D.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 200)
+    A.post(f"{BASE}/change-pswd.php", data={"CUR": PW, "PASS": "Changed#Trust2026", "Save": "1"}, timeout=30)
+    check("the device that changed the password stays logged in", A.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 200)
+    check("the other device is signed out", D.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 302)
 
     print("== cleanup")
     purge()

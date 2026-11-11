@@ -28,8 +28,9 @@ if (isset($_POST['lgn'])) {
     mysqli_stmt_fetch($tq);
     mysqli_stmt_close($tq);
     $locked = ($recentFails ?? 0) >= 6;
+    if (!ja_rate_limit('login:ip:' . ja_client_ip(), 40, 900)) $locked = true;
 
-    $stmt = mysqli_prepare($conn, "SELECT fname, lname, eml, psw, role, is_active FROM signup WHERE eml = ? LIMIT 1");
+    $stmt = mysqli_prepare($conn, "SELECT fname, lname, eml, psw, role, is_active, session_epoch FROM signup WHERE eml = ? LIMIT 1");
     mysqli_stmt_bind_param($stmt, 's', $email);
     mysqli_stmt_execute($stmt);
     $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -68,6 +69,7 @@ if (isset($_POST['lgn'])) {
         $_SESSION['fname'] = $user['fname'];
         $_SESSION['lname'] = $user['lname'];
         $_SESSION['eml']   = $user['eml'];
+        $_SESSION['ep']    = (int)$user['session_epoch'];
         header("location:" . ($user['role'] === 'admin' && !empty($_GET['admin']) ? 'admin.php' : 'dashboard.php'));
         exit;
     } else {

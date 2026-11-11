@@ -24,8 +24,8 @@ NOMINATIM = "https://nominatim.openstreetmap.org/search"
 # try them in order until one returns valid JSON. This fixes intermittently
 # missing places (e.g. Santram Mandir not showing up).
 OVERPASS_MIRRORS = [
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
 ]
 

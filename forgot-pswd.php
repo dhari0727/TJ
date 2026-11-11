@@ -3,7 +3,7 @@ $ja_title = "Forgot password"; $ja_active = "login";
 include("connection.php");
 require_once __DIR__ . '/ja-lib.php';
 require("mail.php");
-session_start();
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $err = ""; $ok = "";
 
 if (isset($_POST['next'])) {
@@ -33,7 +33,7 @@ if (isset($_POST['next'])) {
             if ($res['ok']) {
                 $ok = "If that email is registered, a reset link has been sent.";
             } elseif ($res['status'] === 'not_configured' && ja_setting('dev_show_reset_link') === '1'
-                      && in_array(ja_client_ip(), ['127.0.0.1', '::1'], true)) {
+                      && ja_is_local_dev()) {
                 // local development only: email isn't set up, so show the link here
                 $ok = "Email isn't set up yet (admin: Admin > Email settings). Dev link: " . $res['url'];
             } elseif ($res['status'] === 'not_configured') {

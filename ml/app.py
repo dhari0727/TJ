@@ -17,6 +17,7 @@ Run:
 All models are loaded ONCE at boot (pickles + a live CF matrix from the DB).
 Input is validated and clamped; DB reads are parameterized.
 """
+import ml.netfix  # noqa: F401  (prefer IPv4 for outbound calls; must come first)
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -40,11 +41,27 @@ def _reco():
     return _RECO
 
 
+def _body():
+    """JSON body as a dict; anything else (list, string, null, bad JSON) becomes {}."""
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else {}
+
+
 def _clamp_int(v, lo, hi, default):
     try:
         return max(lo, min(hi, int(v)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
+
+
+@app.errorhandler(Exception)
+def _json_error(e):
+    """Never leak a stack trace: every unhandled error is a clean JSON response."""
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return jsonify({"status": "error", "error": e.name}), e.code
+    app.logger.exception("Unhandled error on %s", request.path)
+    return jsonify({"status": "error", "error": "internal error"}), 500
 
 
 # --------------------------------------------------------------------- health
@@ -65,7 +82,7 @@ def health():
 # ------------------------------------------------------------------ recommend
 @app.post("/recommend")
 def recommend():
-    data = request.get_json(silent=True) or {}
+    data = _body()
 
     # validate + clamp inputs
     budget = data.get("budget")
@@ -90,7 +107,9 @@ def recommend():
     raw_interests = data.get("interests") or []
     if isinstance(raw_interests, str):
         raw_interests = [s.strip() for s in raw_interests.split(",")]
-    interests = [i.lower() for i in raw_interests if i.lower() in CANONICAL_ACTIVITIES]
+    elif not isinstance(raw_interests, list):
+        raw_interests = []
+    interests = [i.lower() for i in raw_interests if isinstance(i, str) and i.lower() in CANONICAL_ACTIVITIES]
 
     eml = data.get("eml")
     if eml is not None:
@@ -98,7 +117,7 @@ def recommend():
 
     from ml.recommender.proximity import ORIGIN_REGIONS
     origin_region = data.get("origin_region")
-    if origin_region not in ORIGIN_REGIONS:
+    if not isinstance(origin_region, str) or origin_region not in ORIGIN_REGIONS:
         origin_region = None
 
     # distance-aware ranking: where the user starts + how long they have (day/weekend/short/long)
@@ -129,7 +148,7 @@ def recommend():
 # --------------------------------------------------------------- predict-cost
 @app.post("/predict-cost")
 def predict_cost_endpoint():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     dest = data.get("destination")
     if not dest:
         return jsonify({"status": "error", "error": "destination required"}), 400
@@ -140,7 +159,7 @@ def predict_cost_endpoint():
     style = str(data.get("travel_style", "mid-range")).lower()
     if style not in VALID_STYLES:
         style = "mid-range"
-    result = predict_cost(str(dest), duration_days=duration, travel_style=style,
+    result = predict_cost(str(dest)[:120], duration_days=duration, travel_style=style,
                           month=month, party_size=party)
     result["status"] = "ok"
     return jsonify(result)
@@ -149,7 +168,7 @@ def predict_cost_endpoint():
 # --------------------------------------------------------------- smart plan
 @app.post("/smart-plan")
 def smart_plan():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     text = str(data.get("text", "")).strip()
     if not text:
         return jsonify({"error": "Tell me about your trip."}), 400
@@ -165,7 +184,7 @@ def smart_plan():
 # --------------------------------------------------------------- chatbot
 @app.post("/chat")
 def chat_endpoint():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     message = str(data.get("message", "")).strip()
     if not message:
         return jsonify({"reply": "Ask me anything about your trip!", "cards": []})
@@ -183,18 +202,20 @@ def chat_endpoint():
 # --------------------------------------------------------------- nearby (OSM)
 @app.post("/nearby")
 def nearby():
-    data = request.get_json(silent=True) or {}
-    place = str(data.get("place", "")).strip()
+    data = _body()
+    place = str(data.get("place", "")).strip()[:120]
     if not place:
         return jsonify({"status": "error", "error": "place required"}), 400
     from ml.geo.places import nearby_places, TRIP_MODES
     mode = data.get("mode", "day")
-    if mode not in TRIP_MODES:
+    if not isinstance(mode, str) or mode not in TRIP_MODES:
         mode = "day"
     raw_interests = data.get("interests") or []
     if isinstance(raw_interests, str):
         raw_interests = [s.strip() for s in raw_interests.split(",")]
-    interests = [i.lower() for i in raw_interests if i.lower() in CANONICAL_ACTIVITIES]
+    elif not isinstance(raw_interests, list):
+        raw_interests = []
+    interests = [i.lower() for i in raw_interests if isinstance(i, str) and i.lower() in CANONICAL_ACTIVITIES]
     limit = _clamp_int(data.get("limit"), 1, 30, 12)
     result = nearby_places(place, mode=mode, interests=interests, limit=limit)
     if "error" in result:
@@ -206,24 +227,26 @@ def nearby():
 # --------------------------------------------------------------- route builder
 @app.post("/route")
 def route():
-    data = request.get_json(silent=True) or {}
-    place = str(data.get("place", "")).strip()
+    data = _body()
+    place = str(data.get("place", "")).strip()[:120]
     if not place:
         return jsonify({"status": "error", "error": "place required"}), 400
     raw_interests = data.get("interests") or []
     if isinstance(raw_interests, str):
         raw_interests = [s.strip() for s in raw_interests.split(",")]
-    interests = [i.lower() for i in raw_interests if i.lower() in CANONICAL_ACTIVITIES]
+    elif not isinstance(raw_interests, list):
+        raw_interests = []
+    interests = [i.lower() for i in raw_interests if isinstance(i, str) and i.lower() in CANONICAL_ACTIVITIES]
     stops = _clamp_int(data.get("stops"), 2, 8, 4)
 
-    destination = str(data.get("destination", "")).strip()
+    destination = str(data.get("destination", "")).strip()[:120]
     if destination:
         from ml.geo.places import build_route_between
         result = build_route_between(place, destination, interests=interests, stops=stops)
     else:
         from ml.geo.places import build_route, TRIP_MODES
         mode = data.get("mode", "weekend")
-        if mode not in TRIP_MODES:
+        if not isinstance(mode, str) or mode not in TRIP_MODES:
             mode = "weekend"
         result = build_route(place, mode=mode, interests=interests, stops=stops)
 
@@ -236,7 +259,7 @@ def route():
 # --------------------------------------------------------------- itinerary
 @app.post("/itinerary")
 def itinerary():
-    data = request.get_json(silent=True) or {}
+    data = _body()
     dest = data.get("destination")
     if not dest:
         return jsonify({"status": "error", "error": "destination required"}), 400
@@ -248,7 +271,7 @@ def itinerary():
     if style not in VALID_STYLES:
         style = "mid-range"
     from ml.itinerary.generate import generate
-    result = generate(str(dest), days=days, travel_style=style, month=month, party_size=party)
+    result = generate(str(dest)[:120], days=days, travel_style=style, month=month, party_size=party)
     if "error" in result:
         return jsonify({"status": "error", "error": result["error"]}), 404
     result["status"] = "ok"

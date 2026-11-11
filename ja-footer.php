@@ -13,7 +13,7 @@ if (!empty($ja_use_sidebar)): ?>
 <script>
 (function(){
   var t=document.getElementById('jaSideToggle'),s=document.getElementById('jaSidebar');
-  if(t&&s)t.addEventListener('click',function(){s.classList.toggle('open');});
+  if(t&&s)t.addEventListener('click',function(){var o=s.classList.toggle('open');t.setAttribute('aria-expanded',o?'true':'false');t.setAttribute('aria-label',o?'Close menu':'Open menu');});
   document.addEventListener('click',function(e){
     if(s&&s.classList.contains('open')&&!s.contains(e.target)&&e.target!==t&&!t.contains(e.target))s.classList.remove('open');
   });

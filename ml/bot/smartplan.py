@@ -136,7 +136,7 @@ def parse_with_llm(text):
             "interests(array using ONLY these words: " + ",".join(CANONICAL_ACTIVITIES) + "). "
             "Request: " + text + "\nReturn ONLY the JSON object."
         )
-        r = gemini.generate([{"role": "user", "parts": [{"text": prompt}]}])
+        r = gemini.generate([{"role": "user", "parts": [{"text": prompt}]}], timeout=10)
         txt = gemini.extract_text(r)
         import json
         mt = re.search(r"\{.*\}", txt, re.S)

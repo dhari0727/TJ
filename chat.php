@@ -4,6 +4,8 @@
  * we forward to the Flask /chat endpoint and return {reply, cards}.
  */
 session_start();
+require_once __DIR__ . '/ja-lib.php';
+ja_csrf_enforce();
 require 'ml_client.php';
 require_once __DIR__ . '/ja-lib.php';
 header('Content-Type: application/json');
@@ -27,7 +29,7 @@ $payload = [
     'eml'      => $_SESSION['eml'] ?? null,
 ];
 
-$res = ml_request('POST', '/chat', $payload, 60);
+$res = ml_request('POST', '/chat', $payload, 25);
 if (!empty($res['__error'])) {
     echo json_encode(['reply'=>'The assistant is offline right now. Start the JourneyAI service and try again.','cards'=>[]]);
     exit;

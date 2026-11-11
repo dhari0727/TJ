@@ -97,8 +97,10 @@ def chat(message, history=None, user_eml=None, user_location=None):
     # build Gemini `contents` from history + this message
     contents = []
     for h in (history or [])[-8:]:
+        if not isinstance(h, dict):
+            continue
         role = "user" if h.get("role") == "user" else "model"
-        contents.append({"role": role, "parts": [{"text": h.get("text", "")}]})
+        contents.append({"role": role, "parts": [{"text": str(h.get("text", ""))}]})
     ctx = message
     if user_location:
         ctx += f"\n\n(User's location: {user_location})"

@@ -240,7 +240,7 @@ function ja_publish_journal($entry_id, $eml, $vis) {
     $ok = mysqli_stmt_execute($u); mysqli_stmt_close($u);
     // photos attached to this journal follow the journal's visibility and review state
     if ($ok && $vis !== 'private') {
-        $pub = 1; $ms = mysqli_real_escape_string($conn, $status);
+        $pub = ($vis === 'public') ? 1 : 0; $ms = mysqli_real_escape_string($conn, $status);
         mysqli_query($conn, "UPDATE media SET is_public = $pub, moderation_status = '$ms' WHERE entry_id = $entry_id AND eml = '" . mysqli_real_escape_string($conn, $eml) . "' AND moderation_status <> 'rejected'");
     } elseif ($ok) {
         mysqli_query($conn, "UPDATE media SET is_public = 0 WHERE entry_id = $entry_id AND eml = '" . mysqli_real_escape_string($conn, $eml) . "'");

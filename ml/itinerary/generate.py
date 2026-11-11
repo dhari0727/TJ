@@ -45,6 +45,8 @@ MEALS = {
     "dinner":    ["Dinner at a well-rated restaurant", "Local specialities for dinner", "Relaxed dinner near the stay"],
 }
 
+GENERIC_SLOTS = ["Leisurely stroll through the local streets", "Browse a local market", "Relax and soak in the local atmosphere", "Try a neighbourhood cafe"]
+
 STAY_TIER = {
     "budget":     "Comfortable budget guesthouse",
     "backpacker": "Well-rated hostel / homestay",
@@ -166,14 +168,34 @@ def generate(destination, days=5, travel_style="mid-range", month=None,
         else:
             morning = _slot_text(rng, a1, [morning_att] if morning_att else attractions)
 
+        used = set()
+
+        def fresh(make):
+            # a day's slots must not repeat (small places have few attractions/activity tags)
+            t = make()
+            for _ in range(15):
+                if t not in used:
+                    break
+                t = make()
+            if t in used:
+                # place too small to vary (1 attraction + 1 activity): fall back to generic activities
+                t = next((g for g in GENERIC_SLOTS if g not in used), t)
+            used.add(t)
+            return t
+
+        morning = fresh(lambda m=morning: m)
+        midday = fresh(lambda: _slot_text(rng, a2, [afternoon_att] if afternoon_att else attractions))
+        afternoon = fresh(lambda: _slot_text(rng, a3, attractions))
+        evening = "Depart" if (day == days and days > 1) else fresh(
+            lambda: _slot_text(rng, pick_for("evening"), attractions))
+
         timeline = [
             {"time": "Morning",   "icon": "sun",     "text": morning,
              "meal": rng.choice(MEALS["breakfast"])},
-            {"time": "Midday",    "icon": "map-pin", "text": _slot_text(rng, a2, [afternoon_att] if afternoon_att else attractions),
+            {"time": "Midday",    "icon": "map-pin", "text": midday,
              "meal": rng.choice(MEALS["lunch"])},
-            {"time": "Afternoon", "icon": "compass", "text": _slot_text(rng, a3, attractions)},
-            {"time": "Evening",   "icon": "star",    "text": (
-                "Depart" if (day == days and days > 1) else _slot_text(rng, pick_for("evening"), attractions)),
+            {"time": "Afternoon", "icon": "compass", "text": afternoon},
+            {"time": "Evening",   "icon": "star",    "text": evening,
              "meal": (None if (day == days and days > 1) else rng.choice(MEALS["dinner"]))},
         ]
         plan_days.append({
