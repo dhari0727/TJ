@@ -50,7 +50,7 @@ $author = $allowed ? trim(($e['fname'] ?? 'A traveller') . ' ' . mb_substr((stri
       Only you can see this right now.<?= $e['mod_reason'] ? ' ' . htmlspecialchars($e['mod_reason']) : '' ?></div>
   <?php endif; ?>
   <?php if ($owner && $e['visibility'] === 'private'): ?><div class="ja-ok" style="margin-top:10px">Only you can see this. <a href="my-entries.php" style="color:var(--ja-teal);font-weight:600">Share it from My entries</a>.</div><?php endif; ?>
-  <h1 style="font-size:clamp(2rem,5vw,3.2rem);margin:10px 0 6px"><?= htmlspecialchars($e['Title']) ?></h1>
+  <h1 style="font-size:clamp(2rem,5vw,3.2rem);margin:10px 0 6px"><?= htmlspecialchars(ja_title($e['Title'])) ?></h1>
   <p class="sub"><?= htmlspecialchars($place) ?> &middot; <?= (int)$e['duration_days'] ?> days &middot; by <?php if ($authorHandle): ?><a href="traveller.php?h=<?= urlencode($authorHandle) ?>" style="color:inherit;text-decoration:underline"><?= htmlspecialchars($author) ?></a><?php else: ?><?= htmlspecialchars($author) ?><?php endif; ?><?= $e['dv'] ? ' &middot; ' . htmlspecialchars(date('M Y', strtotime($e['dv']))) : '' ?></p>
 
   <?php if ($media): ?>

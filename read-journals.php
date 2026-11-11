@@ -4,6 +4,7 @@ $ja_title = "Read journals"; $ja_active = "feed"; $ja_ctab = "read";
 session_start();
 require 'connection.php';
 require_once 'ja-icons.php';
+require_once __DIR__ . '/ja-lib.php';
 $q = trim($_GET['q'] ?? '');
 $page = max(1, (int)($_GET['p'] ?? 1)); $per = 12; $off = ($page - 1) * $per;
 
@@ -63,7 +64,7 @@ while ($bq && ($r = mysqli_fetch_assoc($bq))) $books[] = $r;
     <?php foreach ($rows as $r): ?>
       <a class="ja-card ja-jcard" href="journal.php?id=<?= (int)$r['entry_id'] ?>" style="text-decoration:none;color:inherit">
         <?php if ($r['cover']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($r['cover']) ?>')"></div><?php endif; ?>
-        <h3 style="margin:10px 0 2px;font-size:1.15rem"><?= htmlspecialchars($r['Title']) ?></h3>
+        <h3 style="margin:10px 0 2px;font-size:1.15rem"><?= htmlspecialchars(ja_title($r['Title'])) ?></h3>
         <div class="ja-muted" style="font-size:.86rem"><?= htmlspecialchars(trim(($r['City'] ?? '') . ', ' . ($r['Country'] ?? ''), ', ')) ?> &middot; by <?= htmlspecialchars($r['fname'] ?: 'a traveller') ?></div>
         <p style="color:var(--text-dim);font-size:.9rem;margin:8px 0"><?= htmlspecialchars(mb_strimwidth((string)$r['Description'], 0, 140, '…')) ?></p>
         <?php if ((float)$r['total'] > 0): ?><span class="ja-pill near">&#8377;<?= number_format((float)$r['total']) ?> &middot; <?= (int)$r['days'] ?> days</span><?php endif; ?>

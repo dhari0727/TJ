@@ -289,3 +289,9 @@ function ja_clean_json($raw) {
     };
     return json_encode($walk($d), JSON_UNESCAPED_UNICODE);
 }
+
+/** Display title: drops the import tag, e.g. "Adoor - food [wikivoyage]" becomes "Adoor: food". Storage is untouched. */
+function ja_title($t) {
+    $t = preg_replace('/\s*\[(wikivoyage|blog|import(ed)?)\]\s*$/i', '', (string)$t);
+    return preg_replace('/^(.+?) - (overview|sights|food|activities|getting around|see|do|eat|stay)$/i', '$1: $2', $t);
+}
