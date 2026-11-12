@@ -31,7 +31,7 @@ mysqli_stmt_close($s);
 <html lang="en">
 <head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css">
 <link rel="stylesheet" href="css/pages-trips.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-trips.css') ?>">
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14213D"><link rel="apple-touch-icon" href="images/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#123524"><link rel="apple-touch-icon" href="images/icon-192.png">
 <script src="js/trips-ui.js?v=<?= (int)@filemtime(__DIR__ . '/js/trips-ui.js') ?>" defer></script>
 <script src="js/pwa.js?v=<?= (int)@filemtime(__DIR__ . '/js/pwa.js') ?>" defer></script></head>
 <body class="ja tp-page">

@@ -96,7 +96,7 @@
     } else {
       pts.push([o.lat, o.lon]);
     }
-    L.polyline(pts, { color: '#0E7C86', weight: 3, opacity: .8, dashArray: '6 6' }).addTo(layer);
+    L.polyline(pts, { color: '#1E7B4F', weight: 3, opacity: .8, dashArray: '6 6' }).addTo(layer);
     if (pts.length > 1) map.fitBounds(L.latLngBounds(pts).pad(0.15));
   }
 

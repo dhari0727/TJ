@@ -61,7 +61,7 @@
 .dz-est-list b{font-weight:600;white-space:nowrap;text-align:right}
 .ja .dz-est-fit{margin:12px 0 0;padding:10px 12px;border-radius:8px;font:500 .92rem/1.45 var(--font-body)}
 .dz-est-fit.ok{background:rgba(31,111,92,.12);color:var(--rind)}
-.dz-est-fit.stretch{background:rgba(244,163,0,.16);color:var(--gold-ink)}
+.dz-est-fit.stretch{background:var(--gold-soft);color:var(--gold-ink)}
 :root[data-theme="dark"] .dz-est-fit.ok{background:rgba(111,208,182,.14)}
 .dz-est-err{border-left:3px solid var(--gold);padding:4px 0 4px 12px}
 .ja .dz-est-err p{margin:0 0 8px;font-size:.95rem;font-family:var(--font-body)}
@@ -105,7 +105,7 @@
 .dz-photo img{width:100%;height:100%;object-fit:cover;display:block}
 .dz-nophoto-mark,.dz-photo.nophoto::after{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:600 1.3rem var(--font-display);color:var(--text-mut);background:repeating-linear-gradient(135deg,var(--bg-2) 0 10px,var(--surface) 10px 20px)}
 .dz-photo.nophoto::after{content:"No photo yet"}
-.dz-badge{position:absolute;left:10px;top:10px;display:inline-flex;align-items:center;gap:5px;background:var(--gold);color:#14213D;font:600 .8rem var(--font-body);padding:5px 10px;border-radius:6px}
+.dz-badge{position:absolute;left:10px;top:10px;display:inline-flex;align-items:center;gap:5px;background:var(--gold);color:var(--on-gold);font:600 .8rem var(--font-body);padding:5px 10px;border-radius:6px}
 .dz-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:2px}
 .dz-name{font-size:1.35rem;margin:0}
 .dz-name a{color:var(--text);text-decoration:none}
@@ -133,8 +133,7 @@
 .ja .dz-evidence{font-size:.84rem;color:var(--text-mut)}
 .dz-split{display:flex;height:10px;border-radius:99px;overflow:hidden;gap:2px;margin:2px 0 10px}
 .dz-split i,.dz-legend i{display:block;border-radius:2px}
-.s1{background:#14213D}.s2{background:#1F6F5C}.s3{background:#F4A300}.s4{background:#7C8AA8}.s5{background:#BFE3D6}
-:root[data-theme="dark"] .s1{background:#EEF0F6}:root[data-theme="dark"] .s5{background:#4C6B62}
+.s1{background:var(--c1)}.s2{background:var(--c2)}.s3{background:var(--c3)}.s4{background:var(--c4)}.s5{background:var(--c5)}
 .dz-legend{list-style:none;margin:0 0 10px;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font:.86rem var(--font-body)}
 .dz-legend li{display:flex;align-items:center;gap:7px;color:var(--text-dim)}
 .dz-legend i{width:10px;height:10px;flex:none}
@@ -166,7 +165,7 @@
 .dz-skel .a{height:150px;margin:0 0 16px;border-radius:0}.dz-skel .b{height:24px;width:55%}.dz-skel .c{height:36px;width:40%}.dz-skel .d{height:14px;width:80%}
 
 /* ---- compare tray ---- */
-.dz-tray{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--surface);border-top:1.5px solid var(--text);box-shadow:0 -10px 30px rgba(20,33,61,.14);padding:12px clamp(12px,3vw,28px);padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.dz-tray{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--surface);border-top:1.5px solid var(--text);box-shadow:0 -10px 30px rgba(18,53,36,.14);padding:12px clamp(12px,3vw,28px);padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 .dz-tray[hidden]{display:none}
 .dz-tray-in{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
 .dz-tray-l,.dz-tray-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -266,7 +265,7 @@ body.dz-tray-on .ja-chat-fab{bottom:104px}
 .dz-cmp-table td small{display:block;color:var(--text-mut);font-size:.85rem;margin-top:2px}
 .dz-cmp-photo{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;background:var(--bg-2)}
 .dz-cmp-none{display:flex;align-items:center;justify-content:center;font:.85rem var(--font-body);color:var(--text-mut)}
-.dz-tag{display:inline-block;margin-top:6px;font:600 .78rem var(--font-body);font-style:normal;background:var(--gold);color:#14213D;padding:3px 8px;border-radius:5px}
+.dz-tag{display:inline-block;margin-top:6px;font:600 .78rem var(--font-body);font-style:normal;background:var(--gold);color:var(--on-gold);padding:3px 8px;border-radius:5px}
 .dz-cmp-table .dz-months{max-width:230px}
 
 /* ---- small screens ---- */

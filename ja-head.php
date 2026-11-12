@@ -61,7 +61,7 @@ if (!function_exists('ja_chrome_filter')) {
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&family=Familjen+Grotesk:wght@500;600;700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Caveat:wght@600&display=swap" rel="stylesheet">
 
 <!-- JourneyAI design system -->
 <link rel="stylesheet" href="css/journeyai.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai.css') ?>">
@@ -75,13 +75,15 @@ if (!function_exists('ja_chrome_filter')) {
 <link rel="stylesheet" href="css/journeyai-watermelon.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-watermelon.css') ?>">
 <link rel="stylesheet" href="css/journeyai-calm.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-calm.css') ?>">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#14213D">
+<meta name="theme-color" content="#123524">
 <link rel="apple-touch-icon" href="images/icon-192.png">
 <link rel="stylesheet" href="css/journeyai-brand.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-brand.css') ?>">
 <?php if (!empty($ja_landing)): ?><link rel="stylesheet" href="css/journeyai-landing.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-landing.css') ?>"><?php endif; ?>
 <?php foreach ((array)($ja_css_extra ?? []) as $ja_x): if (preg_match('/^[a-z0-9._-]+\.css$/i', $ja_x)): ?><link rel="stylesheet" href="css/<?= $ja_x ?>?v=<?= (int)@filemtime(__DIR__ . '/css/' . $ja_x) ?>">
 <?php endif; endforeach; ?>
 <script src="js/pwa.js" defer></script>
+<link rel="stylesheet" href="css/motion.css?v=<?= (int)@filemtime(__DIR__ . '/css/motion.css') ?>">
+<script src="js/motion.js?v=<?= (int)@filemtime(__DIR__ . '/js/motion.js') ?>" defer></script>
 <script src="js/journey.js?v=<?= (int)@filemtime(__DIR__ . '/js/journey.js') ?>" defer></script>
 <script src="js/ja-palette.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-palette.js') ?>" defer></script>
 <script src="js/motion.js?v=<?= (int)@filemtime(__DIR__ . '/js/motion.js') ?>" defer></script>

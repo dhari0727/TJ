@@ -79,7 +79,7 @@
       list.forEach(function (s, i) { pts.push([s.lat, s.lon]); L.marker([s.lat, s.lon]).addTo(layer).bindPopup((i + 1) + '. ' + esc(s.name)); });
       if (r.destination) { pts.push([r.destination.lat, r.destination.lon]); L.marker([r.destination.lat, r.destination.lon]).addTo(layer).bindPopup('Destination'); }
       else pts.push([o.lat, o.lon]);
-      L.polyline(pts, { color: '#1F6F5C', weight: 4, opacity: .8 }).addTo(layer);
+      L.polyline(pts, { color: '#1E7B4F', weight: 4, opacity: .8 }).addTo(layer);
       map.fitBounds(pts, { padding: [30, 30] });
     }
     draw(r.route);

@@ -141,7 +141,7 @@ $mine = mysqli_fetch_all(mysqli_stmt_get_result($q), MYSQLI_ASSOC); mysqli_stmt_
             <?= ja_csrf_field() ?><input type="hidden" name="media_id" value="<?= (int)$p['media_id'] ?>">
             <button type="button" data-pin-kind="media" data-pin-id="<?= (int)$p['media_id'] ?>" data-pinned="<?= (int)$p['is_pinned'] ?>" class="ja-btn ja-btn-ghost pc-btn-sm">Pin</button>
             <button name="do" value="toggle_post" class="ja-btn ja-btn-ghost pc-btn-sm"><?= $p['is_public'] ? 'Make private' : 'Make public' ?></button>
-            <button name="do" value="delete_post" class="ja-btn ja-btn-ghost pc-btn-sm" style="color:#B3261E">Delete</button>
+            <button name="do" value="delete_post" class="ja-btn ja-btn-ghost pc-btn-sm" style="color:var(--bad-ink)">Delete</button>
           </form>
         </div>
       </div>

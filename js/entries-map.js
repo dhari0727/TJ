@@ -19,7 +19,7 @@
         (p.img ? '<img src="' + p.img + '" style="width:100%;height:90px;object-fit:cover;border-radius:8px;margin-bottom:6px">' : '') +
         '<div style="font-weight:600">' + (p.title || 'Trip') + '</div>' +
         (p.city ? '<div style="color:#667;font-size:.82rem;margin-bottom:6px">' + p.city + '</div>' : '') +
-        '<a href="display.php?id=' + p.entry_id + '" style="color:#0E7C86;font-weight:600;font-size:.85rem">View entry →</a>' +
+        '<a href="display.php?id=' + p.entry_id + '" style="color:#1E7B4F;font-weight:600;font-size:.85rem">View entry →</a>' +
         '</div>';
       L.marker([p.lat, p.lon]).addTo(map).bindPopup(popup);
     });

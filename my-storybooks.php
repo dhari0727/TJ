@@ -108,7 +108,7 @@ if ($bookIds) {
               <a href="storybook-view.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">View</a>
               <a href="storybook-print.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">Print</a>
               <button type="button" data-pin-kind="book" data-pin-id="<?= $bid ?>" data-pinned="<?= (int)$b['is_pinned'] ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" title="Pin to your public profile">Pin</button>
-              <button class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem;color:#B3261E;border-color:#B3261E"
+              <button class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem;color:var(--bad-ink);border-color:var(--bad-line)"
                 onclick="event.stopPropagation();deleteBook(<?= $bid ?>)">Delete</button>
             </div>
           </div>

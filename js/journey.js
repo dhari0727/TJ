@@ -8,17 +8,26 @@
 
   /* ---- press ripple ---- */
   document.addEventListener('pointerdown', function (e) {
-    var b = e.target.closest && e.target.closest('.ja-btn'); if (!b || RM) return;
+    var b = e.target.closest && e.target.closest('.ja-btn,.ja-chip,.pc-btn-sm,.dz-iconbtn'); if (!b || RM || b.disabled) return;
     var r = b.getBoundingClientRect(), d = Math.max(r.width, r.height), s = document.createElement('span');
     s.className = 'cj-rip'; s.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (e.clientX - r.left - d / 2) + 'px;top:' + (e.clientY - r.top - d / 2) + 'px';
     b.appendChild(s); setTimeout(function () { s.remove(); }, 650);
   });
 
   /* ---- toast ---- */
-  var tt, toastEl;
+  var tt, toastEl, CK = '<svg class="mo-ck" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5" pathLength="1"/><path d="M7.5 12.5l3 3 6-6.5" pathLength="1"/></svg>';
   window.cjToast = function (msg) {
-    if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'cj-toast'; toastEl.setAttribute('role', 'status'); document.body.appendChild(toastEl); }
-    toastEl.textContent = msg; toastEl.classList.add('on'); clearTimeout(tt); tt = setTimeout(function () { toastEl.classList.remove('on'); }, 2200);
+    if (!toastEl) {
+      toastEl = document.createElement('div'); toastEl.className = 'cj-toast'; toastEl.setAttribute('role', 'status');
+      toastEl.innerHTML = '<span class="cj-toast-i"></span><span class="cj-toast-t"></span><span class="cj-toast-bar"></span>';
+      document.body.appendChild(toastEl);
+    }
+    var ms = 2400;
+    toastEl.querySelector('.cj-toast-t').textContent = msg;
+    toastEl.querySelector('.cj-toast-i').innerHTML = !RM && /(saved|published|added|copied|done|updated|posted|shared|sent)/i.test(msg) ? CK : '';
+    toastEl.style.setProperty('--mo-ms', ms + 'ms');
+    toastEl.classList.remove('on'); void toastEl.offsetWidth; toastEl.classList.add('on');
+    clearTimeout(tt); tt = setTimeout(function () { toastEl.classList.remove('on'); }, ms);
   };
 
   /* ---- likes and pins: a small pop, and a few hearts rising when something becomes liked ---- */
@@ -62,7 +71,7 @@
   var paintTheme = function () {
     var dark = effective() === 'dark', meta = $('meta[name=theme-color]');
     if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
-    meta.content = dark ? '#0E1424' : '#F5F6F2';
+    meta.content = dark ? '#0D1F16' : '#FFF6EE';
     [].forEach.call(document.querySelectorAll('[data-ja-theme-toggle]'), function (b) {
       b.__jaBound = true;   // js/journeyai.js skips buttons already bound, so a click flips the theme once
       b.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme'); b.title = dark ? 'Switch to light theme' : 'Switch to dark theme';
@@ -129,7 +138,7 @@
         var on = p >= el._f - .015;
         if (on !== el.classList.contains('on')) {
           el.classList.toggle('on', on);
-          el._dot.setAttribute('fill', on ? '#F4A300' : 'var(--paper, #fff)'); el._dot.setAttribute('stroke', on ? '#14213D' : 'currentColor');
+          el._dot.setAttribute('fill', on ? '#E63457' : 'var(--paper, #fff)'); el._dot.setAttribute('stroke', on ? '#123524' : 'currentColor');
         }
       });
     };

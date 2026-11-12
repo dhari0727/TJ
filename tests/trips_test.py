@@ -31,7 +31,7 @@ def main():
     check("cost chart is an accessible SVG with a table fallback", 'role="img"' in html and 'class="tp-costtable"' in html)
     check("cost table total matches itinerary", re.search(r"Total</th><td></td><td>₹[\d,]+", html) is not None)
     check("print stylesheet linked", 'media="print"' in html and "journeyai-print.css" in html)
-    check("manifest and theme colour linked from the trip page", 'rel="manifest"' in html and 'content="#14213D"' in html)
+    check("manifest and theme colour linked from the trip page", 'rel="manifest"' in html and 'content="#123524"' in html)
     check("mobile action bar present (save, share, print, packing)", 'id="tpMobileBar"' in html and "data-tp-print" in html and "packing.php" in html)
     check("loading skeleton is emitted before content", html.find('id="tpLoading"') != -1 and html.find('id="tpLoading"') < html.find('class="tp-head"'))
     check("no browser alert() on the trip page", "alert(" not in html)
@@ -52,7 +52,7 @@ def main():
     except Exception:
         man = {}
     check("manifest.webmanifest is valid JSON", bool(man), m.text[:80])
-    check("manifest name and theme colour", man.get("name") == "JourneyAI" and man.get("theme_color") == "#14213D")
+    check("manifest name and theme colour", man.get("name") == "JourneyAI" and man.get("theme_color") == "#123524")
     sizes = {i.get("sizes") for i in man.get("icons", [])}
     check("manifest has SVG, 192 and 512 icons", {"any", "192x192", "512x512"} <= sizes, sizes)
     for ic in man.get("icons", []):

@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded',function(){
   new Chart(document.getElementById('bd'),{type:'doughnut',
     data:{labels:<?= json_encode(array_keys($breakdown)) ?>,
       datasets:[{data:<?= json_encode(array_values($breakdown)) ?>,
-        backgroundColor:['#31C6D4','#0E7C86','#0B3D4F','#FF7A59','#FF9E7A'],borderWidth:0}]},
+        backgroundColor:['#123524','#1E7B4F','#E63457','#B86E00','#B6E36B'],borderWidth:0}]},
     options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.label+': ₹'+c.raw.toLocaleString('en-IN')}}},cutout:'58%'}});
 });
 </script>

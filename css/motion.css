@@ -1,0 +1,165 @@
+/* JourneyAI motion layer. Calm, tactile, one idea at a time. Owned by the motion system.
+   Pairs with js/motion.js (API documented at the top of that file).
+
+   Rules this file keeps:
+   - colours come from the brand variables only (--gold, --indigo, --text, --surface, --bg, --hair)
+   - only transform, opacity, scale, translate, rotate and clip-style paint effects move; never width/height/top/left
+   - anything that hides content first (.mo-pre, .mo-img, .mo-pre-bar) is applied by JS only, under html.mo,
+     so with scripts off every page simply shows
+   - everything is switched off under prefers-reduced-motion and when printing */
+
+:root {
+  --mo-out: cubic-bezier(.16, 1, .3, 1);
+  --mo-in: cubic-bezier(.7, 0, .84, 0);
+  --mo-io: cubic-bezier(.65, 0, .35, 1);
+  --mo-spring: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ---------- 5. page transitions between same-origin pages (View Transitions API; ignored elsewhere) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  .ja-nav { view-transition-name: ja-nav; }
+  ::view-transition-group(ja-nav) { animation-duration: 0s; }
+  ::view-transition-old(root) { animation: mo-vt-out 130ms var(--mo-in) both; }
+  ::view-transition-new(root) { animation: mo-vt-in 340ms var(--mo-out) both; }
+}
+@keyframes mo-vt-out { to { opacity: 0; } }
+@keyframes mo-vt-in { from { opacity: 0; translate: 0 10px; } }
+
+/* ---------- 2. scroll reveals: the hidden start state exists only once JS has taken charge ---------- */
+html.mo .mo-pre { opacity: 0; }
+html.mo .mo-pre-bar { transform: scale(0, 1); }
+html.mo .mo-pre-bar-y { transform: scale(1, 0); }
+.mo-bar { transform-box: fill-box; transform-origin: left center; }
+.mo-bar-y { transform-box: fill-box; transform-origin: center bottom; }
+[data-count], .ins-figs dd, .ja-stat .n { font-variant-numeric: tabular-nums; }
+
+/* ---------- image fade-in on load (opacity only, so nothing shifts) ---------- */
+html.mo img.mo-img { opacity: 0; }
+html.mo img.mo-img.mo-img-in { opacity: 1; transition: opacity .55s var(--mo-out); }
+
+/* ---------- 4. photo treatment ---------- */
+.mo-frame { display: block; overflow: hidden; border-radius: 8px; }
+.mo-frame img { border-radius: 0 !important; }
+.dz-photo img, .pc-media img, .dz-mini-photo img, .dz-gphoto img, .tp-photo img, .pc-tile .cv {
+  transition: scale .9s var(--mo-out);
+}
+/* images that drift with scroll sit slightly larger so the drift never shows an edge */
+html.mo .mo-par { scale: 1.08; will-change: translate; }
+@media (hover: hover) {
+  .dz-card:hover .dz-photo img, .dz-mini:hover .dz-mini-photo img, .pc-card:hover .pc-media img,
+  .pc-tile:hover .cv, .ja-place-card:hover img { scale: 1.05; }
+  html.mo .dz-gphoto:hover .mo-par, html.mo .tp-photo:hover .mo-par { scale: 1.12; }
+}
+.dz-card:focus-within .dz-photo img, .pc-media:focus-visible img, .pc-tile:focus-visible .cv { scale: 1.05; }
+
+/* ---------- 3. tactile feedback ---------- */
+body.ja :is(.ja-btn, .ja-chip, .pc-chip, .pc-btn-sm, .dz-compare, .dz-iconbtn, .pc-act) {
+  transition: scale .16s var(--mo-out), transform .2s var(--mo-out), background-color .2s, border-color .2s, color .2s, box-shadow .2s, opacity .2s;
+}
+body.ja :is(.ja-btn, .ja-chip, .pc-chip, .pc-btn-sm, .dz-compare, .dz-iconbtn, .pc-act):active:not(:disabled) { scale: .97; transition-duration: .08s; }
+.ja-chip, .pc-btn-sm, .dz-iconbtn { position: relative; overflow: hidden; }
+.cj-rip { background: currentColor; opacity: .22; }
+
+/* chips answer a tap with a quick spring */
+.mo-spring { animation: mo-spring .34s var(--mo-spring); }
+@keyframes mo-spring { 0% { scale: 1; } 35% { scale: .93; } 70% { scale: 1.05; } 100% { scale: 1; } }
+
+/* small ring of dots when something is liked or pinned */
+.mo-burst-dot { position: fixed; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--gold); pointer-events: none; z-index: 300; }
+
+/* compare toggle: a little switch whose knob slides */
+@property --mo-k { syntax: "<length>"; inherits: false; initial-value: 7px; }
+.dz-compare::after {
+  content: ""; flex: none; width: 26px; height: 14px; border-radius: 99px; margin-left: 2px;
+  --mo-k: 7px;
+  background: radial-gradient(circle at var(--mo-k) 50%, var(--text) 4.5px, transparent 5px), var(--hair);
+  transition: --mo-k .28s var(--mo-spring), background-color .2s;
+}
+.dz-compare.on::after, .dz-compare[aria-pressed="true"]::after {
+  --mo-k: 19px;
+  background: radial-gradient(circle at var(--mo-k) 50%, var(--bg) 4.5px, transparent 5px), var(--gold);
+}
+
+/* hearts and bookmarks fill rather than swap */
+.dz-save .dz-iconbtn svg, #tpSave svg { transition: fill .25s var(--mo-out), scale .3s var(--mo-spring); }
+.dz-save .dz-iconbtn.mo-saving svg, #tpSave.mo-saving svg { fill: currentColor; scale: 1.2; }
+.dz-save .dz-iconbtn.mo-saving, #tpSave.mo-saving { animation: mo-spring .4s var(--mo-spring); }
+
+/* focus glow on form fields */
+.ja input:not([type=checkbox]):not([type=radio]):not([type=range]), .ja select, .ja textarea {
+  transition: border-color .2s, box-shadow .25s var(--mo-out), background-color .2s;
+}
+.ja-field > label, .dz-field > label { transition: color .2s; }
+.ja-field:focus-within > label, .dz-field:focus-within > label { color: var(--gold-ink); }
+
+/* theme: colours cross-fade for a moment, and the icon turns in */
+html.mo-theming, html.mo-theming *, html.mo-theming *::before, html.mo-theming *::after {
+  transition: background-color .4s var(--mo-io), color .4s var(--mo-io), border-color .4s var(--mo-io), fill .4s var(--mo-io), stroke .4s var(--mo-io), box-shadow .4s var(--mo-io) !important;
+}
+
+/* success check that draws itself (JS sets pathLength=1 on the strokes) */
+.mo-ck circle, .mo-ck path, .mo-ck polyline { stroke-dasharray: 1; stroke-dashoffset: 1; animation: mo-draw .38s var(--mo-out) .05s forwards; }
+.mo-ck path, .mo-ck polyline { animation-duration: .3s; animation-delay: .28s; }
+@keyframes mo-draw { to { stroke-dashoffset: 0; } }
+
+/* toast: slides up with a spring, leaves quickly, and a thin bar shows how long it stays */
+.cj-toast {
+  background: var(--text); color: var(--bg); display: flex; align-items: center; gap: 10px; overflow: hidden;
+  opacity: 0; transform: translate(-50%, 28px) scale(.97); pointer-events: none;
+  transition: transform .3s var(--mo-in), opacity .22s ease;
+}
+.cj-toast.on { opacity: 1; transform: translate(-50%, 0) scale(1); transition: transform .5s var(--mo-spring), opacity .25s ease; }
+.cj-toast-i { display: inline-flex; color: var(--gold); }
+.cj-toast-i:empty { display: none; }
+.cj-toast-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--gold); transform-origin: left; transform: scaleX(0); }
+.cj-toast.on .cj-toast-bar { animation: mo-bar var(--mo-ms, 2200ms) linear forwards; }
+@keyframes mo-bar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.tp-toast { animation: mo-toast-in .45s var(--mo-spring) both; overflow: hidden; }
+.tp-toast::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--gold); transform-origin: left; animation: mo-bar 4s linear forwards; }
+@keyframes mo-toast-in { from { opacity: 0; translate: 0 24px; } }
+
+/* skeletons: a soft light sweeps across (transform only) */
+.mo-skel { position: relative; overflow: hidden; background: var(--bg-2); border-radius: 8px; }
+.mo-skel::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 9%, transparent), transparent);
+  animation: mo-shim 1.4s var(--mo-io) infinite;
+}
+@keyframes mo-shim { to { transform: translateX(100%); } }
+
+/* command palette opens with a slight rise */
+.ja-pal:not([hidden]) .ja-pal-scrim { animation: mo-fade .2s ease-out both; }
+.ja-pal:not([hidden]) .ja-pal-box { animation: mo-pal .3s var(--mo-out) both; }
+@keyframes mo-fade { from { opacity: 0; } }
+@keyframes mo-pal { from { opacity: 0; translate: 0 10px; scale: .985; } }
+
+/* ---------- 6. scroll progress ---------- */
+.mo-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 400; background: var(--gold);
+  transform-origin: left; transform: scaleX(0); pointer-events: none; opacity: 0; transition: opacity .3s;
+}
+.mo-progress.on { opacity: 1; }
+
+/* ---------- 7. reduced motion and print: show everything, move nothing ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html.mo .mo-pre, html.mo .mo-pre-bar, html.mo .mo-pre-bar-y { opacity: 1 !important; transform: none !important; }
+  html.mo img.mo-img { opacity: 1 !important; }
+  html.mo .mo-par { scale: 1; translate: none !important; }
+  .dz-photo img, .pc-media img, .dz-mini-photo img, .dz-gphoto img, .tp-photo img, .pc-tile .cv,
+  body.ja :is(.ja-btn, .ja-chip, .pc-chip, .pc-btn-sm, .dz-compare, .dz-iconbtn, .pc-act),
+  .dz-compare::after, .cj-toast, .cj-toast.on, .ja input, .ja select, .ja textarea { transition: none !important; }
+  .dz-card:hover .dz-photo img, .pc-tile:hover .cv, .pc-card:hover .pc-media img, .dz-mini:hover .dz-mini-photo img { scale: 1 !important; }
+  body.ja :is(.ja-btn, .ja-chip, .pc-chip, .pc-btn-sm, .dz-compare, .dz-iconbtn, .pc-act):active { scale: 1 !important; }
+  .mo-spring, .dz-save .dz-iconbtn.mo-saving, #tpSave.mo-saving, .tp-toast, .ja-pal-box, .ja-pal-scrim { animation: none !important; }
+  .mo-skel::after, .cj-toast-bar, .tp-toast::after { animation: none !important; }
+  .mo-ck circle, .mo-ck path, .mo-ck polyline { animation: none; stroke-dashoffset: 0; }
+  .mo-progress { transition: none; }
+}
+@media print {
+  .mo-progress, .cj-toast, .mo-burst-dot { display: none !important; }
+  html.mo .mo-pre, html.mo .mo-pre-bar, html.mo .mo-pre-bar-y { opacity: 1 !important; transform: none !important; }
+  html.mo img.mo-img { opacity: 1 !important; }
+  html.mo .mo-par { scale: 1; translate: none !important; }
+  .dz-compare::after { display: none; }
+}
