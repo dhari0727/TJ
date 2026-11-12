@@ -13,6 +13,8 @@ $ja_pal_pages = [];
 foreach (($ja_pal_in ? $ja_side_nav : $ja_public_nav) as [$k, $href, $ic, $lbl]) $ja_pal_pages[] = ['label' => $lbl, 'href' => $href];
 if ($ja_pal_in) {
     $ja_pal_pages[] = ['label' => 'Write a new journal', 'href' => 'new-entry.php'];
+    $ja_pal_pages[] = ['label' => 'Take a photo', 'href' => 'camera.php'];
+    $ja_pal_pages[] = ['label' => 'Private photos', 'href' => 'camera-roll.php'];
     $ja_pal_pages[] = ['label' => 'Your profile', 'href' => 'profile.php'];
 } else {
     $ja_pal_pages[] = ['label' => 'Log in', 'href' => 'login.php'];

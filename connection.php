@@ -38,7 +38,7 @@ if (!headers_sent()) {
         . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com data:; "
         . "img-src 'self' data: blob: https:; media-src 'self' blob:; connect-src 'self' https://nominatim.openstreetmap.org https://cdn.jsdelivr.net; "
         . "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'");
-    header('Permissions-Policy: camera=(), microphone=(), payment=(), usb=()');
+    header('Permissions-Policy: camera=(self), microphone=(), payment=(), usb=()');   // camera: the in-site Camera page
     header('Cross-Origin-Opener-Policy: same-origin');
 }
 

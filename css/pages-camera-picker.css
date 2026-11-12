@@ -1,0 +1,79 @@
+/* Camera roll picker. Uses the brand tokens when a page has them and falls back to the same palette when it does not
+   (the storybook editor loads its own stylesheet), so the dialog looks the same everywhere, light and dark. */
+.cp-overlay{
+  --cp-bg:var(--surface,#fff); --cp-bg2:var(--bg-2,#FFE9DC); --cp-text:var(--text,#1B2A21); --cp-dim:var(--text-dim,#3F5547);
+  --cp-line:var(--hair,rgba(18,53,36,.16)); --cp-accent:var(--gold,#D42B4E); --cp-on:var(--on-gold,#fff); --cp-ink:var(--indigo,#123524);
+  --cp-ring:var(--soft-ring,0 0 0 4px rgba(230,52,87,.26));
+  position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:rgba(13,31,22,.62);font-family:var(--font-body,"Instrument Sans","Segoe UI",system-ui,sans-serif);
+  animation:cp-fade .18s ease both}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cp-overlay{
+  --cp-bg:var(--surface,#142A1F); --cp-bg2:var(--bg-2,#14291E); --cp-text:var(--text,#F4EBD9); --cp-dim:var(--text-dim,#BFD0C4);
+  --cp-line:var(--hair,rgba(244,235,217,.16)); --cp-accent:var(--gold,#FF5A78); --cp-on:var(--on-gold,#0D1F16); --cp-ink:var(--indigo,#F4EBD9)}}
+:root[data-theme="dark"] .cp-overlay{
+  --cp-bg:var(--surface,#142A1F); --cp-bg2:var(--bg-2,#14291E); --cp-text:var(--text,#F4EBD9); --cp-dim:var(--text-dim,#BFD0C4);
+  --cp-line:var(--hair,rgba(244,235,217,.16)); --cp-accent:var(--gold,#FF5A78); --cp-on:var(--on-gold,#0D1F16); --cp-ink:var(--indigo,#F4EBD9)}
+html.cp-lock{overflow:hidden}
+.cp-dialog{width:min(860px,100%);max-height:min(720px,100%);display:flex;flex-direction:column;background:var(--cp-bg);color:var(--cp-text);
+  border:1px solid var(--cp-line);border-radius:16px;box-shadow:0 30px 70px rgba(0,0,0,.35);overflow:hidden;animation:cp-rise .22s cubic-bezier(.2,.8,.2,1) both}
+.cp-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 0}
+.cp-title{margin:0;font-family:var(--font-display,Fraunces,Georgia,serif);font-weight:600;font-size:1.3rem;letter-spacing:-.01em;color:var(--cp-text)}
+.cp-x{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--cp-line);background:transparent;color:var(--cp-text);cursor:pointer}
+.cp-x:hover{background:var(--cp-bg2)}
+.cp-note{margin:6px 18px 12px;font-size:.88rem;line-height:1.45;color:var(--cp-dim);max-width:62ch}
+.cp-tabs{display:flex;gap:8px;padding:0 18px 12px;overflow-x:auto;scrollbar-width:thin;border-bottom:1px solid var(--cp-line)}
+.cp-tab{flex:none;display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:6px 14px;border-radius:999px;border:1px solid var(--cp-line);
+  background:transparent;color:var(--cp-text);font-weight:600;font-size:.86rem;line-height:1;font-family:inherit;cursor:pointer;white-space:nowrap}
+.cp-tab small{font-size:.74rem;font-weight:600;color:var(--cp-dim);font-variant-numeric:tabular-nums}
+.cp-tab:hover{background:var(--cp-bg2)}
+.cp-tab.on{background:var(--cp-ink);border-color:var(--cp-ink);color:var(--cp-bg)}
+.cp-tab.on small{color:inherit;opacity:.8}
+.cp-body{flex:1;min-height:200px;overflow:auto;padding:16px 18px;overscroll-behavior:contain}
+.cp-status{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:26px 10px;color:var(--cp-dim)}
+.cp-status[hidden]{display:none}
+.cp-status p{margin:0;max-width:46ch;line-height:1.5}
+.cp-status.loading p::after{content:"";display:inline-block;width:.9em;height:.9em;margin-left:.6em;vertical-align:-.1em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:cp-spin .8s linear infinite}
+.cp-status.error p{color:var(--cp-text);border-left:3px solid var(--cp-accent);padding-left:12px;text-align:left}
+.cp-status.empty svg{color:var(--cp-accent)}
+.cp-empty-h{font-family:var(--font-display,Fraunces,Georgia,serif);font-size:1.2rem;color:var(--cp-text)}
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.cp-tile{position:relative;aspect-ratio:1;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:var(--cp-bg2);cursor:pointer;
+  transition:transform .15s ease,border-color .15s ease}
+.cp-tile img{display:block;width:100%;height:100%;object-fit:cover}
+.cp-tile:hover{transform:translateY(-2px)}
+.cp-tile.on{border-color:var(--cp-accent);box-shadow:var(--cp-ring)}
+.cp-tile:focus-visible,.cp-tab:focus-visible,.cp-x:focus-visible,.cp-btn:focus-visible,.cp-take:focus-visible,.cp-more:focus-visible{outline:3px solid var(--cp-accent);outline-offset:2px}
+.cp-tick{position:absolute;top:6px;right:6px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--cp-accent);color:var(--cp-on);
+  transform:scale(0);transition:transform .16s cubic-bezier(.3,1.5,.5,1)}
+.cp-tile.on .cp-tick{transform:scale(1)}
+.cp-cap{position:absolute;left:0;right:0;bottom:0;padding:18px 8px 6px;text-align:left;font-size:.74rem;line-height:1.25;color:#fff;
+  background:linear-gradient(transparent,rgba(0,0,0,.62));overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cp-more{display:block;margin:14px auto 0;min-height:42px;padding:8px 18px;border-radius:10px;border:1px solid var(--cp-line);background:transparent;color:var(--cp-text);font-weight:600;font-size:.88rem;font-family:inherit;cursor:pointer}
+.cp-more:hover{background:var(--cp-bg2)}
+.cp-more[hidden]{display:none}
+.cp-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;padding:12px 18px;border-top:1px solid var(--cp-line);background:var(--cp-bg)}
+.cp-take{display:inline-flex;align-items:center;gap:8px;min-height:42px;font-weight:600;font-size:.9rem;color:var(--cp-text);text-decoration:underline;text-underline-offset:3px}
+.cp-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.cp-count{font-size:.86rem;color:var(--cp-dim);font-variant-numeric:tabular-nums}
+.cp-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;border-radius:10px;border:1px solid transparent;
+  font-weight:600;font-size:.92rem;font-family:inherit;cursor:pointer;text-decoration:none}
+.cp-primary{background:var(--cp-accent);color:var(--cp-on)}
+.cp-primary:hover:not(:disabled){filter:brightness(.93)}
+.cp-primary:disabled{opacity:.45;cursor:not-allowed}
+.cp-ghost{background:transparent;border-color:var(--cp-line);color:var(--cp-text)}
+.cp-ghost:hover{background:var(--cp-bg2)}
+/* photo rows added to a form after picking */
+.pw-file.cp-picked .nm small{display:block}
+@media (max-width:560px){
+  .cp-overlay{padding:0;align-items:flex-end}
+  .cp-dialog{max-height:94vh;border-radius:16px 16px 0 0;border-bottom:0}
+  .cp-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .cp-acts{width:100%}.cp-acts .cp-primary{flex:1}
+}
+@keyframes cp-fade{from{opacity:0}to{opacity:1}}
+@keyframes cp-rise{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes cp-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.cp-overlay,.cp-dialog{animation:none}.cp-tile,.cp-tick{transition:none}.cp-status.loading p::after{animation:none}}
+.pw-camera-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
+.pw-camera-row .ja-btn{display:inline-flex;align-items:center;gap:8px}
+.pw-camera-row .hint{margin:0;font-size:.82rem}

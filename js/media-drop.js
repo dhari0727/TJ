@@ -55,7 +55,15 @@
       var picked = Array.prototype.slice.call(input.files); add(picked);
     });
 
+    var cam = null;
+    if (o.camera && window.jaCameraPicker) {
+      var cl = document.createElement('ul'); cl.className = 'pw-files'; list.parentNode.insertBefore(cl, list.nextSibling);
+      cam = window.jaCameraPicker.attach({ button: o.camera, list: cl, captions: !!o.captions, onchange: o.onchange ? function () { o.onchange(items.filter(function (i) { return !i.err; })); } : null });
+    }
+
     return {
+      cameraCount: function () { return cam ? cam.count() : 0; },
+      resetCamera: function () { if (cam) cam.reset(); },
       files: function () { return items.filter(function (i) { return !i.err; }); },
       hasErrors: function () { return items.some(function (i) { return i.err; }); },
       /* fraction 0..1 of the whole upload; files are sent in order so each gets its own slice of the bytes */

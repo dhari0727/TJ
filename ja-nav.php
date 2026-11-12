@@ -14,6 +14,8 @@ $ja_side_nav = [
   ['plan',      'plan-trip.php',    'search',  'Plan a trip'],
   ['plans',     'my-plans.php',     'wallet',  'My trips'],
   ['entries',   'my-entries.php',   'book',    'My journal'],
+  ['camera',    'camera.php',       'camera',  'Camera'],
+  ['roll',      'camera-roll.php',  'images',  'Camera roll'],
   ['feed',      'feed.php',         'heart',   'Community'],
   ['analytics', 'analytics.php',    'chart',   'Insights'],
 ];

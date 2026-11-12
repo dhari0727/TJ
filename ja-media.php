@@ -164,3 +164,75 @@ function ja_user_photo_for($conn, $place) {
     $row = mysqli_fetch_assoc(mysqli_stmt_get_result($s)); mysqli_stmt_close($s);
     return $row ?: null;
 }
+
+/* ---------- photos picked from the private camera roll ----------
+   The camera roll's "use" action copies a framed photo into the public uploads/ folder and records the
+   path in $_SESSION['cam_used']. Anything that accepts such a path must go through ja_picked_path_ok(). */
+
+/** Remember a path that the camera roll's "use" action produced for this session. */
+function ja_cam_register($path) {
+    require_once __DIR__ . '/ja-lib.php';
+    $p = ja_safe_media_path($path);
+    if ($p === null || $p === '') return;
+    if (!isset($_SESSION['cam_used']) || !is_array($_SESSION['cam_used'])) $_SESSION['cam_used'] = [];
+    $_SESSION['cam_used'][$p] = time();
+    if (count($_SESSION['cam_used']) > 300) $_SESSION['cam_used'] = array_slice($_SESSION['cam_used'], -300, null, true);
+}
+
+/**
+ * Is this public path one the current user may attach? Returns the clean path, or null.
+ * It must be a normal uploads/ image path, the file must really exist inside uploads/, and it must either be
+ * a copy the camera roll made for this session or already belong to the user's own media.
+ */
+function ja_picked_path_ok($conn, $path, $eml) {
+    require_once __DIR__ . '/ja-lib.php';
+    $p = ja_safe_media_path($path);
+    if ($p === null || $p === '') return null;
+    $abs = realpath(__DIR__ . '/' . $p); $root = realpath(JA_UPLOAD_DIR);
+    if ($abs === false || $root === false || strpos($abs, $root . DIRECTORY_SEPARATOR) !== 0 || !is_file($abs)) return null;
+    if (isset($_SESSION['cam_used'][$p])) return $p;
+    $s = mysqli_prepare($conn, "SELECT 1 FROM media WHERE filepath = ? AND eml = ? LIMIT 1");
+    mysqli_stmt_bind_param($s, 'ss', $p, $eml); mysqli_stmt_execute($s);
+    $own = mysqli_stmt_get_result($s)->num_rows > 0; mysqli_stmt_close($s);
+    return $own ? $p : null;
+}
+
+/** Attach an already-public camera-roll copy like an upload: validates, then inserts the media row. Returns [media_id, error]. */
+function ja_attach_picked($conn, $path, $eml, $entry_id = null, $caption = '', $destination = null, $is_public = 1, $lat = null, $lon = null) {
+    $p = ja_picked_path_ok($conn, $path, $eml);
+    if ($p === null) return [null, 'That photo is not available. Pick it again from your camera roll.'];
+    require_once __DIR__ . '/ja-trust.php';
+    $trust = ja_trust($eml);
+    if ($is_public && !$trust['can_publish']) $is_public = 0;
+    $abs = __DIR__ . '/' . $p;
+    $bytes = (int)@filesize($abs); $sha = hash_file('sha256', $abs);
+    $e = mysqli_real_escape_string($conn, $eml);
+    $used = (int)mysqli_fetch_row(mysqli_query($conn, "SELECT COALESCE(SUM(bytes),0) FROM media WHERE eml='$e'"))[0];
+    $q0 = mysqli_prepare($conn, "SELECT 1 FROM media WHERE filepath = ? AND eml = ? LIMIT 1");
+    mysqli_stmt_bind_param($q0, 'ss', $p, $eml); mysqli_stmt_execute($q0);
+    $known = mysqli_stmt_get_result($q0)->num_rows > 0; mysqli_stmt_close($q0);
+    if (!$known && $used + $bytes > JA_USER_QUOTA) return [null, 'Storage limit reached (400 MB). Delete some media first.'];
+    $lat = ($lat === null || $lat === '') ? null : max(-90, min(90, (float)$lat));
+    $lon = ($lon === null || $lon === '') ? null : max(-180, min(180, (float)$lon));
+    $caption = mb_substr((string)$caption, 0, 500);
+    $mod = $is_public ? ja_moderation_for($eml) : ['status' => 'approved', 'reason' => null];
+    $status = $mod['status'] ?: 'pending'; $reason = $mod['reason'];
+    // the camera roll already made a private media row for this copy: reuse it instead of storing the file twice
+    $q = mysqli_prepare($conn, "SELECT media_id FROM media WHERE filepath = ? AND eml = ? AND entry_id IS NULL AND book_id IS NULL LIMIT 1");
+    mysqli_stmt_bind_param($q, 'ss', $p, $eml); mysqli_stmt_execute($q);
+    $ex = mysqli_fetch_row(mysqli_stmt_get_result($q)); mysqli_stmt_close($q);
+    if ($ex) {
+        $mid = (int)$ex[0];
+        $s = mysqli_prepare($conn, "UPDATE media SET entry_id=?, caption=?, destination=?, lat=?, lon=?, is_public=?, moderation_status=?, mod_reason=? WHERE media_id=? AND eml=?");
+        mysqli_stmt_bind_param($s, 'issddissis', $entry_id, $caption, $destination, $lat, $lon, $is_public, $status, $reason, $mid, $eml);
+        mysqli_stmt_execute($s); mysqli_stmt_close($s);
+    } else {
+        $s = mysqli_prepare($conn,
+            "INSERT INTO media (entry_id, eml, kind, filepath, caption, destination, lat, lon, is_public, moderation_status, mod_reason, sha256, bytes)
+             VALUES (?,?,'photo',?,?,?,?,?,?,?,?,?,?)");
+        mysqli_stmt_bind_param($s, 'issssddisssi', $entry_id, $eml, $p, $caption, $destination, $lat, $lon, $is_public, $status, $reason, $sha, $bytes);
+        mysqli_stmt_execute($s); $mid = mysqli_insert_id($conn); mysqli_stmt_close($s);
+    }
+    $tags = ja_extract_hashtags($caption); if ($tags) ja_save_hashtags($conn, $mid, $tags);
+    return [$mid, null];
+}

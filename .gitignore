@@ -33,3 +33,6 @@ ml/data/raw/
 config/
 logs/
 backups/
+
+# --- private camera roll photos (keep the deny-all .htaccess files) ---
+private/camera/*/

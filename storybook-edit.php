@@ -62,6 +62,7 @@ $theme = htmlspecialchars($book['theme']);
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Serif+Display&family=Lora:wght@400;600&family=Caveat:wght@400;600&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/storybook.css">
+  <link rel="stylesheet" href="css/pages-camera-picker.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-camera-picker.css') ?>">
 <script src="js/csrf.js"></script>
 </head>
 <body>
@@ -73,6 +74,7 @@ $theme = htmlspecialchars($book['theme']);
       <a href="my-storybooks.php">My Storybooks</a> / <?= $bookTitle ?>
     </span>
     <div class="sb-toolbar-actions">
+      <button class="sb-btn sb-btn-sm" id="sbCameraBtn" type="button" title="Add photos from your private camera roll">From my camera roll</button>
       <button class="sb-btn sb-btn-sm" id="sbEmojiBtn" type="button">Emojis</button>
       <button class="sb-btn sb-btn-sm" id="sbThemeBtn" type="button">Theme</button>
       <a href="storybook-view.php?id=<?= $book_id ?>" class="sb-btn sb-btn-sm" target="_blank">View</a>
@@ -174,6 +176,7 @@ $theme = htmlspecialchars($book['theme']);
   </div>
 
 </div><!-- .sb-shell -->
+<script src="js/camera-picker.js?v=<?= (int)@filemtime(__DIR__ . '/js/camera-picker.js') ?>"></script>
 <script>
 (function(){
   var API = 'storybook-api.php';
@@ -399,7 +402,55 @@ $theme = htmlspecialchars($book['theme']);
     wrap.insertBefore(badge, page);
     var pr = makePrompts(pg); if (pr) wrap.appendChild(pr);
     canvas.innerHTML=''; canvas.appendChild(wrap);
+    var pickRow = document.createElement('div'); pickRow.className = 'sb-pick-row';
+    pickRow.style.cssText = 'display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px';
+    var pickBtn = document.createElement('button'); pickBtn.type = 'button'; pickBtn.className = 'sb-btn sb-btn-sm'; pickBtn.textContent = 'From my camera roll';
+    pickBtn.addEventListener('click', openCameraPicker);
+    var pickHint = document.createElement('span'); pickHint.className = 'sb-pick-msg'; pickHint.setAttribute('role', 'status'); pickHint.style.cssText = 'font-size:.78rem;color:var(--sb-text-dim)';
+    pickHint.textContent = slotsFor(pg).length ? 'Fills empty photo spots first, then adds new pages.' : 'Each photo becomes a new page.';
+    pickRow.appendChild(pickBtn); pickRow.appendChild(pickHint); canvas.appendChild(pickRow);
   }
+  // ---- camera roll: picked photos fill empty photo spots, extras become new photo pages ----
+  function slotsFor(pg) { return ({cover:[1],'photo-caption':[1],'two-photo':[1,2],photos:[1,2,3,4]})[pg && pg.template] || []; }
+  function pickMsg(t) { var m = document.querySelector('.sb-pick-msg'); if (m) m.textContent = t; }
+  function setPhoto(pg, n, it) {
+    var f = {action:'update_page', page_id:pg.page_id}; f['photo_'+n] = it.path;
+    if (it.caption) f['photo_'+n+'_cap'] = it.caption;
+    return apiPost(f).then(function(res){
+      if (res && res.ok) { pg['photo_'+n] = it.path; if (it.caption) pg['photo_'+n+'_cap'] = it.caption; return true; }
+      throw new Error((res && res.error) || 'The photo could not be added.');
+    });
+  }
+  function newPhotoPage(it) {
+    return apiPost({action:'add_page', book_id:BOOK_ID, template:'photo-caption'}).then(function(res){
+      if (!res || !res.page_id) throw new Error((res && res.error) || 'A new page could not be added.');
+      var pg = {page_id:res.page_id,sort_order:res.sort_order,template:'photo-caption',title:'',body_text:'',page_date:'',photo_1:null,photo_1_cap:null,photo_2:null,photo_2_cap:null,photo_3:null,photo_3_cap:null,photo_4:null,photo_4_cap:null,decorations:null,cost_entry_id:null};
+      pages.push(pg);
+      return setPhoto(pg, 1, it);
+    });
+  }
+  function applyPicked(items) {
+    var cur = pages[activePageIdx], free = slotsFor(cur).filter(function(n){ return !cur['photo_'+n]; }), chain = Promise.resolve(), ok = 0, firstNew = -1;
+    pickMsg('Adding ' + items.length + (items.length === 1 ? ' photo' : ' photos') + '...');
+    items.forEach(function(it){
+      var n = free.length ? free.shift() : 0;
+      chain = chain.then(function(){
+        if (n) return setPhoto(cur, n, it).then(function(){ ok++; });
+        return newPhotoPage(it).then(function(){ ok++; if (firstNew < 0) firstNew = pages.length - 1; });
+      }).catch(function(e){ pickMsg(e.message || 'One photo could not be added.'); });
+    });
+    chain.then(function(){
+      if (firstNew >= 0 && !slotsFor(cur).length) activePageIdx = firstNew;
+      renderThumbs(); renderCanvas();
+      pickMsg(ok === items.length ? ok + (ok === 1 ? ' photo added.' : ' photos added.') : ok + ' of ' + items.length + ' added.');
+    });
+  }
+  function openCameraPicker() {
+    if (!window.jaCameraPicker) return;
+    window.jaCameraPicker.open({multiple:true, onPick:applyPicked});
+  }
+  document.getElementById('sbCameraBtn').addEventListener('click', openCameraPicker);
+
   function addPage(template) {
     apiPost({action:'add_page', book_id:BOOK_ID, template:template}).then(function(res){
       if(res.page_id){

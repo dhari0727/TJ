@@ -22,7 +22,7 @@
   story.addEventListener('input', updateCounts); updateCounts();
 
   /* ---------- drafts ---------- */
-  var SKIP = { csrf: 1, media_lat: 1, media_lon: 1, 'media[]': 1, 'media_caption[]': 1 };
+  var SKIP = { csrf: 1, media_lat: 1, media_lon: 1, 'media[]': 1, 'media_caption[]': 1, 'picked[]': 1, 'picked_caption[]': 1 };
   function fields() { return Array.prototype.filter.call(form.elements, function (el) { return el.name && !SKIP[el.name] && el.type !== 'file' && el.type !== 'submit' && el.type !== 'button'; }); }
   function stamp() { return new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
   function setState(cls, text) { state.className = 'pw-state ' + cls; stateTxt.textContent = text; }
@@ -51,11 +51,11 @@
   } catch (e) {}
   $('pwDiscard').addEventListener('click', function () {
     try { localStorage.removeItem(KEY); } catch (e) {}
-    form.reset(); updateCounts(); rest.hidden = true; setState('', 'Draft discarded'); form.elements['title'].focus();
+    form.reset(); drop.resetCamera(); updateCounts(); rest.hidden = true; setState('', 'Draft discarded'); form.elements['title'].focus();
   });
 
   /* ---------- photos ---------- */
-  var drop = PCDrop.init({ drop: $('mediaDrop'), input: $('mediaInput'), list: $('mediaList'), captions: true });
+  var drop = PCDrop.init({ drop: $('mediaDrop'), input: $('mediaInput'), list: $('mediaList'), captions: true, camera: $('cameraPick') });
 
   var geo = $('mediaGeoStatus');
   if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (pos) {

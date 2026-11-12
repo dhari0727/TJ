@@ -73,6 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($mid) $made++; elseif ($e) $errors[] = $f['name'] . ': ' . $e;
             }
         }
+        if (!empty($_POST['picked']) && is_array($_POST['picked'])) {
+            foreach (array_slice($_POST['picked'], 0, 20) as $pp) {
+                if (!is_string($pp)) continue;
+                [$mid, $e] = ja_attach_picked($conn, $pp, $em, $entryId ?: null, $caption, $place ?: null, $public, $lat, $lon);
+                if ($mid) $made++; elseif ($e) $errors[] = $e;
+            }
+        }
         if ($made) { $msg = $made . ($made === 1 ? ' post' : ' posts') . ' shared.' . ($public ? ' It is live in the Feed.' : ' It is private to you.'); }
         if ($errors) $err = implode(' ', $errors);
         if (!$made && !$errors) $err = 'Choose at least one photo or video.';
@@ -90,7 +97,8 @@ $mine = mysqli_fetch_all(mysqli_stmt_get_result($q), MYSQLI_ASSOC); mysqli_stmt_
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
-<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>">
+<link rel="stylesheet" href="css/pages-camera-picker.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-camera-picker.css') ?>"></head>
 <body class="ja">
 <div class="ja-pagehead pc-head"><div class="ja-container">
   <h1>Community</h1>
@@ -112,6 +120,8 @@ $mine = mysqli_fetch_all(mysqli_stmt_get_result($q), MYSQLI_ASSOC); mysqli_stmt_
       <span>JPG, PNG, WEBP, MP4 or WEBM, up to 40 MB each</span>
       <input type="file" name="media[]" id="mediaInput" accept="image/*,video/*" multiple hidden>
     </div>
+    <div class="pw-camera-row"><button type="button" class="ja-btn ja-btn-ghost" id="cameraPick"><?= ja_icon('camera', 18) ?> From my camera roll</button>
+      <span class="pc-muted">Your originals stay private.</span></div>
     <ul id="mediaList" class="pw-files"></ul>
     <div class="ja-field" style="margin-top:16px"><label for="sh-cap">Caption <span class="pc-muted">(add #hashtags like #goa #sunset)</span></label>
       <textarea class="ja-input" id="sh-cap" name="caption" rows="3" maxlength="480" placeholder="What is the story behind this shot?"></textarea></div>
@@ -149,10 +159,11 @@ $mine = mysqli_fetch_all(mysqli_stmt_get_result($q), MYSQLI_ASSOC); mysqli_stmt_
   </div>
 </div></main>
 
+<script src="js/camera-picker.js?v=<?= (int)@filemtime(__DIR__ . '/js/camera-picker.js') ?>"></script>
 <script src="js/media-drop.js?v=<?= (int)@filemtime(__DIR__ . '/js/media-drop.js') ?>"></script>
 <script>
 (function(){
-  PCDrop.init({drop:document.getElementById('mediaDrop'),input:document.getElementById('mediaInput'),list:document.getElementById('mediaList'),captions:false});
+  PCDrop.init({drop:document.getElementById('mediaDrop'),input:document.getElementById('mediaInput'),list:document.getElementById('mediaList'),captions:false,camera:document.getElementById('cameraPick')});
   if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){document.getElementById('lat').value=p.coords.latitude;document.getElementById('lon').value=p.coords.longitude;},function(){},{maximumAge:300000,timeout:6000});
 })();
 </script>

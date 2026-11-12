@@ -25,7 +25,7 @@ DirectoryIndex index.php
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
-  Header always set Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+  Header always set Permissions-Policy "geolocation=(self), camera=(self), microphone=()"
 </IfModule>
 
 # ---- only when served over HTTPS: secure cookies + HSTS ----
@@ -43,7 +43,7 @@ DirectoryIndex index.php
 # ---- never serve internals: source data, models, secrets, SQL, docs, tests, logs ----
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(config|sql|ml|docs|ops|tests|logs|\.git)(/|$) - [F,L]
+  RewriteRule ^(config|sql|ml|docs|ops|tests|logs|private|\.git)(/|$) - [F,L]
   RewriteRule ^(\.git|\.env|composer\.(json|lock)) - [F,L]
 </IfModule>
 <FilesMatch "\.(sql|md|log|pkl|py|bat|ps1|sh|ini|key|lock|example|bak|old|swp)$">

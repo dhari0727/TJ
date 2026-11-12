@@ -79,6 +79,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ja_handle_upload($conn, $f, $em, $newId, $cap, $place, $postMedia, $mediaLat, $mediaLon);
             }
         }
+        // photos picked from the private camera roll: public copies made by the camera API, re-validated here
+        if (!empty($_POST['picked']) && is_array($_POST['picked'])) {
+            foreach (array_slice($_POST['picked'], 0, 20) as $i => $pp) {
+                if (!is_string($pp)) continue;
+                $cap = is_array($_POST['picked_caption'] ?? null) ? (string)($_POST['picked_caption'][$i] ?? '') : '';
+                ja_attach_picked($conn, $pp, $em, $newId, $cap, $place, $postMedia, $mediaLat, $mediaLon);
+            }
+        }
         if ($vis !== 'private') {
             $pr = ja_publish_journal($newId, $em, $vis);
             $_SESSION['ja_flash'] = $pr['ok'] ? ($pr['message'] ?: 'Saved.') : ('Saved privately. ' . $pr['message']);
@@ -94,7 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
-<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>">
+<link rel="stylesheet" href="css/pages-camera-picker.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-camera-picker.css') ?>"></head>
 <body class="ja">
 
 <div class="ja-pagehead pc-head">
@@ -160,6 +169,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <span>JPG, PNG, WEBP, MP4 or WEBM, up to 40 MB each</span>
           <input type="file" name="media[]" id="mediaInput" accept="image/*,video/*" multiple hidden>
         </div>
+        <div class="pw-camera-row"><button type="button" class="ja-btn ja-btn-ghost" id="cameraPick"><?= ja_icon('camera', 18) ?> From my camera roll</button>
+          <span class="hint">Polaroids you took in JourneyAI. Your originals stay private.</span></div>
         <ul id="mediaList" class="pw-files"></ul>
         <p id="mediaGeoStatus" class="pw-geo"></p>
         <input type="hidden" name="media_lat"><input type="hidden" name="media_lon">
@@ -225,6 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <script>window.PC_WRITE = { csrf: <?= json_encode(ja_csrf()) ?>, uid: <?= json_encode(substr(sha1(strtolower($em)), 0, 10)) ?> };</script>
+<script src="js/camera-picker.js?v=<?= (int)@filemtime(__DIR__ . '/js/camera-picker.js') ?>"></script>
 <script src="js/media-drop.js?v=<?= (int)@filemtime(__DIR__ . '/js/media-drop.js') ?>"></script>
 <script src="js/journal-writer.js?v=<?= (int)@filemtime(__DIR__ . '/js/journal-writer.js') ?>"></script>
 

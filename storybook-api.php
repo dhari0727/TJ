@@ -291,6 +291,21 @@ case 'update_page':
         if (isset($_POST[$ph])) {
             $safe = ja_safe_media_path($_POST[$ph]);
             if ($safe === null) sb_fail('Invalid photo.');
+            if ($safe !== '') {
+                // a new path must be a real image under uploads/ that this user owns or just copied from the camera roll
+                $cur = mysqli_prepare($conn, "SELECT $ph FROM storybook_pages WHERE page_id = ?");
+                mysqli_stmt_bind_param($cur, 'i', $page_id); mysqli_stmt_execute($cur);
+                $curRow = mysqli_fetch_row(mysqli_stmt_get_result($cur)); mysqli_stmt_close($cur);
+                if (!$curRow || $curRow[0] !== $safe) {
+                    if (ja_picked_path_ok($conn, $safe, $em) === null) sb_fail('That photo is not available. Pick it again.');
+                    // the camera roll's copy is already a media row for this user; tie it to this book so it is cleaned up with it
+                    $pb = sb_book_by_page($conn, $page_id);
+                    if ($pb) {
+                        $own = mysqli_prepare($conn, "UPDATE media SET book_id = ? WHERE filepath = ? AND eml = ? AND book_id IS NULL AND entry_id IS NULL");
+                        mysqli_stmt_bind_param($own, 'iss', $pb, $safe, $em); mysqli_stmt_execute($own); mysqli_stmt_close($own);
+                    }
+                }
+            }
             $fields[] = "$ph = ?";
             $types  .= 's';
             $vals[]  = $safe !== '' ? $safe : null;
