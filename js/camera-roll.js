@@ -13,6 +13,7 @@
     down: '<path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
     camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
     images: '<rect x="3" y="5" width="14" height="14" rx="2"/><path d="M21 8v11a2 2 0 0 1-2 2H8"/><circle cx="8" cy="10" r="1.5"/><path d="M17 15l-3.5-3.5L5 19"/>',
+    share: '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"/>',
     folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>', plus: '<path d="M12 5v14M5 12h14"/>'
   };
   function svg(n, s) { return '<svg xmlns="http://www.w3.org/2000/svg" width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + '</svg>'; }
@@ -334,9 +335,10 @@
     var meta = h('p', { class: 'cr-lb-meta' }), state = h('p', { class: 'cr-lb-state', role: 'status' });
     var dl = h('a', { class: 'cr-tool', html: svg('down', 16) + '<span>Download</span>' });
     var del = h('button', { type: 'button', class: 'cr-tool danger', html: svg('trash', 16) + '<span>Delete</span>' });
+    var shr = h('button', { type: 'button', class: 'cr-tool', html: svg('share', 16) + '<span>Share</span>' });
     var side = h('div', { class: 'cr-lb-side' }, [
       h('label', {}, ['Caption', cap]), h('label', {}, ['Place', place]), h('label', {}, ['Folder', fol]), meta,
-      h('div', { class: 'cr-lb-btns' }, [dl, del]), state
+      h('div', { class: 'cr-lb-btns' }, [dl, shr, del]), state
     ]);
     var stage = h('div', { class: 'cr-lb-stage' }, [img, prev, next, close]);
     var box = h('div', { class: 'cr-lb', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Photo' }, [stage, side]);
@@ -379,6 +381,17 @@
       });
     });
     del.addEventListener('click', function () { var p = cur_(); if (p) deletePhotos([p.id]); });
+    shr.addEventListener('click', function () {
+      var p = cur_(); if (!p || !window.JaSocial) { state.textContent = 'Sharing is not available right now.'; return; }
+      if (!confirm('This makes a public copy of the photo so it can be shared. Your original stays private in your camera roll. Continue?')) return;
+      shr.disabled = true; state.textContent = 'Making a public copy...';
+      api('use', { id: p.id }).then(function (d) {
+        shr.disabled = false;
+        if (!d.ok) { state.textContent = d.error || 'Could not make the copy.'; return; }
+        state.textContent = 'Public copy made. Your original is still private.';
+        window.JaSocial.openUpload(d.path);
+      });
+    });
     function key(e) {
       if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) && e.key !== 'Escape' && e.key !== 'Tab') return;
       if (e.key === 'Escape') { e.preventDefault(); closeLb(); }

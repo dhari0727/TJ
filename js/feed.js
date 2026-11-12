@@ -99,6 +99,7 @@
     var tags = document.getElementById('pcLbTags'); tags.textContent = '';
     (p.tags || []).forEach(function (t) { var a = h('a', null, '#' + t); a.href = 'feed.php?tag=' + encodeURIComponent(t); tags.appendChild(a); });
     var like = document.getElementById('pcLbLike'); like.dataset.mediaId = p.id;
+    var shr = document.getElementById('pcLbShare'); if (shr) shr.setAttribute('data-id', p.id);
     like.setAttribute('aria-pressed', p.liked ? 'true' : 'false'); like.querySelector('.n').textContent = p.likes;
     document.getElementById('pcLbCount').textContent = (idx + 1) + ' of ' + cards.length;
     var rep = document.getElementById('pcLbReportMsg'); if (rep) rep.textContent = '';

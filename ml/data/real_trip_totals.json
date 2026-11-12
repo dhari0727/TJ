@@ -1,0 +1,86 @@
+{
+  "_about": "Real, independently reported trip spend, hand-read from the cached source texts (ml/data/raw/tripoto, the app's own user journal). Used ONLY to validate the cost model, never to train it. in_scope_total = the author's total minus itemised inter-city travel / flights that the model deliberately does not price. per_person_per_day = in_scope_total / party / days. Nothing here is estimated or generated. old_catalog_base_daily_inr is a read-only snapshot of the previous catalog price (destinations.base_daily_cost before refresh), kept only as a comparison baseline.",
+  "trips": [
+    {
+      "id": "khajuraho_bike",
+      "destination": "Khajuraho, India",
+      "source": "Tripoto: Unplanned trip of KHAJURAHO and Kalinjar fort by BYKE",
+      "url": "https://www.tripoto.com/maharashtra/trips/unplanned-trip-of-khajuraho-and-kalinjar-fort-by-byke-5f7a01dbba5c0",
+      "days": 3,
+      "party": 2,
+      "reported_total": 7740,
+      "excluded": {
+        "own-bike fuel (500 + 500 + 700, itemised)": 1700
+      },
+      "in_scope_total": 6040,
+      "lodging_quote_per_night": 999,
+      "evidence": "Total expenses in. Whole trip = inr 7740 ... Expances per head inr 3870; hotel INR 999 per night; Fuel 500, 500, 500+200",
+      "old_catalog_base_daily_inr": 1400
+    },
+    {
+      "id": "kanpur_weekend",
+      "destination": "Kanpur, India",
+      "source": "Tripoto: KANPUR IS A PARADISE (3300INR)",
+      "url": "https://www.tripoto.com/kanpur/trips/kanpur-is-a-paradise-3300inr-5cb7789d8c13b",
+      "days": 2,
+      "party": 4,
+      "reported_total": 13000,
+      "excluded": {
+        "petrol (itemised)": 5000
+      },
+      "in_scope_total": 8000,
+      "lodging_quote_per_night": 2000,
+      "evidence": "Petrol 5000, Hotel 4000, Water park 800, All the food 3000, Total 13000, We were four people so 3300; 'so much food ... in two days'. Hotel 4000 for two nights = 2000 per night.",
+      "old_catalog_base_daily_inr": 2750
+    },
+    {
+      "id": "manali_budget_vlog",
+      "destination": "Manali, India",
+      "source": "Tripoto: Manali Low Budget Trip (4 days, 6 friends)",
+      "url": "https://www.tripoto.com/trip/4-days-winter-trip-to-manali-snowfall-solang-valley-sissu-route-hidden-villages-64868bef9c313357",
+      "days": 4,
+      "party": 6,
+      "reported_total_per_person": 6300,
+      "excluded": {
+        "Delhi-Manali-Delhi bus (itemised, per person)": 1300
+      },
+      "in_scope_total_per_person": 5000,
+      "lodging_quote_per_night": null,
+      "declared_style": "budget",
+      "evidence": "Approx Budget (Per Person): Bus 1300; Hotels (3-4 nights) 2500-3000; Food & Local Travel 1500; Jeep (Gramphoo trip) 750. In-scope = midpoint hotel 2750 + 1500 + 750 = 5000 per person for 4 days. Author calls it a 'Low Budget Trip'.",
+      "in_scope_total": 30000,
+      "old_catalog_base_daily_inr": 2600
+    },
+    {
+      "id": "leh_mmt_package",
+      "destination": "Leh, India",
+      "source": "Tripoto: 7-days in Leh-Ladakh (MakeMyTrip package)",
+      "url": "https://www.tripoto.com/trip/7-days-in-leh-ladakh-must-visit-place-in-india-5c1b6ece4d61a",
+      "days": 7,
+      "party": 2,
+      "reported_total": 83775,
+      "excluded": {
+        "return flights from Delhi (itemised)": 22230
+      },
+      "in_scope_total": 61545,
+      "lodging_quote_per_night": null,
+      "evidence": "whole vacation package through MakeMyTrip for 7 days and 7 nights trip for INR 83,775/- for two adults. This included return trips from Delhi (22,230/-) and hotel and sightseeing for 7 nights (61,545/-)."
+    },
+    {
+      "id": "matheran_user_journal",
+      "destination": "Matheran, India",
+      "source": "Journal 'Monsoon In Matheran' written by a real user of this app (account dharini@..., 2026-07-15 to 2026-07-18)",
+      "url": null,
+      "days": 3,
+      "party": 1,
+      "reported_total": 43000,
+      "excluded": {
+        "flight": 25000,
+        "train": 1500
+      },
+      "in_scope_total": 16500,
+      "lodging_quote_per_night": 2833,
+      "evidence": "Stay 8500 for 3 nights = 2833 per night. Expense fields: dinner 4500, taxi 1500, train 1500, flight 25000, others 2000, stay 8500. party size is not recorded; 1 assumed."
+    }
+  ]
+}

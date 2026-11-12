@@ -1,5 +1,14 @@
 # CLAUDE.md
 
+NOTE (current state, supersedes older sections below): this is now JourneyAI, a PHP 8 + MySQL + Flask ML app with a
+brand layer (css/journeyai-brand.css, motion.css), hashed passwords and one-time hashed reset/verify tokens, prepared
+statements, global CSRF, a trust/moderation layer, a private camera roll (private/camera, served by camera-img.php),
+social sharing and posting (ja-social-core.php, social/*.php), a real-data cost model (ml/cost, docs/COST_MODEL.md),
+stay recommender (ml/stay), similar destinations and journal authenticity scoring. Tests live in tests/ (run each with
+ml/venv/Scripts/python.exe tests/<name>.py, one at a time). Overview PDF: docs/JourneyAI_Master_Guide.pdf. Commit as
+"Dharini <dharinithakkar4@gmail.com>" only, with no co-author lines. The legacy notes below about plaintext passwords and
+string-interpolated SQL are outdated.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview

@@ -11,6 +11,7 @@ require_once 'ja-media.php';
 require_once 'ja-icons.php';
 require_once 'ja-lib.php';
 require_once 'ja-community-ui.php';
+require_once 'ja-social.php';
 $me = $_SESSION['eml'] ?? null;
 $id = (int)($_GET['id'] ?? 0);
 $token = (string)($_GET['token'] ?? '');
@@ -54,6 +55,7 @@ $photos = array_values(array_filter($media, function ($m) { return $m['kind'] !=
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
+<?php if ($allowed && $e['visibility'] === 'public' && $e['moderation_status'] === 'approved') { $ogItem = ja_social_item('journal', $id, null); if ($ogItem) ja_social_og(['title' => $ogItem['title'], 'description' => $ogItem['description'], 'image' => $ogItem['og_image'], 'image_alt' => $ogItem['images'][0]['alt'] ?? '', 'url' => 'journal.php?id=' . $id, 'type' => 'article']); } ?>
 <link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
 <?php if (!$allowed): ?>
@@ -147,6 +149,7 @@ $photos = array_values(array_filter($media, function ($m) { return $m['kind'] !=
 
       <div class="pr-cta">
         <a class="ja-btn ja-btn-primary" href="trip.php?dest=<?= urlencode($place) ?>&amp;days=<?= max(1, (int)$e['duration_days']) ?>"><?= ja_icon('compass', 16) ?> Plan a similar trip to <?= htmlspecialchars(explode(',', $place)[0]) ?></a>
+        <?= ja_social_button('journal', $id) ?>
       </div>
     </article>
   </div>

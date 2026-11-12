@@ -21,7 +21,8 @@ $dest  = mb_substr($dest, 0, 120);
 function est_one($name, $days, $party, $month, $style) {
     $c = ml_predict_cost(['destination' => $name, 'duration_days' => $days, 'party_size' => $party, 'month' => $month, 'travel_style' => $style]);
     if (!empty($c['__error'])) return ['__error' => $c['__error']];
-    return ['name' => $name, 'total' => (int)$c['predicted_cost'], 'low' => (int)$c['low'], 'high' => (int)$c['high'], 'per_day' => (int)$c['per_day']];
+    return ['name' => $name, 'total' => (int)$c['predicted_cost'], 'low' => (int)$c['low'], 'high' => (int)$c['high'], 'per_day' => (int)$c['per_day'],
+        'confidence' => (string)($c['confidence'] ?? ''), 'n_observations' => (int)($c['n_observations'] ?? 0)];
 }
 
 $out = ['status' => 'ok', 'days' => $days, 'party' => $party];

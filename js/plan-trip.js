@@ -57,6 +57,11 @@
     out.innerHTML = '<div class="dz-est-skel" aria-hidden="true"><i></i><i></i><i></i></div><span class="dz-sr">Estimating the cost</span>';
     out.setAttribute('aria-busy', 'true');
   }
+  function basisLine(e) {
+    if (!e || !e.confidence) return '';
+    if (e.confidence === 'regional estimate') return '<p class="dz-est-sub"><span class="dz-badge-reg">Regional estimate</span> No price reports for this exact place, so it uses prices from nearby places.</p>';
+    return '<p class="dz-est-sub">Based on ' + e.n_observations + ' price report' + (e.n_observations == 1 ? '' : 's') + ' for this place (' + esc(e.confidence) + ' confidence).</p>';
+  }
   function budgetLine(total) {
     var bud = parseInt(b.value, 10) || 0;
     if (!total) return '';
@@ -71,7 +76,7 @@
     if (d.mode === 'place') {
       var e = d.items[0];
       h = '<p class="dz-est-main"><strong>' + inr(e.low) + ' to ' + inr(e.high) + '</strong><span>' + esc(e.name.split(',')[0]) + ', ' + esc(meta) + '</span></p>' +
-          '<p class="dz-est-sub">Most likely ' + inr(e.total) + ', about ' + inr(e.per_day) + ' a day.</p>' + budgetLine(e.total);
+          '<p class="dz-est-sub">Most likely ' + inr(e.total) + ', about ' + inr(e.per_day) + ' a day.</p>' + basisLine(e) + budgetLine(e.total);
     } else {
       h = '<p class="dz-est-cap">' + esc(meta) + '</p><ul class="dz-est-list">' + d.items.map(function (e) {
         return '<li><span>' + esc(e.label) + '<em>' + esc(e.name.split(',')[0]) + '</em></span><b>' + inr(e.low) + ' to ' + inr(e.high) + '</b></li>';

@@ -161,9 +161,9 @@ $mn = ['','January','February','March','April','May','June','July','August','Sep
           <datalist id="cityList"><?php foreach ($cities as $c): ?><option value="<?= htmlspecialchars($c) ?>"><?php endforeach; ?></datalist>
         </div>
         <div class="dz-est-out" id="estOut" aria-live="polite">
-          <p class="dz-hint">Change days, travellers, month or budget and the estimate updates here.</p>
+          <p class="dz-hint">Change days, travellers, travel style or budget and the estimate updates here.</p>
         </div>
-        <p class="dz-hint dz-est-foot">From a cost model trained on real trip budgets. It prices the place, the length and the group size. Travel style barely moves it. Treat it as a guide, not a quote.</p>
+        <p class="dz-hint dz-est-foot">Built from about 2,100 real prices that travellers listed for stays, meals and entry fees. Travel style picks the price tier, so budget, mid-range and luxury give different totals; group size changes how many rooms and meals are counted. The month does not change it because we have no real seasonal prices. It leaves out getting there and shopping. Treat it as a guide, not a quote.</p>
       </aside>
     </div>
   </details>

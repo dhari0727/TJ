@@ -288,6 +288,8 @@ $qs = function ($extra = []) use ($tagFilter, $destFilter) {
     <div class="pc-tags" id="pcLbTags"></div>
     <div class="pc-actions">
       <button type="button" class="pc-act" id="pcLbLike" data-like aria-pressed="false" aria-label="Like this post"><?= ja_icon('heart', 17) ?><span class="n">0</span></button>
+      <?php require_once __DIR__ . '/ja-social.php'; echo ja_social_assets(); ?>
+      <button type="button" class="pc-act" id="pcLbShare" data-soc-open data-kind="post" data-id="0" aria-haspopup="dialog" aria-label="Share this post"><?= ja_social_icon('share', 17) ?><span class="n">Share</span></button>
     </div>
     <?php if ($eml): ?>
     <div class="pc-report"><label class="pc-sr" for="pcLbReport">Report this post</label><select id="pcLbReport" class="ja-report-select"><option value="">Report this post</option><option value="fake">Fake or misleading</option><option value="spam">Spam</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Not their photo</option></select><span id="pcLbReportMsg" class="pc-muted" role="status"></span></div>

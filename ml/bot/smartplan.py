@@ -15,6 +15,16 @@ from ml.geo.places import nearby_places, build_route, build_route_between, geoco
 from ml.cost.predict import predict_cost
 from ml.nlp.lexicon import CANONICAL_ACTIVITIES
 
+def _model_est(place, days, style):
+    """Cost for a plan with no catalog itinerary: the real-price model (India-wide prices when the place has no data
+    of its own). Replaces the old hand-set 1500/2500 per day guess."""
+    try:
+        c = predict_cost(place or "India", duration_days=days, travel_style=style or "mid-range")
+        return c["predicted_cost"], c.get("confidence")
+    except Exception:
+        return None, None
+
+
 _INTEREST_WORDS = {
     "temple": "temples", "temples": "temples", "spiritual": "temples", "religious": "temples",
     "food": "food", "eat": "food", "cuisine": "food", "restaurant": "food",
@@ -196,7 +206,7 @@ def plan(text, travel_style="mid-range"):
         itin = generate_itinerary(origin, days=days, travel_style=travel_style, party_size=1)
         if "error" not in itin:
             result.update({"itinerary": itin, "kind": "itinerary",
-                           "est_cost": itin.get("total_cost", days * 2500)})
+                           "est_cost": itin.get("total_cost"), "est_cost_confidence": itin.get("cost_confidence")})
             return result
         mode = "weekend"; days = 2; result["days"] = 2
 
@@ -210,7 +220,7 @@ def plan(text, travel_style="mid-range"):
         result["origin_geo"] = route.get("origin")
         result["destination_geo"] = route.get("destination")
         result["kind"] = "route_between"
-        result["est_cost"] = days * (1500 if travel_style == "budget" else 2500)
+        result["est_cost"], result["est_cost_confidence"] = _model_est(fixed_destination, days, travel_style)
     elif mode in ("day", "weekend"):
         # LOCAL trip -> real nearby places + a route
         route = build_route(origin, mode=mode, interests=interests, stops=min(6, max(3, days * 3)))
@@ -223,8 +233,7 @@ def plan(text, travel_style="mid-range"):
             result["route"] = route
             result["origin_geo"] = route.get("origin")
             result["kind"] = "route"
-        # rough cost = days * a daily local estimate
-        result["est_cost"] = days * (1500 if travel_style == "budget" else 2500)
+        result["est_cost"], result["est_cost_confidence"] = _model_est(origin, days, travel_style)
     else:
         # LONGER trip. If the user named a real, known destination (e.g. "3 days
         # in Dwarka"), build ITS itinerary directly — don't second-guess them
@@ -240,7 +249,8 @@ def plan(text, travel_style="mid-range"):
         if "error" not in itin:
             result["itinerary"] = itin
             result["kind"] = "itinerary"
-            result["est_cost"] = itin.get("total_cost", days * (1500 if travel_style == "budget" else 2500))
+            result["est_cost"] = itin.get("total_cost")
+            result["est_cost_confidence"] = itin.get("cost_confidence")
             return result
 
         # LONGER trip, unrecognized place -> destination recommendations

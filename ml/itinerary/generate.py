@@ -10,6 +10,7 @@ cost model. No LLM, no paid API — everything comes from our catalog and models
 Used by the /itinerary Flask endpoint.
 """
 import random
+import zlib
 
 from ml.seed.destination_catalog import by_name, get_destinations
 from ml.cost.predict import predict_cost, month_to_season
@@ -115,7 +116,7 @@ def generate(destination, days=5, travel_style="mid-range", month=None,
         return {"error": f"Unknown destination: {destination}"}
 
     days = max(1, min(21, int(days)))
-    rng = random.Random(seed if seed is not None else hash(d["name"]) & 0xffff)
+    rng = random.Random(seed if seed is not None else zlib.crc32(d["name"].encode("utf-8")) & 0xffff)  # stable across restarts (hash() is salted per process)
 
     cost = predict_cost(d["name"], duration_days=days, travel_style=travel_style,
                         month=month, party_size=party_size)
@@ -223,6 +224,8 @@ def generate(destination, days=5, travel_style="mid-range", month=None,
         "cost_low": cost["low"],
         "cost_high": cost["high"],
         "cost_breakdown": cost["cost_breakdown"],
+        "cost_confidence": cost.get("confidence"),
+        "cost_n_observations": cost.get("n_observations"),
         "per_day_cost": per_day_cost,
         "highlights": d["attractions"],
         "activities": d["activities"][:6],

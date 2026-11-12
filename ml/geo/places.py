@@ -58,7 +58,12 @@ CATEGORY_TAGS = {
                     'nwr["man_made"="tower"]["tourism"]["name"]'],
     "shopping":    ['nwr["shop"="mall"]["name"]', 'nwr["amenity"="marketplace"]["name"]'],
     "towns":       ['node["place"~"city|town"]["name"]'],
+    # 'stay' = every kind of mapped accommodation (hotel semantics of 'hotels' are unchanged). Used by
+    # ml/stay/recommend.py through fetch_stays(), which also keeps the raw tags (stars, website, image ...).
+    "stay":        ['nwr["tourism"~"^(hotel|resort|guest_house|hostel|camp_site|apartment|chalet|motel)$"]["name"]'],
 }
+
+STAY_TOURISM = "hotel|resort|guest_house|hostel|camp_site|apartment|chalet|motel"
 
 # map our app interest vocabulary onto the OSM category groups above
 INTEREST_TO_CATS = {
@@ -126,7 +131,13 @@ def _overpass(query, timeout=30):
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 txt = r.read().decode("utf-8")
             if txt.lstrip().startswith("{"):
-                q.put((url, json.loads(txt)))
+                data = json.loads(txt)
+                # a mirror that timed out server-side still answers 200 with no elements and a "runtime error" remark:
+                # that is a failure, not "nothing here", so let the other mirrors answer instead
+                if not data.get("elements") and "runtime error" in str(data.get("remark", "")):
+                    q.put((url, None))
+                    return
+                q.put((url, data))
                 return
         except Exception:
             pass
@@ -252,6 +263,7 @@ def fetch_pois(lat, lon, radius_km, categories):
         cat = "attraction"
         if t.get("amenity") == "place_of_worship": cat = "religious"
         elif t.get("leisure") == "water_park" or t.get("tourism") == "theme_park" or t.get("leisure") == "amusement_arcade": cat = "funpark"
+        elif t.get("tourism") in ("guest_house", "hostel", "camp_site", "apartment", "chalet", "motel"): cat = "stay"
         elif t.get("tourism") in ("hotel", "resort"): cat = "hotel"
         elif t.get("amenity") in ("restaurant", "cafe", "fast_food", "ice_cream"): cat = "food"
         elif t.get("shop") == "mall" or t.get("amenity") == "marketplace": cat = "shopping"
@@ -287,6 +299,109 @@ def fetch_pois(lat, lon, radius_km, categories):
     if out:                      # never cache an empty answer: it usually means the upstream was down
         _cache_put(ck, out)
     return out
+
+
+_STAY_TAGS = ("name", "tourism", "stars", "website", "contact:website", "phone", "contact:phone", "image",
+              "wikimedia_commons", "wikidata", "wikipedia", "heritage", "historic", "guest_house", "building",
+              "addr:street", "addr:city", "addr:suburb", "operator", "internet_access", "rooms", "beds")
+
+
+def fetch_stays(lat, lon, radius_km):
+    """Every mapped place to sleep within radius_km of (lat, lon), with the raw OSM tags that matter.
+    Returns (stays, ok). ok is False when no Overpass mirror answered (so the caller can say so honestly
+    instead of claiming there are no stays). Cached for a week; an empty answer is never cached."""
+    ck = f"stay:{round(lat,2)},{round(lon,2)}:{int(radius_km)}"   # 0.01 deg (~1 km) so nearby bases share a cache entry
+    cached = _cache_get(ck, max_age=7 * 86400)
+    if cached is not None:
+        return cached, True
+    r = int(radius_km * 1000)
+    sel = f'nwr["tourism"~"^({STAY_TOURISM})$"]["name"]'
+    ar = f'(around:{r},{lat},{lon});'
+    q_notable = ("[out:json][timeout:40];(" + "".join(f'{sel}["{k}"]{ar}' for k in
+                 ("stars", "wikidata", "wikipedia", "image", "wikimedia_commons", "heritage"))
+                 + f'{sel}["name"~"haveli|palace|heritage|dharamsh|ashram|eco|camp|homestay|jungle|lodge|villa|fort|mahal",i]{ar}'
+                 + ");out center tags 300;")
+    q_general = f"[out:json][timeout:40];({sel}{ar});out center tags 400;"
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        answers = list(ex.map(lambda q: _overpass_retry(q, timeout=35), (q_notable, q_general)))
+    if all(a is None for a in answers):
+        return [], False
+    seen, out = set(), []
+    for data in answers:
+        for e in (data or {}).get("elements", []):
+            key = (e.get("type"), e.get("id"))
+            t = e.get("tags", {})
+            la = e.get("lat") or (e.get("center") or {}).get("lat")
+            lo = e.get("lon") or (e.get("center") or {}).get("lon")
+            if key in seen or not t.get("name") or la is None or lo is None:
+                continue
+            seen.add(key)
+            rec = {k: t[k] for k in _STAY_TAGS if k in t}
+            rec.update({"osm": f"{e.get('type')}/{e.get('id')}", "lat": la, "lon": lo})
+            out.append(rec)
+    if out:
+        _cache_put(ck, out)
+    return out, True
+
+
+def _overpass_retry(query, timeout=40, tries=2):
+    """The public mirrors answer 'at capacity' in bursts: retry with a growing pause instead of giving up at once."""
+    for i in range(tries):
+        data = _overpass(query, timeout=timeout)
+        if data is not None:
+            return data
+        time.sleep(3 * (i + 1))
+    return None
+
+
+def _classify_sight(t):
+    if t.get("natural") == "beach": return "beach"
+    if t.get("leisure") == "nature_reserve" or t.get("boundary") == "national_park" or t.get("tourism") == "zoo": return "wildlife"
+    if t.get("waterway") == "waterfall" or t.get("tourism") == "viewpoint": return "nature"
+    if t.get("tourism") == "museum": return "museum"
+    if t.get("amenity") == "place_of_worship": return "religious"
+    if t.get("historic"): return "heritage"
+    return "attraction"
+
+
+def fetch_sights(lat, lon, radius_km):
+    """The NOTABLE mapped sights around a point (a light query: tagged attractions, forts and palaces, wikidata-linked
+    temples, beaches, reserves). Used to find where a traveller will spend their days. Never caches an empty answer."""
+    ck = f"sight:{round(lat,2)},{round(lon,2)}:{int(radius_km)}"
+    cached = _cache_get(ck, max_age=7 * 86400)
+    if cached is not None:
+        return cached, True
+    r = int(radius_km * 1000)
+    ar = f"(around:{r},{lat},{lon});"
+    q = ("[out:json][timeout:40];("
+         f'nwr["tourism"~"^(attraction|museum|viewpoint|zoo|theme_park)$"]["name"]{ar}'
+         f'nwr["historic"~"^(fort|castle|palace|monument|archaeological_site|ruins|memorial|city_gate)$"]["name"]{ar}'
+         f'nwr["historic"]["name"]["wikidata"]{ar}'
+         f'nwr["amenity"="place_of_worship"]["name"]["wikidata"]{ar}'
+         f'nwr["natural"="beach"]["name"]{ar}'
+         f'nwr["leisure"="nature_reserve"]["name"]{ar}'
+         f'nwr["boundary"="national_park"]["name"]{ar}'
+         f'nwr["waterway"="waterfall"]["name"]{ar}'
+         ");out center tags 400;")
+    data = _overpass_retry(q, timeout=35, tries=1)
+    if data is None:
+        return [], False
+    out, seen = [], set()
+    for e in data.get("elements", []):
+        t = e.get("tags", {})
+        la = e.get("lat") or (e.get("center") or {}).get("lat")
+        lo = e.get("lon") or (e.get("center") or {}).get("lon")
+        name = t.get("name")
+        if not name or la is None or lo is None or name in seen:
+            continue
+        seen.add(name)
+        fame = (3.0 if t.get("wikidata") else 0) + (2.0 if t.get("wikipedia") else 0) + (1.5 if t.get("heritage") else 0)             + (0.5 if t.get("tourism") == "attraction" else 0)
+        out.append({"name": name, "lat": la, "lon": lo, "category": _classify_sight(t), "fame": round(fame, 1),
+                    "dist_km": round(haversine(lat, lon, la, lo), 1)})
+    if out:
+        _cache_put(ck, out)
+    return out, True
 
 
 def _score(p, max_dist):

@@ -311,3 +311,7 @@ body.dz-tray-on .ja-chat-fab{bottom:104px}
   .dz-cmp-hint{display:block}
 }
 .dz-cmp-hint{display:none;font:.85rem var(--font-body);color:var(--text-mut);margin:0 0 8px}
+
+.dz-badge-reg{display:inline-block;font:600 .74rem var(--font-body);padding:2px 8px;border-radius:999px;border:1px solid var(--hair);color:var(--text-dim);background:transparent;margin-right:6px;white-space:nowrap}
+.ja .dz-sub{font:600 1rem var(--font-body);margin:22px 0 8px}
+.dz-dtnote{display:block;font:400 .78rem var(--font-body);color:var(--text-mut)}

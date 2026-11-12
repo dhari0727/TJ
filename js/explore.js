@@ -132,7 +132,8 @@
     return section(svg('compass') + ' Your ' + d.days + '-day trip to ' + esc((it.city || d.origin_text)),
       inr(it.total_cost) + ' total · ' + inr(it.per_day_cost) + '/day',
       '<div class="ja-hl-strip">' + highlights + '</div>' +
-      '<a class="ja-btn ja-btn-primary" href="' + itinUrl + '">Open full day-by-day itinerary ' + svg('compass') + '</a>');
+      '<a class="ja-btn ja-btn-primary" href="' + itinUrl + '">Open full day-by-day itinerary ' + svg('compass') + '</a> ' +
+      '<a class="ja-btn ja-btn-ghost" href="' + itinUrl + '#stays">Where to stay for ' + (d.days <= 1 ? 'a day trip' : (d.days - 1) + (d.days === 2 ? ' night' : ' nights')) + '</a>');
   }
 
   function renderRecos(d) {

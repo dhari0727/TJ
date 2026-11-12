@@ -1,0 +1,83 @@
+/* JourneyAI "Where to stay" (trip page). Brand tokens only, so light and dark both follow. */
+
+.st-section{min-width:0;margin-top:44px;padding-top:30px;border-top:1px solid var(--hair);scroll-margin-top:20px}
+.st-top h2{font-size:1.5rem;margin:0 0 4px}
+.st-lede{margin:0 0 16px;color:var(--text-dim);max-width:60ch}
+.st-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- controls ---- */
+.st-controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin-bottom:22px}
+.st-chips{display:flex;flex-wrap:wrap;gap:8px}
+.st-chip{font:inherit;font-size:.9rem;font-weight:600;padding:7px 14px;border-radius:999px;border:1px solid var(--hair);background:var(--surface);color:var(--text-dim);cursor:pointer;min-height:38px}
+.st-chip:hover{color:var(--text);border-color:var(--text-mut)}
+.st-chip[aria-pressed=true]{background:var(--indigo);border-color:var(--indigo);color:var(--bg)}
+.st-style{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:var(--text-dim)}
+.st-style select{min-width:130px}
+
+/* ---- trip-length answer: the one big moment ---- */
+.st-plan{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:flex-end;justify-content:space-between;padding:22px 24px;border-radius:14px;background:var(--surface);border:1px solid var(--hair);border-left:6px solid var(--c2);margin-bottom:22px}
+.st-multi_base{border-left-color:var(--c3)}
+.st-day{border-left-color:var(--c4)}
+.st-plan-text{flex:1 1 320px;min-width:0}
+.st-plan h3{font-size:clamp(1.35rem,3.4vw,1.9rem);line-height:1.15;margin:0 0 6px;text-wrap:balance}
+.st-plan p{margin:0;color:var(--text-dim);max-width:62ch}
+.st-nights{display:flex;flex-wrap:wrap;gap:5px;list-style:none;margin:0;padding:0;max-width:260px}
+.st-n{width:22px;height:30px;border-radius:11px 11px 4px 4px;background:var(--c2)}
+.st-b1{background:var(--c3)}
+.st-b2{background:var(--c4)}
+
+/* ---- groups ---- */
+.st-sub{font-size:1.1rem;margin:22px 0 4px}
+.st-sub small{font-family:var(--font-body);font-weight:600;font-size:.88rem;color:var(--gold-ink);margin-left:6px}
+.st-stops{margin:0 0 12px;font-size:.92rem;color:var(--text-mut)}
+.st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:12px}
+
+/* ---- card ---- */
+.st-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+.st-media{margin:0;position:relative;aspect-ratio:16/10;background:var(--bg-2)}
+.st-media img{width:100%;height:100%;object-fit:cover;display:block}
+.st-media figcaption{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 5px;font-size:.72rem;line-height:1.2;background:linear-gradient(transparent,rgba(0,0,0,.62))}
+.st-media figcaption a{color:#fff;text-decoration:none}
+.st-media figcaption a:hover{text-decoration:underline}
+.st-nophoto{aspect-ratio:16/6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-mut);background:repeating-linear-gradient(135deg,var(--bg-2) 0 12px,transparent 12px 24px),var(--bg-2)}
+.st-nophoto figcaption{position:static;background:none;padding:0;color:var(--text-mut);font-size:.8rem}
+.st-main{display:flex;flex-direction:column;gap:8px;padding:14px 16px 16px;flex:1}
+.st-kind{display:flex;flex-wrap:wrap;gap:4px 10px;margin:0;font-size:.82rem;font-weight:600;color:var(--gold-ink)}
+.st-tier{color:var(--text-mut);font-weight:500}
+.st-tier-unk{font-style:italic}
+.st-card h4{font-size:1.12rem;line-height:1.2;margin:0;overflow-wrap:anywhere}
+.st-meta{display:flex;flex-wrap:wrap;gap:2px 12px;margin:0;font-size:.86rem;color:var(--text-dim)}
+.st-meta span{display:inline-flex;align-items:center;gap:4px}
+.st-price{margin:0;font-size:.92rem}
+.st-price strong{font-family:var(--font-display);font-size:1.02rem}
+.st-price span{color:var(--text-mut);font-size:.82rem}
+.st-price a{color:inherit}
+.st-noprice{color:var(--text-mut);font-size:.85rem}
+.st-why{display:flex;flex-wrap:wrap;gap:6px;list-style:none;margin:2px 0 0;padding:0}
+.st-why li{font-size:.78rem;line-height:1.25;padding:4px 9px;border-radius:999px;background:var(--bg-2);color:var(--text-dim)}
+.st-links{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:auto;padding-top:8px}
+.st-link{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:.88rem;color:var(--text);text-decoration:underline;text-underline-offset:3px;min-height:32px}
+.st-link:hover{color:var(--gold-ink)}
+.st-phone{font-size:.84rem;color:var(--text-mut)}
+
+/* ---- footer notes, empty and error states ---- */
+.st-foot{margin:18px 0 0;font-size:.85rem;color:var(--text-mut);max-width:70ch}
+.st-how{margin-top:10px;font-size:.88rem;color:var(--text-dim);max-width:70ch}
+.st-how summary{cursor:pointer;font-weight:600;color:var(--text)}
+.st-state{padding:22px;border:1px dashed var(--text-mut);border-radius:12px;background:var(--surface)}
+.st-state h3{font-size:1.15rem;margin:0 0 6px}
+.st-state p{margin:0 0 12px;color:var(--text-dim)}
+
+/* ---- loading ---- */
+.st-skel p{margin:0 0 14px;color:var(--text-dim)}
+.st-skel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.st-skel-grid i{display:block;height:300px;border-radius:12px;background:linear-gradient(100deg,var(--bg-2) 30%,var(--surface) 50%,var(--bg-2) 70%) 0 0/300% 100%;animation:stShimmer 1.4s linear infinite}
+@keyframes stShimmer{to{background-position:-300% 0}}
+@media (prefers-reduced-motion:reduce){.st-skel-grid i{animation:none}}
+
+@media (max-width:640px){
+  .st-plan{padding:18px 16px}
+  .st-nights{max-width:none}
+  .st-grid,.st-skel-grid{grid-template-columns:1fr}
+}
+@media print{.st-controls,.st-skel,.st-how{display:none}.st-card{break-inside:avoid}.st-media figcaption{color:#000;background:none}}

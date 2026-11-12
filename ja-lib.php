@@ -157,6 +157,7 @@ function ja_delete_user_data($eml) {
     mysqli_stmt_bind_param($st, 's', $eml); mysqli_stmt_execute($st);
     $files = array_column(mysqli_fetch_all(mysqli_stmt_get_result($st), MYSQLI_ASSOC), 'filepath');
     mysqli_stmt_close($st);
+    if (is_file(__DIR__ . '/ja-social-core.php')) { require_once __DIR__ . '/ja-social-core.php'; try { ja_social_purge_user($eml); } catch (Throwable $e) {} }   // revoke + delete social tokens
     if (is_file(__DIR__ . '/ja-camera.php')) { require_once __DIR__ . '/ja-camera.php'; ja_cam_purge_user_files($eml); }   // private camera roll files
     // child rows keyed by something other than eml
     @mysqli_query($conn, "DELETE mh FROM media_hashtags mh JOIN media m ON m.media_id = mh.media_id WHERE m.eml = '" . mysqli_real_escape_string($conn, $eml) . "'");

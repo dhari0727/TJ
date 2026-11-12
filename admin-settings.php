@@ -4,8 +4,10 @@ $ja_title = "Settings"; $ja_active = "admin";
 require_once __DIR__ . '/ja-lib.php';
 require_once __DIR__ . '/ja-mailer.php';
 require_once __DIR__ . '/ml_client.php';
+require_once __DIR__ . '/ja-social-core.php';
 $me = ja_require_admin();
-$tab = ($_GET['tab'] ?? 'email') === 'site' ? 'site' : 'email';
+$tab = in_array($_GET['tab'] ?? 'email', ['site', 'social'], true) ? $_GET['tab'] : 'email';
+$SOCIAL_APPS = ['instagram' => 'Instagram (Instagram API with Instagram Login)', 'facebook' => 'Facebook Page (Meta app)', 'x' => 'X', 'linkedin' => 'LinkedIn', 'pinterest' => 'Pinterest', 'threads' => 'Threads (separate Meta app)'];
 $ja_tab = $tab;
 $msg = ''; $err = ''; $testResult = null;
 $geminiFile = __DIR__ . '/ml/bot/gemini_key.txt';
@@ -38,6 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $testResult['to'] = $to;
                 }
             }
+        } elseif ($form === 'social') {
+            $bad = '';
+            foreach (array_keys($SOCIAL_APPS) as $pk) {
+                if (!empty($_POST['remove_' . $pk])) { ja_setting_set("social_{$pk}_client_id", '', true); ja_setting_set("social_{$pk}_client_secret", '', true); continue; }
+                $cid = trim($_POST['id_' . $pk] ?? ''); $sec = trim($_POST['secret_' . $pk] ?? '');
+                foreach ([$cid, $sec] as $v) if ($v !== '' && !preg_match('/^[A-Za-z0-9._\-~+\/=:]{6,300}$/', $v)) $bad = 'One of the values looks invalid. Paste the ID and secret exactly as the platform shows them.';
+                if ($bad) break;
+                if ($cid !== '') ja_setting_set("social_{$pk}_client_id", $cid, true);   // blank = keep current
+                if ($sec !== '') ja_setting_set("social_{$pk}_client_secret", $sec, true);
+            }
+            if ($bad) $err = $bad; else $msg = 'Social app settings saved. Nothing is shown back; a row says "Set" once both values are stored.';
         } elseif ($form === 'site') {
             ja_setting_set('site_name', trim($_POST['site_name'] ?? '') ?: 'JourneyAI');
             ja_setting_set('allow_registration', !empty($_POST['allow_registration']) ? '1' : '0');
@@ -114,6 +127,39 @@ while ($rm && ($row = mysqli_fetch_assoc($rm))) $recentMail[] = $row;
   <?php endforeach; ?>
   <?php if (!$recentMail): ?><tr><td class="ja-muted" style="padding:22px">No emails yet.</td></tr><?php endif; ?>
 </tbody></table></div>
+
+<?php elseif ($tab === 'social'): ?>
+<h1 style="font-size:clamp(1.8rem,4vw,2.4rem);margin:4px 0 6px">Social apps</h1>
+<p class="ja-muted" style="margin-bottom:6px">Bluesky and Mastodon work for members with no setup here. The services below need an app that <em>you</em> register with them. Until both values are saved, members see "Not set up by the site owner" and nothing is attempted. Step by step instructions are in <code>docs/SOCIAL_SETUP.md</code>.</p>
+<p class="ja-muted" style="margin-bottom:18px">Redirect address to register with every service: <code><?= htmlspecialchars(ja_social_redirect_uri()) ?></code></p>
+<?php if (!ja_social_base_public()): ?><div class="ja-warn" style="margin-bottom:16px"><strong>This site is not on a public https address.</strong> Instagram and Threads cannot post photos from here (they download the photo from your website). The Instagram Kit still works: members can download the images or share them from their phone, and some services only accept https redirects. Everything works for testing on localhost where the service allows it. Set the public address in settings (<code>site_url</code>) when the site goes live.</div><?php endif; ?>
+<section class="ja-card" style="margin-bottom:16px" aria-labelledby="igGuide">
+  <h2 id="igGuide" style="font-size:1.15rem;margin:0 0 8px">Instagram: what you need to do</h2>
+  <p class="ja-muted" style="margin:0 0 10px">Members can already make Instagram-ready images and a caption (the Instagram button in the share sheet) and post them from their phone. <strong>No setup is needed for that.</strong> Posting straight from this site needs the steps below, and a site that is online over https.</p>
+  <ol style="margin:0 0 10px 1.2em;padding:0;line-height:1.6">
+    <li>The Instagram account must be a <strong>Business or Creator</strong> account (Instagram app, Settings, Account type and tools). No Facebook Page is needed with this login.</li>
+    <li>At developers.facebook.com create an app of type <strong>Business</strong>, then add the product <strong>Instagram</strong> and open <strong>API setup with Instagram login</strong>.</li>
+    <li>Copy the <strong>Instagram app ID</strong> and <strong>Instagram app secret</strong> shown there (they are not the same as the Facebook app ID and secret) into the Instagram row below.</li>
+    <li>Under <strong>Set up Instagram business login</strong> add this redirect address: <code><?= htmlspecialchars(ja_social_redirect_uri()) ?></code>. Instagram needs https for live use. Whether it accepts a <code>http://localhost</code> address for testing is unverified here.</li>
+    <li>Permissions requested: <code>instagram_business_basic</code> and <code>instagram_business_content_publish</code>.</li>
+    <li><strong>Development mode needs no App Review for your own account:</strong> in App roles, Roles, add the Instagram account as an <strong>Instagram Tester</strong> and accept the invite in Instagram (Settings, Website permissions, Apps and websites, Tester invites). Every other member needs App Review and Business Verification before they can log in.</li>
+    <li>Set the <code>site_url</code> setting to your public https address. Instagram downloads each image from your site, so a site on localhost cannot publish.</li>
+  </ol>
+  <p class="ja-muted" style="margin:0">The site stores only the sign-in token (encrypted), never an Instagram password. Photos and photo carousels can be posted; Reels and Stories are not published from here. The site stops at 25 posts per account in 24 hours.</p>
+</section>
+<form method="post" class="ja-card ja-form-grid">
+  <?= ja_csrf_field() ?><input type="hidden" name="form" value="social">
+  <?php foreach ($SOCIAL_APPS as $pk => $plabel): $isSet = ja_fresh("social_{$pk}_client_id") !== '' && ja_fresh("social_{$pk}_client_secret") !== ''; ?>
+  <fieldset style="border:0;padding:0;margin:0;grid-column:1/-1;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+    <legend style="font-weight:600;margin-bottom:6px"><?= htmlspecialchars($plabel) ?> <span class="ja-pill <?= $isSet ? 'near' : 'season' ?>"><?= $isSet ? 'Set' : 'Not set up' ?></span></legend>
+    <div class="ja-field"><label for="id_<?= $pk ?>">Client ID / App ID</label><input class="ja-input" id="id_<?= $pk ?>" type="password" name="id_<?= $pk ?>" autocomplete="off" placeholder="<?= $isSet ? '(saved, leave blank to keep)' : 'Paste the ID' ?>"></div>
+    <div class="ja-field"><label for="secret_<?= $pk ?>">Client secret / App secret</label><input class="ja-input" id="secret_<?= $pk ?>" type="password" name="secret_<?= $pk ?>" autocomplete="new-password" placeholder="<?= $isSet ? '(saved, leave blank to keep)' : 'Paste the secret' ?>"></div>
+    <?php if ($isSet): ?><label class="ja-switch" style="grid-column:1/-1"><input type="checkbox" name="remove_<?= $pk ?>" value="1"> <span>Remove the saved <?= htmlspecialchars($plabel) ?> credentials</span></label><?php endif; ?>
+  </fieldset>
+  <?php endforeach; ?>
+  <div class="ja-form-actions"><button class="ja-btn ja-btn-primary" type="submit">Save</button></div>
+</form>
+<p class="ja-muted" style="margin-top:12px">Secrets are stored encrypted and are never shown again. Member sign-in tokens are encrypted separately with the key in <code>private/social.key</code>. Back that file up with your database: without it, members would have to reconnect.</p>
 
 <?php else: ?>
 <h1 style="font-size:clamp(1.8rem,4vw,2.4rem);margin:4px 0 18px">Site &amp; services</h1>

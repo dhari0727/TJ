@@ -68,6 +68,7 @@ mysqli_stmt_close($s);
         </div>
         <div class="tp-actions tp-noprint" style="display:flex">
           <button class="ja-btn ja-btn-ghost" id="jaShareBtn" data-plan-id="<?= (int)$viewPlan['plan_id'] ?>"><?= tp_icon('share') ?><span>Share link</span></button>
+          <?php require_once __DIR__ . '/ja-social.php'; echo ja_social_button('plan', (int)$viewPlan['plan_id'], ['label' => 'Share on social']); ?>
           <button class="ja-btn ja-btn-ghost" data-tp-print><?= tp_icon('print') ?><span>Print itinerary</span></button>
           <button class="ja-btn ja-btn-ghost" data-del data-url="save-plan-delete.php" data-body='<?= htmlspecialchars(json_encode(['plan_id' => (int)$viewPlan['plan_id']]), ENT_QUOTES) ?>' data-name="<?= htmlspecialchars($vname, ENT_QUOTES) ?>" data-redirect="my-plans.php"><?= tp_icon('trash') ?><span>Delete</span></button>
         </div>

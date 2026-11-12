@@ -67,10 +67,16 @@ foreach ($cols as $i => $c) { $pd = $c['costs']['1']['per_day'] ?? null; if ($pd
         </th>
       <?php endforeach; ?></tr></thead>
     <tbody>
-      <tr><th scope="row">Cost per day</th>
+      <tr><th scope="row">Cost per day <small>(mid-range)</small></th>
         <?php foreach ($cols as $i => $c): $c1 = $c['costs']['1'] ?? null; ?>
           <td><?php if ($c1): ?><strong><?= ja_inr(ja_inr_round($c1['per_day'])) ?></strong><?php if (ja_range_text($c1['low'], $c1['high'])[0] !== 'a'): ?><small><?= ja_range_text($c1['low'], $c1['high']) ?></small><?php endif; ?><?= $i === $cheapest ? '<em class="dz-tag">Lowest</em>' : '' ?><?php else: ?>Not available<?php endif; ?></td>
         <?php endforeach; ?></tr>
+      <tr><th scope="row">Budget, per day</th>
+        <?php foreach ($cols as $c): $r = $c['cost_styles']['styles']['budget'] ?? null; ?><td><?= $r ? ja_inr(ja_inr_round($r['per_person_per_day'])) : 'Not available' ?></td><?php endforeach; ?></tr>
+      <tr><th scope="row">Luxury, per day</th>
+        <?php foreach ($cols as $c): $r = $c['cost_styles']['styles']['luxury'] ?? null; ?><td><?= $r ? ja_inr(ja_inr_round($r['per_person_per_day'])) : 'Not available' ?></td><?php endforeach; ?></tr>
+      <tr><th scope="row">Price evidence</th>
+        <?php foreach ($cols as $c): $cs = $c['cost_styles'] ?? null; ?><td><?php if (!$cs): ?>Not available<?php elseif (($cs['confidence'] ?? '') === 'regional estimate'): ?><span class="dz-badge-reg">Regional estimate</span><?php else: ?><small><?= (int)$cs['n_observations'] ?> price reports</small><?php endif; ?></td><?php endforeach; ?></tr>
       <tr><th scope="row">5 days, one traveller</th>
         <?php foreach ($cols as $c): $c5 = $c['costs']['5'] ?? null; ?><td><?= $c5 ? ja_inr(ja_inr_round($c5['total'])) : 'Not available' ?></td><?php endforeach; ?></tr>
       <tr><th scope="row">Best months</th>
@@ -86,7 +92,7 @@ foreach ($cols as $i => $c) { $pd = $c['costs']['1']['per_day'] ?? null; if ($pd
     </tbody>
   </table>
   </div>
-  <p class="dz-cap">Costs are model estimates for one traveller in a mid-range style, excluding flights. Peak months are the months travellers and guides recommend most.</p>
+  <p class="dz-cap">Costs are estimates for one traveller, built from real traveller-reported prices for stay, meals, local fares and entry fees; they leave out getting there and shopping. A regional estimate means no price reports exist for that exact place. Peak months are the months travellers and guides recommend most.</p>
   <?php elseif (!$names): ?>
     <div class="dz-empty"><h3>Nothing to compare yet</h3><p>Type two or three places above, or browse <a href="recommendations.php">your picks</a> and tap Compare on the ones you like.</p></div>
   <?php endif; ?>

@@ -71,7 +71,7 @@ foreach ($cheapMonths as $m) $byMonth[(int)$m['month']] = ['avg' => (float)$m['a
 <main class="acct-page ins-page">
   <header class="acct-head">
     <h1>Travel insights</h1>
-    <p>What <?= number_format((int)($totals['journals']??0)) ?> travel journals across <?= number_format((int)($totals['destinations']??0)) ?> destinations say about cost, timing and how trips went. Every figure here is counted from those journals.</p>
+    <p>What <?= number_format((int)($totals['journals']??0)) ?> travel journals across <?= number_format((int)($totals['destinations']??0)) ?> destinations say about timing and how trips went. The cost charts use only journals written by travellers on this site, never text imported from guides, so they appear once enough real trips exist.</p>
   </header>
 
   <?php if ($err): ?>
@@ -201,15 +201,20 @@ foreach ($cheapMonths as $m) $byMonth[(int)$m['month']] = ['avg' => (float)$m['a
   </section>
   <?php endif; ?>
 
-  <?php if ($metrics): ?>
+  <?php if ($metrics):
+    $hd = $metrics['headline'] ?? []; $tv = $metrics['trip_validation'] ?? [];
+    $kf = $metrics['listing_validation_5fold_known_destination']['sleep'] ?? [];
+    $lo = $metrics['listing_validation_leave_one_destination_out']['sleep'] ?? [];
+    $nTrips = (int)($hd['trip_reports_n'] ?? 0); $mape = $hd['trip_mape_pct'] ?? null; $ci = $hd['trip_mape_ci95'] ?? null; ?>
   <section class="ins-sec" aria-labelledby="i-model">
-    <div class="ins-h"><h2 id="i-model">The cost estimator</h2><p>Every cost estimate on the site comes from one model trained on these journals.</p></div>
+    <div class="ins-h"><h2 id="i-model">The cost estimator</h2><p>Built from <?= number_format((int)($hd['price_reports'] ?? 0)) ?> real prices that travellers listed for stays, meals, local fares and entry fees, covering <?= number_format((int)($hd['destinations_with_data'] ?? 0)) ?> places. It is not trained on journals.</p></div>
     <div class="ins-b">
       <dl class="acct-figs">
-        <div><dt>Average error</dt><dd><?= ins_inr($metrics['mae'] ?? 0) ?></dd></div>
-        <div><dt>R squared</dt><dd><?= number_format((float)($metrics['r2'] ?? 0), 2) ?></dd></div>
+        <?php if ($mape !== null): ?><div><dt>Error on <?= $nTrips ?> real trip reports</dt><dd><?= number_format((float)$mape, 0) ?>%</dd></div><?php endif; ?>
+        <?php if ($kf): ?><div><dt>Hotel price error, known place</dt><dd><?= number_format((float)($kf['model']['MAPE_pct'] ?? 0), 0) ?>%</dd></div><?php endif; ?>
+        <?php if ($lo): ?><div><dt>Hotel price error, unseen place</dt><dd><?= number_format((float)($lo['model']['MAPE_pct'] ?? 0), 0) ?>%</dd></div><?php endif; ?>
       </dl>
-      <p class="ins-note">Measured on a fifth of the journals, held back from training. A real trip can still land further from the estimate than this.</p>
+      <p class="ins-note">Only <?= $nTrips ?> independent trip reports with a stated total exist in our sources, so that first figure is a rough guide<?= $ci ? ' (it could plausibly be anywhere from ' . number_format((float)$ci[0], 0) . '% to ' . number_format((float)$ci[1], 0) . '%)' : '' ?>. Each report was predicted with the one adjustment factor fitted on the other reports. The hotel figures are measured on real listings held back from fitting: a place whose prices we know, and a place we have never seen. Individual hotels vary a lot, so a real trip can land outside the range shown. Seasonal price changes, getting there and shopping are not modelled.</p>
     </div>
   </section>
   <?php endif; ?>

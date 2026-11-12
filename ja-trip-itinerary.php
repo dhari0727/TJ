@@ -73,6 +73,12 @@ $tp_in = !empty($_SESSION['eml']);
           <button type="button" class="tp-linkbtn" id="tpToggleDays" data-state="open">Collapse all days</button>
         </div>
         <?= tp_days($it) ?>
+        <?php
+          require_once __DIR__ . '/ja-stays.php';
+          $st_int = ja_stays_params(['dest' => $dest, 'interests' => (string)($_GET['interests'] ?? '')])['interests'];
+          if (!$st_int) $st_int = ja_stays_params(['dest' => $dest, 'interests' => implode(',', array_slice((array)($it['activities'] ?? []), 0, 3))])['interests'];
+          echo ja_stays_section(ja_stays_params(['dest' => $dest, 'days' => $days, 'style' => $style, 'interests' => implode(',', $st_int), 'party' => $party]));
+        ?>
       </div>
 
       <aside class="tp-side">

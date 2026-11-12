@@ -263,6 +263,8 @@ class Recommender:
                 "cost_low": cost["low"],
                 "cost_high": cost["high"],
                 "cost_breakdown": cost["cost_breakdown"],
+                "cost_confidence": cost.get("confidence"),
+                "cost_n_observations": cost.get("n_observations"),
                 "budget_fit": ("within" if (not budget or predicted <= budget)
                                else ("stretch" if not over_budget else "over")),
                 "over_budget": over_budget,

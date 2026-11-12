@@ -42,6 +42,9 @@ function ja_icon($name, $size = 20, $extra = '') {
         'download'  => '<path d="M12 3v12m0 0l-4-4m4 4l4-4M4 20h16"/>',
         'flip'      => '<path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/>',
         'plus'      => '<path d="M12 5v14M5 12h14"/>',
+        'bed'       => '<path d="M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-7v6"/><circle cx="7" cy="11.5" r="1.8"/>',
+        'hotel'     => '<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M10 21v-4h4v4"/>',
+        'tent'      => '<path d="M3 20L12 4l9 16H3z"/><path d="M12 4v16M9.5 20l2.5-5 2.5 5"/>',
         'lock'      => '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
     ];
     $body = $p[$name] ?? $p['sparkle'];

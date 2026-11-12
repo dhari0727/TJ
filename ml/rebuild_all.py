@@ -46,6 +46,7 @@ def main():
     run("ml.nlp.extract_features")
     run("ml.nlp.build_profiles")
     run("ml.cost.train_cost_model")
+    run("ml.cost.refresh_base_costs")   # destinations.base_daily_cost derived from the real-price model
     print("\n" + "=" * 60)
     print("Pipeline complete. Start the service with:  python -m ml.app")
     print("=" * 60)

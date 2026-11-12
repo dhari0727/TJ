@@ -115,6 +115,7 @@ $jsonPages = json_encode(array_map(function($p) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Serif+Display&family=Lora:wght@400;500;600&family=Caveat:wght@400;500;600&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/storybook.css">
+<?php if ($book['visibility'] === 'public' && $book['moderation_status'] === 'approved') { require_once __DIR__ . '/ja-social.php'; $ogItem = ja_social_item('book', $bookId, null); if ($ogItem) ja_social_og(['title' => $ogItem['title'], 'description' => $ogItem['description'], 'image' => $ogItem['og_image'], 'image_alt' => $ogItem['images'][0]['alt'] ?? '', 'url' => 'storybook-view.php?id=' . $bookId, 'type' => 'article']); } ?>
 <script src="js/csrf.js"></script>
   <style>
     .sb-viewer{display:flex;flex-direction:column;align-items:center;padding:32px 20px 40px;min-height:calc(100vh - 50px)}
@@ -167,8 +168,9 @@ $jsonPages = json_encode(array_map(function($p) {
       <?php if ($isOwner): ?>
         <a href="storybook-edit.php?id=<?= $bookId ?>" class="sb-btn sb-btn-sm">Edit</a>
         <button class="sb-btn sb-btn-sm" id="sbPrintBtn" type="button">Print</button>
-        <button class="sb-btn sb-btn-sm" id="sbShareBtn" type="button">Share</button>
+        <button class="sb-btn sb-btn-sm" id="sbShareBtn" type="button">Share link</button>
       <?php endif; ?>
+      <?php if ($book['visibility'] === 'public' || $isOwner) { require_once __DIR__ . '/ja-social.php'; echo ja_social_button('book', $bookId, ['class' => 'sb-btn sb-btn-sm', 'label' => 'Share on social']); } ?>
     </div>
   </div>
   <div class="sb-viewer" id="sbViewer">

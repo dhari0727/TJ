@@ -256,6 +256,47 @@ def route():
     return jsonify(result)
 
 
+# --------------------------------------------------------------- where to stay
+@app.post("/stays")
+def stays():
+    data = _body()
+    dest = str(data.get("destination") or "").strip()[:120]
+
+    def _num(v, lo, hi):
+        try:
+            f = float(v)
+            return f if lo <= f <= hi and f == f else None
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    lat, lon = _num(data.get("lat"), -90, 90), _num(data.get("lon"), -180, 180)
+    if not dest and (lat is None or lon is None):
+        return jsonify({"status": "error", "error": "destination required"}), 400
+    days = _clamp_int(data.get("days"), 1, 30, 3)
+    party = _clamp_int(data.get("party_size"), 1, 20, 1)
+    top_n = _clamp_int(data.get("top_n"), 1, 12, 6)
+    style = str(data.get("travel_style") or "mid-range").lower()
+    if style not in VALID_STYLES:
+        style = "mid-range"
+    raw = data.get("interests") or []
+    if isinstance(raw, str):
+        raw = [s.strip() for s in raw.split(",")]
+    elif not isinstance(raw, list):
+        raw = []
+    tt = data.get("trip_type")
+    if isinstance(tt, str) and tt.strip():
+        raw = list(raw) + [tt]
+    raw = [i for i in raw if isinstance(i, str)][:12]
+    stops = data.get("stops")
+    stops = [s for s in stops if isinstance(s, dict)][:20] if isinstance(stops, list) else []
+    from ml.stay.recommend import recommend
+    result = recommend(destination=dest, days=days, interests=raw, travel_style=style, party_size=party,
+                       stops=stops, lat=lat if lon is not None else None, lon=lon if lat is not None else None, top_n=top_n)
+    if result.get("status") == "error":
+        return jsonify(result), (503 if result.get("retryable") else 404)
+    return jsonify(result)
+
+
 # --------------------------------------------------------------- itinerary
 @app.post("/itinerary")
 def itinerary():
@@ -291,6 +332,7 @@ def analytics_summary():
         JOIN journals j ON j.entry_id = jf.entry_id
         LEFT JOIN destinations d ON d.canonical_name = jf.canonical_dest
         WHERE jf.canonical_dest IS NOT NULL
+          AND j.eml NOT LIKE '%@real.journeyai' AND j.eml NOT LIKE '%@seed.journeyai'
         GROUP BY jf.canonical_dest, d.popularity_tier
         ORDER BY n DESC
     """)
@@ -318,6 +360,7 @@ def analytics_summary():
                ROUND(AVG(jf.sentiment_score) / (AVG(j.true_total)/10000), 3) AS value_score
         FROM journal_features jf JOIN journals j ON j.entry_id=jf.entry_id
         WHERE jf.canonical_dest IS NOT NULL AND j.true_total > 0
+          AND j.eml NOT LIKE '%@real.journeyai' AND j.eml NOT LIKE '%@seed.journeyai'
         GROUP BY jf.canonical_dest HAVING n >= 3
         ORDER BY value_score DESC LIMIT 8
     """)
@@ -326,6 +369,7 @@ def analytics_summary():
         SELECT MONTH(j.dv) AS month, COUNT(*) AS n,
                ROUND(AVG(j.true_total / GREATEST(j.duration_days,1))) AS avg_daily
         FROM journals j WHERE j.dv IS NOT NULL AND j.dv <> '' AND j.true_total > 0
+          AND j.eml NOT LIKE '%@real.journeyai' AND j.eml NOT LIKE '%@seed.journeyai'
         GROUP BY MONTH(j.dv) HAVING month BETWEEN 1 AND 12 ORDER BY month
     """)
     # PRACTICAL: budget vs luxury daily cost range per popular destination
@@ -336,6 +380,7 @@ def analytics_summary():
                COUNT(*) AS n
         FROM journal_features jf JOIN journals j ON j.entry_id=jf.entry_id
         WHERE jf.canonical_dest IS NOT NULL AND j.true_total > 0
+          AND j.eml NOT LIKE '%@real.journeyai' AND j.eml NOT LIKE '%@seed.journeyai'
         GROUP BY jf.canonical_dest HAVING n >= 5 ORDER BY n DESC LIMIT 10
     """)
     return jsonify({
@@ -374,7 +419,7 @@ def analytics_personal():
         SELECT Title, City, true_total, duration_days FROM journals
         WHERE eml=%s ORDER BY true_total DESC
     """, (eml,))
-    community_avg = fetch_all("SELECT ROUND(AVG(true_total)) a FROM journals WHERE true_total>0")
+    community_avg = fetch_all("SELECT ROUND(AVG(true_total)) a FROM journals WHERE true_total>0 AND eml NOT LIKE '%@real.journeyai' AND eml NOT LIKE '%@seed.journeyai'")
     return jsonify({
         "status": "ok",
         "stats": stats[0] if stats else {},

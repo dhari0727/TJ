@@ -36,3 +36,6 @@ backups/
 
 # --- private camera roll photos (keep the deny-all .htaccess files) ---
 private/camera/*/
+
+# --- social connections: encryption key (NEVER commit) ---
+private/social.key

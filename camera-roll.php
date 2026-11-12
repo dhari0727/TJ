@@ -15,6 +15,7 @@ $cfg = [
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
 <link rel="stylesheet" href="css/pages-camera.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-camera.css') ?>">
+<?php require_once __DIR__ . '/ja-social.php'; echo ja_social_assets(); ?>
 <script src="js/camera-roll.js?v=<?= (int)@filemtime(__DIR__ . '/js/camera-roll.js') ?>" defer></script>
 </head>
 <body class="ja cr-page">

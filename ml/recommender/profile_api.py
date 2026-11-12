@@ -84,14 +84,19 @@ def get_profile(query, month=None):
             acts.append((float(v), CANONICAL_ACTIVITIES[k]))
     acts.sort(reverse=True)
     total = sum(a for a, _ in acts) or 1.0
-    from ml.cost.predict import predict_cost
+    from ml.cost.predict import predict_cost, style_table
     costs = {}
     for days in (1, 3, 5, 7):
         try:
             c = predict_cost(name, duration_days=days, travel_style="mid-range", month=month, party_size=1)
-            costs[str(days)] = {"total": c["predicted_cost"], "low": c["low"], "high": c["high"], "per_day": c["per_day"]}
+            costs[str(days)] = {"total": c["predicted_cost"], "low": c["low"], "high": c["high"], "per_day": c["per_day"],
+                                "confidence": c["confidence"], "n_observations": c["n_observations"]}
         except Exception:
             pass
+    try:
+        cost_styles = style_table(name, 1)      # per-person daily cost for every travel style, from real price reports
+    except Exception:
+        cost_styles = None
     cat, hl = _data()
     c0 = cat.get(name, {})
     h0 = hl.get((p.get("city") or "").lower(), {}) if isinstance(hl, dict) else {}
@@ -110,10 +115,14 @@ def get_profile(query, month=None):
         "popularity_tier": p.get("popularity_tier"),
         "n_journals": int(p.get("n_journals") or 0),
         "costs": costs,
+        "cost_styles": cost_styles,
     }
 
 
 def list_names():
     """Every destination name with its typical daily cost (for pickers and the live budget helper)."""
+    from ml.cost.predict import predict_cost_batch
     m = get_model()
-    return [{"destination": n, "city": m.p[n].get("city"), "per_day": m.p[n].get("base_daily_cost")} for n in m.names]
+    cost = predict_cost_batch(m.names, duration_days=1, travel_style="mid-range", party_size=1)
+    return [{"destination": n, "city": m.p[n].get("city"), "per_day": cost[n]["per_day"],
+             "confidence": cost[n]["confidence"]} for n in m.names]

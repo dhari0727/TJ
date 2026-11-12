@@ -91,7 +91,7 @@ mysqli_stmt_bind_param($q,'s',$emll); mysqli_stmt_execute($q);
 $stats = mysqli_fetch_assoc(mysqli_stmt_get_result($q)); mysqli_stmt_close($q);
 function v($x){ return htmlspecialchars($x ?? ''); }
 require_once __DIR__ . '/ja-auth.php';
-$ja_css_extra = ['pages-account.css'];
+$ja_css_extra = ['pages-account.css', 'social.css'];
 $myHandle = ja_ensure_handle($emll);
 ?>
 <!DOCTYPE html>
@@ -161,6 +161,8 @@ $myHandle = ja_ensure_handle($emll);
       <?= ja_logout_form('class="ja-btn ja-btn-ghost"', ja_icon('logout',16) . ' Log out') ?>
     </div>
   </section>
+
+  <?php include __DIR__ . '/ja-social-profile.php'; ?>
 
   <section class="acct-sec" aria-labelledby="s-data">
     <div class="acct-sec-h"><h2 id="s-data">Your data</h2><p>Take a copy of everything you have saved, or remove your account.</p></div>

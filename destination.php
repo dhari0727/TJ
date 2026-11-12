@@ -57,6 +57,8 @@ $sim = ml_similar($name, 4);
 $simList = (empty($sim['__error']) && !empty($sim['similar'])) ? $sim['similar'] : [];
 $journals = ja_dest_journals($city, $name, 3);
 $c5 = $p['costs']['5'] ?? null; $c1 = $p['costs']['1'] ?? null;
+$cs = $p['cost_styles'] ?? null;                       // per-person daily cost for each style, from real price reports
+$csN = (int)($cs['n_observations'] ?? 0); $csReg = (($cs['confidence'] ?? '') === 'regional estimate');
 $acts = $p['activities'] ?? [];
 $maxShare = $acts ? max(array_column($acts, 'share')) : 1;
 $land = $p['landmarks'] ?? [];
@@ -66,6 +68,7 @@ $tierText = ['mainstream' => 'A well-known destination', 'lesser_known' => 'A le
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
 <meta name="description" content="<?= htmlspecialchars(mb_substr(($p['description'] ?: $city . ' travel guide with best months, typical daily cost and what to do.'), 0, 155)) ?>">
+<?php require_once __DIR__ . '/ja-social.php'; ja_social_og(['title' => $city . ' travel guide', 'description' => ($p['description'] ?: $city . ' travel guide with best months, typical daily cost and what to do.'), 'image' => $img ?: '', 'image_alt' => $img ? $city : '', 'url' => 'destination.php?d=' . urlencode($name), 'type' => 'website']); ?>
 <link rel="stylesheet" href="css/pages-discover.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-discover.css') ?>"></head>
 <body class="ja dz-plan dz-guide">
 
@@ -97,7 +100,7 @@ $tierText = ['mainstream' => 'A well-known destination', 'lesser_known' => 'A le
 
   <section class="dz-facts" aria-label="At a glance">
     <dl>
-      <?php if ($c1): ?><div><dt>Typical cost per day</dt><dd><?= ja_inr(ja_inr_round($c1['per_day'])) ?></dd></div><?php endif; ?>
+      <?php if ($c1): ?><div><dt>Typical cost per day <span class="dz-dtnote">(mid-range, one traveller)</span></dt><dd><?= ja_inr(ja_inr_round($c1['per_day'])) ?></dd></div><?php endif; ?>
       <div><dt>Best months</dt><dd><?= $span ? htmlspecialchars($span) : 'Not recorded' ?></dd></div>
       <?php if ($p['region']): ?><div><dt>Region</dt><dd><?= htmlspecialchars($p['region']) ?></dd></div><?php endif; ?>
       <div><dt>Traveller rating</dt><dd><?= $rating ? number_format($rating['avg'], 1) . ' of 5 <small>from ' . $rating['n'] . '</small>' : 'None yet' ?></dd></div>
@@ -128,9 +131,27 @@ $tierText = ['mainstream' => 'A well-known destination', 'lesser_known' => 'A le
           <?php endforeach; ?>
           </tbody>
         </table>
-        <p class="dz-cap">Estimated by a model trained on real trip budgets. It covers food, stay, local transport and extras, not flights. Change the group size or month in <a href="plan-trip.php#adv">the cost helper</a>.</p>
+        <?php if (!empty($cs['styles'])): $sty = ['budget' => 'Budget', 'mid-range' => 'Mid-range', 'luxury' => 'Luxury']; ?>
+        <h3 class="dz-sub">By travel style, per traveller per day</h3>
+        <table class="dz-table">
+          <caption class="dz-sr">Estimated daily cost for one traveller by travel style</caption>
+          <thead><tr><th scope="col">Style</th><th scope="col">Likely per day</th><th scope="col">Usual range</th></tr></thead>
+          <tbody>
+          <?php foreach ($sty as $k => $lab): $r = $cs['styles'][$k] ?? null; if (!$r) continue; ?>
+            <tr><th scope="row"><?= $lab ?></th><td><?= ja_inr(ja_inr_round($r['per_person_per_day'])) ?></td><td><?= ja_inr(ja_inr_round($r['low'])) ?> to <?= ja_inr(ja_inr_round($r['high'])) ?></td></tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+        <p class="dz-cap">
+          <?php if ($csReg): ?><span class="dz-badge-reg">Regional estimate</span> No price reports for <?= htmlspecialchars($city) ?> itself, so these use prices from nearby places.
+          <?php else: ?>Based on <?= $csN ?> price report<?= $csN === 1 ? '' : 's' ?> from travellers for <?= htmlspecialchars($city) ?> (<?= htmlspecialchars($cs['confidence']) ?> confidence).<?php endif; ?>
+          Each style reads a different real price tier for stay, meals and fares. Totals above are mid-range for one traveller; a larger group shares rooms, so the per-person cost falls. Not included: getting there, shopping, and seasonal price changes (we have no real seasonal prices).
+          Change the group size in <a href="plan-trip.php#adv">the cost helper</a>.</p>
+        <?php else: ?>
+        <p class="dz-cap">Estimated from real traveller-reported prices for stay, meals, local fares and entry fees. It leaves out getting there and shopping. Change the group size in <a href="plan-trip.php#adv">the cost helper</a>.</p>
+        <?php endif; ?>
       <?php else: ?>
-        <p class="dz-muted">The cost model has no estimate for this place yet.</p>
+        <p class="dz-muted">There is no cost estimate for this place yet.</p>
       <?php endif; ?>
     </section>
   </div>
