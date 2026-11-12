@@ -106,18 +106,43 @@ def _http_get(url, timeout=20):
         return r.read().decode("utf-8")
 
 
+_FAIL_TTL = 300            # seconds a failed upstream stays "known bad" so users are not made to wait for it again
+_fail_until = {}
+
+
 def _overpass(query, timeout=30):
-    """POST an Overpass query, trying mirrors until one returns valid JSON."""
+    """POST an Overpass query to every mirror at once and return the first valid JSON answer.
+    Total wait is capped at `timeout` seconds; mirrors that failed recently are skipped for a few minutes."""
+    import threading
+    import queue
     body = urllib.parse.urlencode({"data": query}).encode()
-    for url in OVERPASS_MIRRORS:
+    now = time.time()
+    mirrors = [u for u in OVERPASS_MIRRORS if _fail_until.get(u, 0) < now] or list(OVERPASS_MIRRORS)
+    q = queue.Queue()
+
+    def worker(url):
         try:
             req = urllib.request.Request(url, data=body, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 txt = r.read().decode("utf-8")
             if txt.lstrip().startswith("{"):
-                return json.loads(txt)
+                q.put((url, json.loads(txt)))
+                return
         except Exception:
-            continue
+            pass
+        q.put((url, None))
+
+    for u in mirrors:
+        threading.Thread(target=worker, args=(u,), daemon=True).start()
+    deadline = time.time() + timeout
+    for _ in mirrors:
+        try:
+            url, data = q.get(timeout=max(0.1, deadline - time.time()))
+        except queue.Empty:
+            break
+        if data is not None:
+            return data
+        _fail_until[url] = time.time() + _FAIL_TTL
     return None
 
 
@@ -126,6 +151,28 @@ def haversine(la1, lo1, la2, lo2):
     dla, dlo = radians(la2 - la1), radians(lo2 - lo1)
     a = sin(dla / 2) ** 2 + cos(radians(la1)) * cos(radians(la2)) * sin(dlo / 2) ** 2
     return R * 2 * atan2(sqrt(a), sqrt(1 - a))
+
+
+_LOCAL = None
+
+
+def _local_coords():
+    """Coordinates we already hold for every served destination (instant, no network)."""
+    global _LOCAL
+    if _LOCAL is None:
+        _LOCAL = {}
+        try:
+            d = os.path.join(os.path.dirname(__file__), "..", "data")
+            for f in ("dest_coords.json", "dest_coords_overrides.json"):
+                fp = os.path.join(d, f)
+                if os.path.exists(fp):
+                    with open(fp, encoding="utf-8") as fh:
+                        for k, v in json.load(fh).items():
+                            if isinstance(v, (list, tuple)) and len(v) >= 2:
+                                _LOCAL[k.lower()] = (float(v[0]), float(v[1]))
+        except Exception:
+            pass
+    return _LOCAL
 
 
 def geocode(place):
@@ -137,6 +184,11 @@ def geocode(place):
     cached = _cache_get(ck)
     if cached:
         return tuple(cached)
+    local = _local_coords().get(place.lower()) or _local_coords().get(place.lower() + ", india")
+    if local:
+        return (local[0], local[1], place)
+    if _cache_get("geo-miss:" + place.lower(), max_age=3600) is not None:
+        return None
     q = urllib.parse.urlencode({"q": place, "format": "json", "limit": 1,
                                 "countrycodes": "in", "addressdetails": 0})
     try:
@@ -151,6 +203,7 @@ def geocode(place):
         except Exception:
             return None
     if not data:
+        _cache_put("geo-miss:" + place.lower(), [1])
         return None
     res = (float(data[0]["lat"]), float(data[0]["lon"]), data[0].get("display_name", place))
     _cache_put(ck, list(res))
@@ -178,13 +231,12 @@ def fetch_pois(lat, lon, radius_km, categories):
     cat_list = list(categories)
     batches = [cat_list[i:i + 4] for i in range(0, len(cat_list), 4)]
     elements = []
-    for b in batches:
-        q = build(b)
-        if not q:
-            continue
-        data = _overpass(q, timeout=40)
-        if data:
-            elements.extend(data.get("elements", []))
+    from concurrent.futures import ThreadPoolExecutor
+    qs = [x for x in (build(b) for b in batches) if x]
+    with ThreadPoolExecutor(max_workers=max(1, min(4, len(qs)))) as ex:
+        for data in ex.map(lambda x: _overpass(x, timeout=25), qs):
+            if data:
+                elements.extend(data.get("elements", []))
     out = []
     seen = set()
     for e in elements:
@@ -232,7 +284,8 @@ def fetch_pois(lat, lon, radius_km, categories):
             "cuisine": t.get("cuisine", ""),
         })
     out.sort(key=lambda x: x["dist_km"])
-    _cache_put(ck, out)
+    if out:                      # never cache an empty answer: it usually means the upstream was down
+        _cache_put(ck, out)
     return out
 
 

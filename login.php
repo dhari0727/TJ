@@ -6,15 +6,10 @@ require_once __DIR__ . '/ja-trust.php';
 $evalue = "";
 if (!empty($_GET['suspended'])) $evalue = "This account has been suspended. Contact the site admin.";
 
-// logout (linked from the JourneyAI navbar as login.php?logout=1)
-if (isset($_GET['logout'])) {
-    session_unset();
-    session_destroy();
-    header("location:login.php");
-    exit;
-}
+// logging out is POST-only (logout.php); a GET ?logout=1 is ignored on purpose
 
 if (isset($_POST['lgn'])) {
+    ja_csrf_enforce();
     $email    = trim($_POST['eml'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -106,7 +101,7 @@ $img = ja_local_images()['maldives'] ?? (ja_local_images()['goa'] ?? '');
       <h1>Log in</h1>
       <p class="ja-auth-lead">Welcome back. Enter your details to continue.</p>
       <?php if ($evalue): ?><div class="ja-err"><?= htmlspecialchars($evalue) ?></div><?php endif; ?>
-      <form method="post">
+      <form method="post"><?= ja_csrf_field() ?>
         <div class="ja-field"><label>Email</label><input class="ja-input" type="email" name="eml" required autofocus></div>
         <div class="ja-field"><label>Password</label><input class="ja-input" type="password" name="password" required></div>
         <button class="ja-btn ja-btn-primary" type="submit" name="lgn" data-magnetic style="width:100%">Log in</button>

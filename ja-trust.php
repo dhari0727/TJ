@@ -160,8 +160,9 @@ function ja_send_verification($eml, $force = false) {
     if (!$u || (int)$u['email_verified']) return ['ok' => false, 'status' => 'already', 'url' => ''];
     if (!ja_rate_limit('verify:' . strtolower($eml), 4, 3600)) return ['ok' => false, 'status' => 'limited', 'url' => ''];
     $token = bin2hex(random_bytes(32));
+    $tokHash = ja_token_hash($token);   // store only the hash; the raw token goes in the emailed link
     $up = mysqli_prepare($conn, "UPDATE signup SET verify_token = ?, verify_sent_at = NOW() WHERE eml = ?");
-    mysqli_stmt_bind_param($up, 'ss', $token, $eml); mysqli_stmt_execute($up); mysqli_stmt_close($up);
+    mysqli_stmt_bind_param($up, 'ss', $tokHash, $eml); mysqli_stmt_execute($up); mysqli_stmt_close($up);
     $url = ja_base_url() . '/verify-email.php?token=' . $token;
     $site = ja_setting('site_name', 'JourneyAI');
     $res = ja_send_mail($eml, "$site: confirm your email",

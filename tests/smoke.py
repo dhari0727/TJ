@@ -41,6 +41,11 @@ def csrf_from(html):
     return m.group(1).strip('"') if m else ""
 
 
+def ftok(sess, path):
+    """GET a public form page (starts the session) and return its CSRF token."""
+    return csrf_from(sess.get(f"{BASE}/{path}", timeout=30).text)
+
+
 def main():
     anon = requests.Session()
     user = requests.Session()
@@ -87,9 +92,9 @@ def main():
     check("no PHP version header", "X-Powered-By" not in r.headers)
 
     print("\n== account: register, preferences, plan-trip prefill")
-    user.get(f"{BASE}/register.php", timeout=30)
+    rtok = ftok(user, "register.php")
     import time; time.sleep(4.5)   # the sign-up form rejects submissions faster than a person can type
-    r = user.post(f"{BASE}/register.php", data={"fname": "Smoke", "lname": "Test", "eml": email, "psw": pw, "sn": "1"}, allow_redirects=False, timeout=60)
+    r = user.post(f"{BASE}/register.php", data={"csrf": rtok, "fname": "Smoke", "lname": "Test", "eml": email, "psw": pw, "sn": "1"}, allow_redirects=False, timeout=60)
     # sharing needs a verified account (tests/trust_test.py covers that strictly); here we only mark this throw-away user trusted
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
     from ml.db import get_connection
@@ -186,7 +191,7 @@ def main():
         check("delete by POST works", "Smoke journey" not in user.get(f"{BASE}/my-entries.php", timeout=60).text)
 
     print("\n== security: login + password")
-    r = anon.post(f"{BASE}/login.php", data={"eml": email, "password": "wrong", "lgn": "1"}, timeout=30)
+    r = anon.post(f"{BASE}/login.php", data={"csrf": ftok(anon, "login.php"), "eml": email, "password": "wrong", "lgn": "1"}, timeout=30)
     check("wrong password is refused", "Incorrect email or password" in r.text)
     ctok = csrf_from(user.get(f"{BASE}/change-pswd.php", timeout=30).text)
     r = user.post(f"{BASE}/change-pswd.php", data={"CUR": "not-it", "PASS": pw2, "Save": "1"}, timeout=30)
@@ -194,7 +199,7 @@ def main():
     r = user.post(f"{BASE}/change-pswd.php", data={"CUR": pw, "PASS": pw2, "Save": "1"}, timeout=30)
     check("password changed with the right current password", "updated" in r.text.lower())
     fresh = requests.Session()
-    r = fresh.post(f"{BASE}/login.php", data={"eml": email, "password": pw2, "lgn": "1"}, allow_redirects=False, timeout=30)
+    r = fresh.post(f"{BASE}/login.php", data={"csrf": ftok(fresh, "login.php"), "eml": email, "password": pw2, "lgn": "1"}, allow_redirects=False, timeout=30)
     check("can log in with the new password", r.status_code == 302 and "dashboard.php" in r.headers.get("Location", ""))
     check("non-admin cannot open the admin panel", fresh.get(f"{BASE}/admin.php", timeout=30).status_code == 403)
 
@@ -204,7 +209,8 @@ def main():
     check("delete account refuses a wrong password", "Wrong password" in r.text)
     r = fresh.post(f"{BASE}/profile.php", data={"csrf": tok, "DeleteAccount": "1", "confirm_pw": pw2}, allow_redirects=False, timeout=60)
     check("account deleted", r.status_code == 302 and "deleted=1" in r.headers.get("Location", ""), r.status_code)
-    r = requests.post(f"{BASE}/login.php", data={"eml": email, "password": pw2, "lgn": "1"}, timeout=30)
+    _l = requests.Session()
+    r = _l.post(f"{BASE}/login.php", data={"csrf": ftok(_l, "login.php"), "eml": email, "password": pw2, "lgn": "1"}, timeout=30)
     check("deleted account can no longer log in", "Incorrect email or password" in r.text)
 
     failed = [n for n, ok, _ in results if not ok]

@@ -8,15 +8,17 @@ $token = trim($_GET['token'] ?? $_POST['token'] ?? '');
 
 $row = null;
 if ($token !== '') {
-    $stmt = mysqli_prepare($conn, "SELECT eml, reset_expires FROM signup WHERE reset_token = ? LIMIT 1");
-    mysqli_stmt_bind_param($stmt, 's', $token);
+    $tokHash = ja_token_hash($token);   // the DB only holds the sha256 of the emailed token
+    $stmt = mysqli_prepare($conn, "SELECT eml, reset_expires, reset_token FROM signup WHERE reset_token = ? LIMIT 1");
+    mysqli_stmt_bind_param($stmt, 's', $tokHash);
     mysqli_stmt_execute($stmt);
     $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     mysqli_stmt_close($stmt);
 }
-$valid = $row && strtotime($row['reset_expires']) >= time();
+$valid = $row && hash_equals((string)$row['reset_token'], ja_token_hash($token)) && strtotime($row['reset_expires']) >= time();
 
 if ($valid && isset($_POST['next'])) {
+    ja_csrf_enforce();
     $psw = $_POST['psw'] ?? '';
     $strong = preg_match('@[A-Z]@',$psw) && preg_match('@[a-z]@',$psw) && preg_match('@[0-9]@',$psw)
            && preg_match('/[!@#$%^&*()\-_=+{};:,<.>]/',$psw) && strlen($psw) >= 8 && !ja_common_password($psw);
@@ -25,10 +27,12 @@ if ($valid && isset($_POST['next'])) {
         $err = "Password needs 8+ characters with an uppercase letter, a number and a symbol.";
     } else {
         $hash = password_hash($psw, PASSWORD_DEFAULT);
-        $up = mysqli_prepare($conn, "UPDATE signup SET psw = ?, reset_token = NULL, reset_expires = NULL, session_epoch = session_epoch + 1 WHERE eml = ?");
-        mysqli_stmt_bind_param($up, 'ss', $hash, $row['eml']);
+        $up = mysqli_prepare($conn, "UPDATE signup SET psw = ?, reset_token = NULL, reset_expires = NULL, session_epoch = session_epoch + 1 WHERE eml = ? AND reset_token = ?");
+        mysqli_stmt_bind_param($up, 'sss', $hash, $row['eml'], $tokHash);
         mysqli_stmt_execute($up);
+        $claimed = mysqli_stmt_affected_rows($up) === 1;   // a second use of the same link changes nothing
         mysqli_stmt_close($up);
+        if (!$claimed) { $err = "This reset link was already used."; $valid = false; } else
         $ok = "Password updated. You can log in now.";
         $valid = false; // token is spent; hide the form
     }
@@ -56,7 +60,7 @@ $img = ja_local_images()['bali'] ?? (ja_local_images()['goa'] ?? '');
       <?php if ($ok): ?><div class="ja-ok"><?= htmlspecialchars($ok) ?></div><?php endif; ?>
       <?php if ($valid): ?>
         <p class="ja-auth-lead">Enter a new password for <?= htmlspecialchars($row['eml']) ?>.</p>
-        <form method="post">
+        <form method="post"><?= ja_csrf_field() ?>
           <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
           <div class="ja-field"><label>New password</label><input class="ja-input" type="password" name="psw" required placeholder="8+ chars, 1 uppercase, 1 number, 1 symbol"></div>
           <button class="ja-btn ja-btn-primary" type="submit" name="next" value="1" data-magnetic style="width:100%">Set new password</button>

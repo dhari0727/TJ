@@ -63,7 +63,7 @@ if ($ja_use_sidebar):
     <a href="new-entry.php" class="ja-btn ja-btn-primary ja-side-new"><?= ja_icon('pen',16) ?><span>New Journal</span></a>
     <button class="ja-theme-toggle ja-side-theme" data-ja-theme-toggle title="Toggle theme" style="width:auto;justify-content:flex-start;gap:12px;padding:11px 14px;border:none;background:none;color:var(--text-dim);font-weight:500;font-size:.95rem;display:flex;align-items:center"><?= ja_icon('sun',20) ?><span>Theme</span></button>
     <a href="profile.php" class="<?= $ja_active==='profile'?'active':'' ?>"><?= ja_icon('user',20) ?><span><?= htmlspecialchars($_SESSION['fname'] ?? 'Profile') ?></span></a>
-    <a href="login.php?logout=1"><?= ja_icon('logout',20) ?><span>Log out</span></a>
+    <?= ja_logout_form('class="ja-side-logout" style="width:100%;justify-content:flex-start;gap:12px;padding:11px 14px;border:none;background:none;color:var(--text-dim);font:inherit;font-weight:500;font-size:.95rem;display:flex;align-items:center;cursor:pointer"', ja_icon('logout',20) . '<span>Log out</span>') ?>
   </div>
 </aside>
 <button class="ja-side-toggle" id="jaSideToggle" aria-label="Open menu" aria-expanded="false" aria-controls="jaSidebar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
@@ -88,7 +88,7 @@ if ($ja_use_sidebar):
       <?php if ($ja_logged_in): ?>
         <a href="dashboard.php" class="<?= ja_nav_class('dashboard',$ja_active) ?>">Home</a>
         <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan a Trip</a>
-        <a href="login.php?logout=1" class="ja-theme-toggle" title="Logout" style="text-decoration:none"><?= ja_icon('logout',18) ?></a>
+        <?= ja_logout_form('class="ja-theme-toggle" title="Logout" aria-label="Log out" style="cursor:pointer"', ja_icon('logout',18)) ?>
       <?php else: ?>
         <a href="index.php" class="<?= ja_nav_class('home',$ja_active) ?>">Home</a>
         <a href="plan-trip.php" class="<?= ja_nav_class('plan',$ja_active) ?>">Plan a Trip</a>

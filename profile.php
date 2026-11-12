@@ -165,7 +165,7 @@ function v($x){ return htmlspecialchars($x ?? ''); }
           <h3 style="font-size:1.15rem">Security</h3>
           <p style="color:var(--text-mut);font-size:.9rem;margin:6px 0 14px">Your password is securely hashed.</p>
           <a href="change-pswd.php" class="ja-btn ja-btn-ghost" style="width:100%;padding:10px"><?= ja_icon('user',16) ?> Change password</a>
-          <a href="login.php?logout=1" class="ja-btn ja-btn-ghost" style="width:100%;padding:10px;margin-top:10px;color:var(--ja-coral)"><?= ja_icon('logout',16) ?> Log out</a>
+          <?= ja_logout_form('class="ja-btn ja-btn-ghost" style="width:100%;padding:10px;margin-top:10px;color:var(--ja-coral)"', ja_icon('logout',16) . ' Log out') ?>
         </div>
         <div class="ja-card" style="margin-top:20px">
           <h3 style="font-size:1.15rem">Your data</h3>

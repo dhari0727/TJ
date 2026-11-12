@@ -7,6 +7,7 @@ $regOpen = ja_setting('allow_registration', '1') === '1';
 $err = ""; $err2 = $regOpen ? "" : "New sign-ups are currently closed.";
 if (isset($_POST["sn"]) && !$regOpen) { $err2 = "New sign-ups are currently closed."; }
 elseif (isset($_POST["sn"])) {
+    ja_csrf_enforce();
     $fname = trim($_POST["fname"] ?? '');
     $lname = trim($_POST["lname"] ?? '');
     $eml   = trim($_POST["eml"] ?? '');
@@ -35,7 +36,10 @@ elseif (isset($_POST["sn"])) {
     } else if (!ja_rate_limit('register:ip:' . ja_client_ip(), 10, 3600)) {
         $err2 = "Too many sign-ups from this network. Please try again later.";
     } else if ($emailExists) {
-        $err2 = "That email is already registered.";
+        // never confirm that an address is taken: same wording as a generic failure, and similar work/time as a real sign-up
+        password_hash($psw, PASSWORD_DEFAULT);
+        ja_audit($eml, 'register_existing', '');
+        $err2 = "We couldn't create an account with those details. If you already have one, log in or reset your password.";
     } else if (!$strong) {
         $err = "Password needs 8+ characters with an uppercase letter, a number and a symbol.";
     } else if (!$validate) {
@@ -80,7 +84,7 @@ $img = ja_local_images()['bali'] ?? (ja_local_images()['kerala'] ?? '');
       <p class="ja-auth-lead">Join JourneyAI and start planning in minutes.</p>
       <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
       <?php if ($err2): ?><div class="ja-err"><?= htmlspecialchars($err2) ?></div><?php endif; ?>
-      <form method="post">
+      <form method="post"><?= ja_csrf_field() ?>
         <div class="ja-fieldrow">
           <div class="ja-field"><label>First name</label><input class="ja-input" name="fname" required></div>
           <div class="ja-field"><label>Last name</label><input class="ja-input" name="lname" required></div>

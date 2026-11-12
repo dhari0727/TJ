@@ -6,6 +6,7 @@ JourneyAI — tests for the verification, moderation and media/data security lay
 Uses throw-away "trust-*@test.invalid" accounts and removes everything it created.
 """
 import io
+import hashlib
 import os
 import re
 import secrets
@@ -50,13 +51,19 @@ def csrf(sess, path="profile.php"):
     return m.group(1).strip('"') if m else ""
 
 
+def ftok(sess, path):
+    """GET a public form page (starts the session) and return its CSRF token."""
+    m = re.search(r'name="csrf" value="([a-f0-9]+)"', sess.get(f"{BASE}/{path}", timeout=30).text)
+    return m.group(1) if m else ""
+
+
 def new_user(tag):
     s = requests.Session()
     eml = f"trust-{tag}-{secrets.token_hex(3)}@test.invalid"
-    s.get(f"{BASE}/register.php", timeout=30)
+    tk = ftok(s, "register.php")
     # the form must not be submitted faster than a human could (server-side check)
     import time; time.sleep(4.5)
-    r = s.post(f"{BASE}/register.php", data={"fname": "Trust", "lname": tag, "eml": eml, "psw": PW, "sn": "1", "website": ""}, allow_redirects=False, timeout=60)
+    r = s.post(f"{BASE}/register.php", data={"csrf": tk, "fname": "Trust", "lname": tag, "eml": eml, "psw": PW, "sn": "1", "website": ""}, allow_redirects=False, timeout=60)
     return s, eml, r
 
 
@@ -111,17 +118,17 @@ def main():
     created = []
     print("\n== registration protections")
     anon = requests.Session()
-    anon.get(f"{BASE}/register.php", timeout=30)
-    r = anon.post(f"{BASE}/register.php", data={"fname": "Bot", "lname": "X", "eml": "bot@mailinator.com", "psw": PW, "sn": "1"}, timeout=30)
+    tk = ftok(anon, "register.php")
+    r = anon.post(f"{BASE}/register.php", data={"csrf": tk, "fname": "Bot", "lname": "X", "eml": "bot@mailinator.com", "psw": PW, "sn": "1"}, timeout=30)
     check("form submitted instantly is treated as a bot", "automated" in r.text)
     import time; time.sleep(4.5)
-    r = anon.post(f"{BASE}/register.php", data={"fname": "Bot", "lname": "X", "eml": "bot@mailinator.com", "psw": PW, "sn": "1"}, timeout=30)
+    r = anon.post(f"{BASE}/register.php", data={"csrf": tk, "fname": "Bot", "lname": "X", "eml": "bot@mailinator.com", "psw": PW, "sn": "1"}, timeout=30)
     check("disposable email addresses are refused", "permanent email" in r.text)
-    anon.get(f"{BASE}/register.php", timeout=30); time.sleep(4.5)
-    r = anon.post(f"{BASE}/register.php", data={"fname": "Bot", "lname": "X", "eml": "bot2@test.invalid", "psw": PW, "sn": "1", "website": "http://spam"}, timeout=30)
+    tk = ftok(anon, "register.php"); time.sleep(4.5)
+    r = anon.post(f"{BASE}/register.php", data={"csrf": tk, "fname": "Bot", "lname": "X", "eml": "bot2@test.invalid", "psw": PW, "sn": "1", "website": "http://spam"}, timeout=30)
     check("honeypot field filled in -> refused", "automated" in r.text)
-    anon.get(f"{BASE}/register.php", timeout=30); time.sleep(4.5)
-    r = anon.post(f"{BASE}/register.php", data={"fname": "Bot", "lname": "X", "eml": "bot3@test.invalid", "psw": "Password123!", "sn": "1"}, timeout=30)
+    tk = ftok(anon, "register.php"); time.sleep(4.5)
+    r = anon.post(f"{BASE}/register.php", data={"csrf": tk, "fname": "Bot", "lname": "X", "eml": "bot3@test.invalid", "psw": "Password123!", "sn": "1"}, timeout=30)
     check("common passwords are refused", "too common" in r.text)
 
     print("\n== unverified account (A)")
@@ -142,7 +149,12 @@ def main():
     check("photo from an unverified account is stored private", pub and pub[0][0] == 0, pub)
 
     print("\n== email verification link")
-    token = db("SELECT verify_token FROM signup WHERE eml=%s", (ea,))[0][0]
+    ta0 = csrf(A, "verify-email.php")
+    rr = A.post(f"{BASE}/verify-email.php", data={"csrf": ta0, "resend": "1"}, timeout=30).text
+    mt = re.search(r"verify-email\.php\?token=([a-f0-9]{64})", rr)
+    token = mt.group(1) if mt else "0" * 64
+    stored = db("SELECT verify_token FROM signup WHERE eml=%s", (ea,))[0][0]
+    check("verify token is stored hashed, not raw", mt and stored == hashlib.sha256(token.encode()).hexdigest() and stored != token, (stored, token))
     check("bad token is rejected", "not valid" in requests.get(f"{BASE}/verify-email.php?token={'0' * 64}", timeout=30).text)
     check("real token verifies the account", "confirmed" in requests.get(f"{BASE}/verify-email.php?token={token}", timeout=30).text)
     check("token cannot be reused", "not valid" in requests.get(f"{BASE}/verify-email.php?token={token}", timeout=30).text)
@@ -236,12 +248,52 @@ def main():
 
     print("\n== a password change signs the other devices out")
     D = requests.Session()
-    D.get(f"{BASE}/login.php", timeout=30)
-    D.post(f"{BASE}/login.php", data={"lgn": "1", "eml": ea, "password": PW}, allow_redirects=False, timeout=30)
+    tk = ftok(D, "login.php")
+    D.post(f"{BASE}/login.php", data={"csrf": tk, "lgn": "1", "eml": ea, "password": PW}, allow_redirects=False, timeout=30)
     check("second device is logged in", D.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 200)
     A.post(f"{BASE}/change-pswd.php", data={"CUR": PW, "PASS": "Changed#Trust2026", "Save": "1"}, timeout=30)
     check("the device that changed the password stays logged in", A.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 200)
     check("the other device is signed out", D.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 302)
+
+    print("== logout, reset tokens, enumeration, CSRF on public forms")
+    C, ec, _ = new_user("c"); created.append(ec)
+    check("GET logout.php is refused (405)", C.get(f"{BASE}/logout.php", allow_redirects=False, timeout=30).status_code == 405)
+    C.get(f"{BASE}/login.php?logout=1", allow_redirects=False, timeout=30)
+    check("GET login.php?logout=1 does not log out", C.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 200)
+    check("POST logout without a CSRF token is refused", C.post(f"{BASE}/logout.php", allow_redirects=False, timeout=30).status_code == 403)
+    check("...and the user is still signed in", C.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 200)
+    tc = csrf(C)
+    check("POST logout with the token signs out", C.post(f"{BASE}/logout.php", data={"csrf": tc}, allow_redirects=False, timeout=30).status_code == 302
+          and C.get(f"{BASE}/profile.php", allow_redirects=False, timeout=30).status_code == 302)
+
+    F = requests.Session()
+    check("login without a CSRF token is refused", F.post(f"{BASE}/login.php", data={"lgn": "1", "eml": ec, "password": PW}, timeout=30).status_code == 403)
+    check("forgot-password without a CSRF token is refused", F.post(f"{BASE}/forgot-pswd.php", data={"next": "1", "email": ec}, timeout=30).status_code == 403)
+    check("register without a CSRF token is refused", F.post(f"{BASE}/register.php", data={"sn": "1", "fname": "a", "lname": "b", "eml": "x@test.invalid", "psw": PW}, timeout=30).status_code == 403)
+
+    def forgot(sess, addr):
+        t = ftok(sess, "forgot-pswd.php")
+        return sess.post(f"{BASE}/forgot-pswd.php", data={"csrf": t, "next": "1", "email": addr}, timeout=60).text
+    def shape(html):
+        m = re.search(r'class="ja-ok">(.*?)</div>', html, re.S)
+        return re.sub(r"[a-f0-9]{64}", "TOKEN", m.group(1)) if m else html[-300:]
+    known = forgot(F, ec)
+    unknown = forgot(F, f"nobody-{secrets.token_hex(3)}@test.invalid")
+    check("forgot-password reply is identical for known and unknown emails", shape(known) == shape(unknown) and "registered" in shape(known), (shape(known)[:120], shape(unknown)[:120]))
+    mt = re.search(r"reset-password\.php\?token=([a-f0-9]{64})", known.replace("&amp;", "&"))
+    rt = mt.group(1) if mt else "0" * 64
+    stored = db("SELECT reset_token FROM signup WHERE eml=%s", (ec,))[0][0]
+    check("reset token is stored hashed, not raw", mt and stored == hashlib.sha256(rt.encode()).hexdigest() and stored != rt, stored)
+    check("the raw token opens the reset page", "Enter a new password" in requests.get(f"{BASE}/reset-password.php?token={rt}", timeout=30).text)
+    check("the stored hash is not accepted as a token", "invalid or has expired" in requests.get(f"{BASE}/reset-password.php?token={stored}", timeout=30).text)
+    R = requests.Session()
+    page = R.get(f"{BASE}/reset-password.php?token={rt}", timeout=30).text
+    rtk = re.search(r'name="csrf" value="([a-f0-9]+)"', page).group(1)
+    r = R.post(f"{BASE}/reset-password.php", data={"csrf": rtk, "token": rt, "psw": "Reset#Trust2026x", "next": "1"}, timeout=30)
+    check("a reset link sets the new password once", "Password updated" in r.text)
+    check("a used reset link is dead", "invalid or has expired" in requests.get(f"{BASE}/reset-password.php?token={rt}", timeout=30).text)
+    db("UPDATE signup SET reset_token=%s, reset_expires=(NOW() - INTERVAL 1 HOUR) WHERE eml=%s", (hashlib.sha256(b"old").hexdigest(), ec))
+    check("an expired reset link is refused", "invalid or has expired" in requests.get(f"{BASE}/reset-password.php?token=old", timeout=30).text)
 
     print("== cleanup")
     purge()

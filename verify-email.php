@@ -11,12 +11,17 @@ if (isset($_POST['resend']) && !empty($_SESSION['eml']) && ja_csrf_ok()) {
 }
 $token = trim($_GET['token'] ?? '');
 if ($token !== '' && preg_match('/^[a-f0-9]{64}$/', $token)) {
-    $st = mysqli_prepare($conn, "SELECT eml FROM signup WHERE verify_token = ? AND verify_sent_at > (NOW() - INTERVAL 48 HOUR) AND email_verified = 0");
-    mysqli_stmt_bind_param($st, 's', $token); mysqli_stmt_execute($st);
+    $tokHash = ja_token_hash($token);   // only the sha256 of the emailed token is stored
+    $st = mysqli_prepare($conn, "SELECT eml, verify_token FROM signup WHERE verify_token = ? AND verify_sent_at > (NOW() - INTERVAL 48 HOUR) AND email_verified = 0");
+    mysqli_stmt_bind_param($st, 's', $tokHash); mysqli_stmt_execute($st);
     $row = mysqli_fetch_assoc(mysqli_stmt_get_result($st)); mysqli_stmt_close($st);
-    if ($row) {
-        $up = mysqli_prepare($conn, "UPDATE signup SET email_verified = 1, verify_token = NULL WHERE eml = ?");
-        mysqli_stmt_bind_param($up, 's', $row['eml']); mysqli_stmt_execute($up); mysqli_stmt_close($up);
+    $claimed = false;
+    if ($row && hash_equals((string)$row['verify_token'], $tokHash)) {
+        $up = mysqli_prepare($conn, "UPDATE signup SET email_verified = 1, verify_token = NULL WHERE eml = ? AND verify_token = ?");
+        mysqli_stmt_bind_param($up, 'ss', $row['eml'], $tokHash); mysqli_stmt_execute($up);
+        $claimed = mysqli_stmt_affected_rows($up) === 1; mysqli_stmt_close($up);
+    }
+    if ($claimed) {
         ja_audit($row['eml'], 'email_verified', '');
         $ok = true; $msg = 'Your email is confirmed. You can now share journals and photos with the community.';
     } else {

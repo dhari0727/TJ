@@ -35,7 +35,7 @@ function ja_save_hashtags($conn, $media_id, $tags) {
     }
 }
 
-const JA_MAX_PIXELS = 40000000;          // 40 megapixels: bigger images are rejected (decompression-bomb guard)
+const JA_MAX_PIXELS = 25000000;          // 25 megapixels: bigger images are rejected (decompression-bomb guard)
 const JA_MAX_SIDE = 2400;                // stored images are scaled so the long side is at most this
 const JA_USER_QUOTA = 400 * 1024 * 1024; // total media per account
 
@@ -56,7 +56,7 @@ function ja_reencode_image($tmp, $type, $dest) {
     if (!function_exists('imagecreatefromstring')) return [false, 'Image processing is unavailable on this server.'];
     $info = @getimagesize($tmp);
     if (!$info || $info[0] < 16 || $info[1] < 16) return [false, 'That file is not a valid image.'];
-    if ($info[0] * $info[1] > JA_MAX_PIXELS) return [false, 'Image is too large (over 40 megapixels).'];
+    if ($info[0] * $info[1] > JA_MAX_PIXELS) return [false, 'Image is too large (over 25 megapixels).'];
     $img = @imagecreatefromstring((string)file_get_contents($tmp));
     if (!$img) return [false, 'That image could not be read.'];
     // honour the camera rotation before the EXIF block is dropped

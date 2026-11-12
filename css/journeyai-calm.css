@@ -191,7 +191,7 @@ body.ja .ja-feed-tagchip,body.ja .ja-feed-tagchip-sm{border:0}
 .ja-app-content{padding-bottom:96px}
 @media (max-width:640px){
   .ja-smart-box{border-radius:22px;flex-wrap:wrap;padding:10px}
-  .ja-smart-box input{min-width:0;flex:1 1 100%}
+  .ja-smart-box input{min-width:0;flex:1 1 60%}
   .ja-smart-box .ja-btn{flex:1 1 100%}
   .ja-nav .inner{gap:8px}
   .ja-nav .ja-brand{font-size:1.1rem}
@@ -202,3 +202,51 @@ input[type=range]:focus-visible{outline:3px solid var(--melon);outline-offset:4p
 .ja-smart-box:focus-within{box-shadow:var(--soft-ring),var(--shadow)}
 /* itinerary hero: stronger scrim so the subtitle stays readable on bright photos */
 .ja-itin-hero{background-blend-mode:normal}
+
+/* theme/logout icon buttons inherit the page text colour (the UA default is black, invisible in dark mode) */
+.ja-theme-toggle{color:var(--text)}
+/* trip hero sits below the tab bar: no big nav offset, a gap above, and a scrim for readability */
+.ja-pagehead+.ja-itin-hero{margin-top:18px;padding-top:56px}
+@media (max-width:640px){
+  .ja-pagehead+.ja-itin-hero{padding:36px 0 28px}
+  .ja-itin-hero::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(4,24,32,.32),rgba(4,24,32,.62));pointer-events:none}
+  .ja-itin-hero .ja-container{position:relative}
+  .ja-itin-meta{gap:16px 28px}
+  .ja-itin-meta>div{min-width:40%}
+  /* day cards: number sits in the card header row instead of eating a column */
+  .ja-itin-day{gap:0;position:relative}
+  .ja-itin-daynum{position:absolute;left:14px;top:14px;width:34px;height:34px;font-size:1rem;z-index:1;box-shadow:none}
+  .ja-itin-daybody{padding:16px 14px}
+  .ja-itin-dayhead{padding-left:44px;gap:8px;flex-wrap:wrap;justify-content:flex-start;min-height:34px}
+  .ja-itin-dayhead h2{font-size:1.1rem}
+  .ja-itin-stay{flex-wrap:wrap}
+  .ja-footer-cols h4{white-space:nowrap}
+}
+/* plan-trip hero had no side padding below its max-width */
+@media (max-width:800px){body.ja>.ja-explore-hero{padding-left:20px;padding-right:20px}}
+/* route stops on phones: slimmer dot, image becomes a banner (or disappears), chips stop stretching */
+@media (max-width:640px){
+  .ja-route-stop{gap:10px;align-items:flex-start}
+  .ja-route-dot{width:34px;height:34px;font-size:.95rem;margin-top:10px}
+  .ja-route-leg{margin-left:16px;padding-left:18px}
+  .ja-route-card{flex-direction:column;min-width:0}
+  .ja-route-img{width:100%;height:96px;min-height:0}
+  .ja-route-img.noimg{display:none}
+  .ja-route-info{padding:12px 14px}
+  .ja-route-head>div{min-width:0}
+  .ja-route-eat>span:first-of-type{flex-basis:100%}
+  .ja-eat-chip{border-radius:12px;align-items:baseline}
+}
+/* route stops on phones: image becomes a strip above the text instead of a wasted left column */
+@media (max-width:640px){
+  .ja-route-stop{gap:10px;align-items:flex-start}
+  .ja-route-dot{width:32px;height:32px;font-size:.9rem}
+  .ja-route-card{flex-direction:column}
+  .ja-route-img{width:100%;min-height:0;height:96px}
+  .ja-route-img.noimg{height:52px}
+  .ja-route-info{padding:12px 14px}
+  .ja-route-eat{align-items:flex-start}
+  .ja-eat-chip{align-self:flex-start}
+  .ja-route-leg{margin-left:15px;padding-left:16px}
+}
+@media (max-width:640px){.ja-route-eat>span:first-of-type{flex:1 1 calc(100% - 28px)}}

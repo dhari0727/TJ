@@ -42,7 +42,7 @@ $nav = $ja_side_nav;
   <div class="ja-side-bottom">
     <a href="new-entry.php" class="ja-btn ja-btn-primary ja-side-new"><?= ja_icon('pen',16) ?><span>New Journal</span></a>
     <a href="profile.php" class="<?= $ja_active==='profile'?'active':'' ?>"><?= ja_icon('user',20) ?><span><?= htmlspecialchars($ja_fname) ?></span></a>
-    <a href="login.php?logout=1"><?= ja_icon('logout',20) ?><span>Log out</span></a>
+    <?= ja_logout_form('class="ja-side-logout" style="width:100%;justify-content:flex-start;gap:12px;padding:11px 14px;border:none;background:none;color:var(--text-dim);font:inherit;font-weight:500;font-size:.95rem;display:flex;align-items:center;cursor:pointer"', ja_icon('logout',20) . '<span>Log out</span>') ?>
   </div>
 </aside>
 

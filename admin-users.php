@@ -55,9 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ja_audit($me['eml'], 'admin_' . $act, $target);
         } elseif ($act === 'reset_link') {
             $token = bin2hex(random_bytes(32));
+            $tokHash = ja_token_hash($token);
             $exp = date('Y-m-d H:i:s', time() + 3600);
             $u = mysqli_prepare($conn, "UPDATE signup SET reset_token = ?, reset_expires = ? WHERE eml = ?");
-            mysqli_stmt_bind_param($u, 'sss', $token, $exp, $target); mysqli_stmt_execute($u); mysqli_stmt_close($u);
+            mysqli_stmt_bind_param($u, 'sss', $tokHash, $exp, $target); mysqli_stmt_execute($u); mysqli_stmt_close($u);
             $res = send_reset_email($target, $token);
             if ($res['ok']) { $msg = "Reset link emailed to $target."; }
             else { $msg = "Email not sent ({$res['error']}). Share this one-time link with the user yourself (valid 1 hour):"; $devLink = $res['url']; }

@@ -233,6 +233,14 @@ function ja_ensure_handle($eml) {
     return null;
 }
 
+/** One-time tokens (password reset, email verify) are stored only as this hash; the raw value lives in the emailed link. */
+function ja_token_hash($raw) { return hash('sha256', (string)$raw); }
+
+/** A tiny POST form that logs the user out (GET never logs out). $btnAttrs is raw HTML for the <button>, $inner its content. */
+function ja_logout_form($btnAttrs, $inner) {
+    return '<form method="post" action="logout.php" style="display:contents">' . ja_csrf_field() . '<button type="submit" ' . $btnAttrs . '>' . $inner . '</button></form>';
+}
+
 /** Reject a state-changing POST that does not carry this session's token (header X-CSRF-Token or field csrf). */
 function ja_csrf_enforce() {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') return;
