@@ -64,13 +64,6 @@
   }, { threshold: .15 }) : null;
   [].forEach.call(document.querySelectorAll('.cj-rv'), function (el) { io ? io.observe(el) : el.classList.add('in'); });
 
-  /* stars in the night section */
-  var night = $('.cj-night');
-  if (night) for (var i = 0; i < 60; i++) {
-    var s = document.createElement('i'); s.className = 'cj-star'; s.style.left = Math.random() * 100 + '%'; s.style.top = Math.random() * 100 + '%';
-    s.style.animationDelay = Math.random() * 3 + 's'; night.appendChild(s);
-  }
-
   /* scroll route: the line draws, the pin travels, each stop opens as the pin reaches it */
   var route = $('#cjRoute');
   if (route) {
@@ -82,7 +75,7 @@
       el.style.left = (p.x / 10) + '%'; el.style.top = (p.y / 24) + '%';
       el.style.setProperty('--dx', side * (window.innerWidth > 860 ? 190 : 0) + 'px'); el.style.setProperty('--dy', '50px');
       var c = document.createElementNS(NS, 'circle'); c.setAttribute('cx', p.x); c.setAttribute('cy', p.y); c.setAttribute('r', 16);
-      c.setAttribute('fill', 'var(--bg)'); c.setAttribute('stroke', '#c9bfae'); c.setAttribute('stroke-width', 5); dots.appendChild(c);
+      c.setAttribute('fill', 'var(--paper, #fff)'); c.setAttribute('stroke', 'currentColor'); c.setAttribute('stroke-opacity', '.4'); c.setAttribute('stroke-width', 5); dots.appendChild(c);
       el._dot = c; el._f = f;
     });
     var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -93,38 +86,11 @@
         var on = p >= el._f - .015;
         if (on !== el.classList.contains('on')) {
           el.classList.toggle('on', on);
-          el._dot.setAttribute('fill', on ? '#E63457' : 'var(--bg)'); el._dot.setAttribute('stroke', on ? '#fff' : '#c9bfae');
+          el._dot.setAttribute('fill', on ? '#F4A300' : 'var(--paper, #fff)'); el._dot.setAttribute('stroke', on ? '#14213D' : 'currentColor');
         }
       });
     };
     addEventListener('scroll', upd, { passive: true }); addEventListener('resize', upd); upd();
   }
 
-  /* drifting leaves, three depths, only for people who have not asked for less motion */
-  if (!RM) {
-    var LV = document.createElement('div'); LV.className = 'cj-leaves'; LV.setAttribute('aria-hidden', 'true'); document.body.appendChild(LV);
-    var COL = ['#E63457', '#1E7B4F', '#B6E36B', '#F6B73C', '#1E7B4F'], leaves = [];
-    for (var k = 0; k < 4; k++) {
-      var near = k % 3, l = document.createElement('div'); l.className = 'cj-leaf';
-      l.style.cssText = 'left:' + (Math.random() * 96) + '%;top:' + (Math.random() * 100) + '%;font-size:' + [16, 26, 40][near] + 'px;filter:blur(' + [0, 0, 2][near] + 'px);color:' + COL[k];
-      l.innerHTML = '<i style="--d:' + (5 + Math.random() * 5) + 's"><svg viewBox="0 0 24 24" width="1em" height="1em"><path d="M5 19C5 9 11 4 20 4c0 9-5 15-15 15z" fill="currentColor"/><path d="M5 19l8-8" stroke="#ffffff88" fill="none" stroke-width="1.6"/></svg></i>';
-      l.dataset.s = [.15, .35, .7][near]; LV.appendChild(l); leaves.push(l);
-    }
-    var lf = function () { leaves.forEach(function (l) { l.style.translate = '0 ' + (-((scrollY * +l.dataset.s) % (innerHeight + 120))) + 'px'; }); };
-    addEventListener('scroll', lf, { passive: true }); lf();
-  }
-
-  /* section dots */
-  var SECS = [].slice.call(document.querySelectorAll('[data-cj-sec]')), nav = document.createElement('nav');
-  nav.className = 'cj-dots'; nav.setAttribute('aria-label', 'Sections');
-  SECS.forEach(function (sec) {
-    var b = document.createElement('button'); b.type = 'button'; b.title = sec.dataset.cjSec; b.setAttribute('aria-label', sec.dataset.cjSec);
-    b.onclick = function () { sec.scrollIntoView({ behavior: RM ? 'auto' : 'smooth' }); }; nav.appendChild(b);
-  });
-  if (SECS.length) document.body.appendChild(nav);
-  var dUpd = function () {
-    var k = 0; SECS.forEach(function (s, i) { if (s.getBoundingClientRect().top < innerHeight * .5) k = i; });
-    [].forEach.call(nav.children, function (b, i) { b.classList.toggle('on', i === k); });
-  };
-  addEventListener('scroll', dUpd, { passive: true }); dUpd();
 })();

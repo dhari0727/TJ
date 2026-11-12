@@ -22,7 +22,7 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Caveat:wght@600&family=Familjen+Grotesk:wght@500;600;700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap" rel="stylesheet">
 
 <!-- JourneyAI design system -->
 <link rel="stylesheet" href="css/journeyai.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai.css') ?>">
@@ -35,6 +35,7 @@ function ja_nav_class($k, $active){ return $k === $active ? 'active' : ''; }
 <link rel="stylesheet" href="css/journeyai-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-community.css') ?>">
 <link rel="stylesheet" href="css/journeyai-watermelon.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-watermelon.css') ?>">
 <link rel="stylesheet" href="css/journeyai-calm.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-calm.css') ?>">
+<?php if (!empty($ja_landing)): ?><link rel="stylesheet" href="css/journeyai-landing.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-landing.css') ?>"><?php endif; ?>
 <script src="js/journey.js?v=<?= (int)@filemtime(__DIR__ . '/js/journey.js') ?>" defer></script>
 <script src="js/motion.js?v=<?= (int)@filemtime(__DIR__ . '/js/motion.js') ?>" defer></script>
 <script src="js/journeyai.js?v=<?= (int)@filemtime(__DIR__ . '/js/journeyai.js') ?>" defer></script>
