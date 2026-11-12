@@ -46,35 +46,33 @@ if (isset($_POST['next'])) {
         if ($devLink !== '') $ok .= " Dev link: " . $devLink;
     }
 }
-require 'ja-images.php';
-$img = ja_local_images()['kerala'] ?? (ja_local_images()['goa'] ?? '');
+require_once __DIR__ . '/ja-auth.php';
+$ja_css_extra = ['pages-account.css']; $ja_no_shell = true; $ja_no_nav = true;   // standalone page: no top bar or sidebar
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
-<div class="ja-auth">
-  <div class="ja-auth-visual" style="background-image:linear-gradient(160deg,rgba(11,61,79,.35),rgba(11,61,79,.75)),url('<?= htmlspecialchars($img) ?>')">
-    <div class="ja-auth-quote">
-      <div class="ja-eyebrow" style="color:var(--ja-aqua-2)">✦ Locked out?</div>
-      <h2>Let's get you<br>back in.</h2>
-      <p>Enter your account email and we'll send you a link to set a new password.</p>
-    </div>
-  </div>
-  <div class="ja-auth-form">
-    <div class="ja-auth-box">
-      <a class="ja-brand" href="index.php" style="margin-bottom:26px"><img src="images/journeyai-logo.svg" class="ja-logo-mark" alt=""> JourneyAI</a>
-      <h1>Forgot password</h1>
-      <p class="ja-auth-lead">We'll email you a link to reset it.</p>
-      <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-      <?php if ($ok): ?><div class="ja-ok"><?= htmlspecialchars($ok) ?></div><?php endif; ?>
-      <form method="post"><?= ja_csrf_field() ?>
-        <div class="ja-field"><label>Email</label><input class="ja-input" type="email" name="email" required autofocus></div>
-        <button class="ja-btn ja-btn-primary" type="submit" name="next" value="1" data-magnetic style="width:100%">Send reset link</button>
+<body class="ja ja-acct">
+<?php ja_auth_open('goa', 'Reset your password', 'Enter the email you signed up with.'); ?>
+      <?php if ($ok): ?>
+        <div class="ja-ok" role="status"><?= ja_icon('check', 16) ?> <?= htmlspecialchars($ok) ?></div>
+        <p class="acct-note">Check your inbox, and your spam folder if it does not show up within a few minutes. You can ask again after an hour.</p>
+      <?php endif; ?>
+      <?php if ($err && !$ok): ?><div class="ja-err" role="alert" id="form-err" tabindex="-1"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+      <form method="post" data-acct-validate novalidate><?= ja_csrf_field() ?>
+        <?= ja_field(['id' => 'email', 'name' => 'email', 'label' => 'Email', 'type' => 'email', 'value' => $_POST['email'] ?? '', 'autocomplete' => 'email', 'required' => 1, 'autofocus' => !$ok, 'rule' => 'email', 'label_text' => 'email address', 'invalid' => (bool)($err && !$ok), 'also' => ($err && !$ok) ? 'form-err' : '']) ?>
+        <button class="ja-btn ja-btn-primary acct-submit" type="submit" name="next" value="1">Send reset link</button>
       </form>
-      <p class="ja-auth-alt">Remembered it? <a href="login.php">Log in</a></p>
-    </div>
-  </div>
-</div>
+      <div class="acct-next">
+        <strong>What happens next</strong>
+        <ol>
+          <li>We email you a link. It works once and expires after 1 hour.</li>
+          <li>You choose a new password. Other devices are signed out.</li>
+          <li>You log in with it.</li>
+        </ol>
+        <p>For privacy this page shows the same message whether or not the address has an account.</p>
+      </div>
+      <p class="acct-alt">Remembered it? <a href="login.php">Log in</a></p>
+<?php ja_auth_close(); ?>
 </body>
 </html>

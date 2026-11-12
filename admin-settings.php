@@ -1,4 +1,5 @@
 <?php
+$ja_css_extra = ['pages-account.css'];
 $ja_title = "Settings"; $ja_active = "admin";
 require_once __DIR__ . '/ja-lib.php';
 require_once __DIR__ . '/ja-mailer.php';

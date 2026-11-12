@@ -1,4 +1,5 @@
 <?php
+$ja_css_extra = ['pages-account.css'];
 $ja_title = "Moderation"; $ja_active = "admin"; $ja_tab = "moderation";
 require_once __DIR__ . '/ja-trust.php';
 require_once __DIR__ . '/ml_client.php';
@@ -61,8 +62,13 @@ function mod_form($kind, $id, $acts) {
   <?php foreach ($pendJ as $j): ?>
     <div class="ja-card ja-modcard"><div><span class="ja-vis pending">Journal</span> <strong><?= htmlspecialchars($j['Title']) ?></strong> <span class="ja-muted">in <?= htmlspecialchars($j['City']) ?> by <?= author_label($j['eml']) ?></span></div>
       <?php if ($j['mod_reason']): ?><div class="ja-warn" style="margin:8px 0"><?= htmlspecialchars($j['mod_reason']) ?></div><?php endif; ?>
-      <?php $au = ml_authenticity($j['full'] ?? $j['txt'], $j['eml'], (int)$j['id']); if (empty($au['__error']) && isset($au['score'])): ?>
-        <div class="ja-muted" style="margin:6px 0;font-size:.88rem">Authenticity check: <strong><?= (int)$au['score'] ?>/100, <?= htmlspecialchars($au['level']) ?></strong><?= $au['reasons'] ? ' (' . htmlspecialchars(implode('; ', $au['reasons'])) . ')' : '' ?>. Advisory only.</div>
+      <?php $au = ml_authenticity($j['full'] ?? $j['txt'], $j['eml'], (int)$j['id']); if (empty($au['__error']) && isset($au['score'])): $sc = max(0, min(100, (int)$au['score'])); ?>
+        <div class="adm-auth" role="group" aria-label="Authenticity check">
+          <div class="adm-auth-top"><strong><?= $sc ?></strong><span>out of 100</span><em class="adm-lvl lvl-<?= htmlspecialchars(preg_replace('/[^a-z]/', '', strtolower($au['level']))) ?>"><?= htmlspecialchars($au['level']) ?></em></div>
+          <div class="adm-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?= $sc ?>" aria-label="Authenticity score"><i style="width:<?= $sc ?>%"></i></div>
+          <?php if (!empty($au['reasons'])): ?><ul class="adm-reasons"><?php foreach ($au['reasons'] as $rs): ?><li><?= htmlspecialchars($rs) ?></li><?php endforeach; ?></ul><?php endif; ?>
+          <p class="adm-adv">Advisory only. It never rejects anything by itself.</p>
+        </div>
       <?php endif; ?>
       <p class="ja-muted" style="margin:6px 0"><?= htmlspecialchars($j['txt']) ?>…</p>
       <a href="journal.php?id=<?= (int)$j['id'] ?>" target="_blank" class="ja-more" style="float:none">Open full journal</a>

@@ -116,7 +116,7 @@ def main():
 
     print("\n== planning")
     r = user.get(f"{BASE}/trip.php?dest=Goa,+India&days=4", timeout=120)
-    check("trip page (itinerary tab) renders", r.status_code == 200 and "ja-itin-day" in r.text)
+    check("trip page (itinerary tab) renders", r.status_code == 200 and "tp-day" in r.text)
     r = user.get(f"{BASE}/trip.php?place=Anand&mode=day", timeout=120)
     check("trip page (route tab) renders", r.status_code == 200 and "ja-route-stop" in r.text)
     r = user.post(f"{BASE}/smart-plan.php", json={"text": "3 days beaches under 20000"}, timeout=120)

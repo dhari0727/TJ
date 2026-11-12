@@ -37,7 +37,8 @@ mysqli_stmt_close($tr);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
 
 <link rel="stylesheet" href="css/storybook.css">
@@ -47,10 +48,9 @@ mysqli_stmt_close($tr);
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Serif+Display&family=Lora:wght@400;500;600&family=Caveat:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <div class="sb-shell" data-sb-theme="floral">
-  <div class="ja-pagehead">
+  <div class="ja-pagehead pc-head">
     <div class="ja-container">
-      <div class="ja-eyebrow">✦ Storybook</div>
-      <h1>Create a Storybook Journal</h1>
+      <h1>Create a storybook</h1>
       <p class="sub">Turn your trip into a beautiful, keepsake journal.</p>
     </div>
   </div>

@@ -1,4 +1,5 @@
 <?php
+$ja_css_extra = ['pages-account.css'];
 $ja_title = "Admin"; $ja_active = "admin"; $ja_tab = "overview";
 require_once __DIR__ . '/ja-lib.php';
 require_once __DIR__ . '/ja-mailer.php';
@@ -45,7 +46,7 @@ while ($r && ($row = mysqli_fetch_assoc($r))) $mails[] = $row;
 <h1 style="font-size:clamp(1.8rem,4vw,2.4rem);margin:4px 0 18px">Overview</h1>
 
 <div class="ja-health">
-  <div class="ja-hc <?= $mlUp ? 'ok' : 'bad' ?>"><strong>Recommendation service</strong><span><?= $mlUp ? 'Running' : 'Offline. Start ml/start_service.bat' ?></span></div>
+  <div class="ja-hc <?= $mlUp ? 'ok' : 'bad' ?>" role="group"><strong>Recommendation service</strong><span><?= $mlUp ? 'Running' : 'Offline. Start ml/start_service.bat' ?></span></div>
   <div class="ja-hc <?= $smtpOk ? 'ok' : 'warn' ?>"><strong>Email (SMTP)</strong><span><?= $smtpOk ? 'Configured' : 'Not set up. Password reset emails cannot be sent' ?></span>
     <?php if (!$smtpOk): ?><a href="admin-settings.php?tab=email">Set up email &rarr;</a><?php endif; ?></div>
   <div class="ja-hc <?= $geminiKey ? 'ok' : 'warn' ?>"><strong>AI chat assistant</strong><span><?= $geminiKey ? 'Gemini key present' : 'No Gemini key. Chat falls back to basic answers' ?></span>

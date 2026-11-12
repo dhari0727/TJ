@@ -2,6 +2,7 @@
 $ja_title = "Discover Storybooks"; $ja_active = "feed";
 session_start();
 require 'connection.php';
+require_once __DIR__ . '/ja-community-ui.php';
 
 $themeFilter = trim($_GET['theme'] ?? '');
 $page = max(1, (int)($_GET['page'] ?? 1));
@@ -98,13 +99,13 @@ function sb_cover_url($book) {
 <head>
 <?php include 'ja-head.php'; ?>
 <link rel="stylesheet" href="css/storybook.css">
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>">
 <script src="js/csrf.js"></script>
 </head>
 <body class="ja">
 
-<div class="ja-pagehead">
+<div class="ja-pagehead pc-head">
   <div class="ja-container">
-    <div class="ja-eyebrow">Browse</div>
     <h1>Discover Storybooks</h1>
     <p class="sub">Travel journals from other adventurers</p>
   </div>
@@ -123,10 +124,7 @@ function sb_cover_url($book) {
     <?php endif; ?>
 
     <?php if (!$books): ?>
-      <div class="sb-my-empty">
-        <div class="sb-my-empty-icon">📖</div>
-        <div class="sb-my-empty-text">No storybooks found<?= $themeFilter ? ' for this theme' : '' ?> yet.</div>
-      </div>
+      <?= pc_empty('No storybooks here yet', $themeFilter ? 'Nobody has shared a storybook in this theme. Try another theme, or make one yourself.' : 'Storybooks that travellers share publicly will appear here.', !empty($_SESSION['eml']) ? ['Create a storybook', 'storybook-create.php'] : ['Log in to create one', 'login.php'], 'book') ?>
     <?php else: ?>
       <div class="sb-discover-grid">
         <?php foreach ($books as $i => $b):
@@ -138,14 +136,13 @@ function sb_cover_url($book) {
           <?php if ($cover): ?>
             <img class="sb-discover-cover" src="<?= htmlspecialchars($cover) ?>" alt="<?= htmlspecialchars($b['title']) ?>" loading="lazy">
           <?php else: ?>
-            <div class="sb-discover-cover" style="display:flex;align-items:center;justify-content:center;background:<?= $tColor ?>22;color:<?= $tColor ?>;font-size:2.4rem;font-family:var(--sb-font-display)">📖</div>
+            <div class="sb-discover-cover" style="display:flex;align-items:center;justify-content:center;background:<?= $tColor ?>22;color:<?= $tColor ?>;"><?= pc_icon("book", 40) ?></div>
           <?php endif; ?>
           <div class="sb-discover-info">
             <div class="sb-discover-title"><?= htmlspecialchars($b['title']) ?></div>
             <div class="sb-discover-meta">
               <span class="sb-theme-badge" style="border-color:<?= $tColor ?>44;background:<?= $tColor ?>11;color:<?= $tColor ?>"><?= htmlspecialchars(ucwords(str_replace('-', ' ', $b['theme'] ?? ''))) ?></span>
               <span><?= $b['page_count'] ?> page<?= $b['page_count'] != 1 ? 's' : '' ?></span>
-              <span>·</span>
               <span><?= htmlspecialchars($ownerLabel) ?></span>
             </div>
             <div class="sb-discover-meta" style="margin-top:4px">
@@ -159,11 +156,11 @@ function sb_cover_url($book) {
       <?php if ($totalPages > 1): ?>
       <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:24px 0 40px">
         <?php if ($page > 1): ?>
-          <a class="ja-btn ja-btn-ghost" href="storybook-discover.php?<?= http_build_query(array_filter(['theme' => $themeFilter, 'page' => $page - 1])) ?>">← Previous</a>
+          <a class="ja-btn ja-btn-ghost" href="storybook-discover.php?<?= http_build_query(array_filter(['theme' => $themeFilter, 'page' => $page - 1])) ?>">Previous</a>
         <?php endif; ?>
         <span style="font-size:.85rem;color:var(--text-dim)">Page <?= $page ?> of <?= $totalPages ?></span>
         <?php if ($page < $totalPages): ?>
-          <a class="ja-btn ja-btn-primary" href="storybook-discover.php?<?= http_build_query(array_filter(['theme' => $themeFilter, 'page' => $page + 1])) ?>">Next →</a>
+          <a class="ja-btn ja-btn-primary" href="storybook-discover.php?<?= http_build_query(array_filter(['theme' => $themeFilter, 'page' => $page + 1])) ?>">Next</a>
         <?php endif; ?>
       </div>
       <?php endif; ?>

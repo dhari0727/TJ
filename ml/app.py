@@ -401,6 +401,27 @@ def similar_endpoint():
     return jsonify(res)
 
 
+# --------------------------------------------------------------- destination profile (guide + compare pages)
+@app.post("/destination")
+def destination_endpoint():
+    data = _body()
+    if data.get("list"):
+        from ml.recommender.profile_api import list_names
+        return jsonify({"status": "ok", "destinations": list_names()})
+    names = data.get("destinations")
+    names = names if isinstance(names, list) else [data.get("destination", "")]
+    names = [str(n).strip()[:120] for n in names if str(n).strip()][:3]
+    if not names:
+        return jsonify({"status": "error", "error": "destination required"}), 400
+    month = data.get("month")
+    month = _clamp_int(month, 1, 12, None) if month not in (None, "") else None
+    from ml.recommender.profile_api import get_profile
+    out = [get_profile(n, month) for n in names]
+    if all(o is None for o in out):
+        return jsonify({"status": "error", "error": "unknown destination"}), 404
+    return jsonify({"status": "ok", "destinations": [o for o in out if o], "results": out})
+
+
 # --------------------------------------------------------------- journal authenticity (advisory)
 @app.post("/authenticity")
 def authenticity_endpoint():

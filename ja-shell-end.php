@@ -1,6 +1,7 @@
 <?php /* JourneyAI — closes the app shell (sidebar layout). */ ?>
   </main>
 </div>
+<?php include __DIR__ . '/ja-palette.php'; ?>
 <?php include __DIR__ . '/ja-chat.php'; ?>
 <script src="js/ja-chat.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-chat.js') ?>" defer></script>
 <script>

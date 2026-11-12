@@ -62,41 +62,37 @@ elseif (isset($_POST["sn"])) {
     }
 }
 $_SESSION['reg_t'] = time();   // when the form was shown (for the too-fast check)
-require 'ja-images.php';
-$img = ja_local_images()['bali'] ?? (ja_local_images()['kerala'] ?? '');
+require_once __DIR__ . '/ja-auth.php';
+$ja_css_extra = ['pages-account.css']; $ja_no_shell = true; $ja_no_nav = true;   // standalone page: no top bar or sidebar
+// which field an error belongs to: password rules and address problems sit under their field, the rest goes in the summary
+$errPsw = $err; $errEml = ''; $errTop = '';
+if ($err2 !== '') { if (stripos($err2, 'email address') !== false && stripos($err2, "couldn't create") === false) $errEml = $err2; else $errTop = $err2; }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
-<div class="ja-auth">
-  <div class="ja-auth-visual" style="background-image:linear-gradient(160deg,rgba(11,61,79,.35),rgba(11,61,79,.75)),url('<?= htmlspecialchars($img) ?>')">
-    <div class="ja-auth-quote">
-      <div class="ja-eyebrow" style="color:var(--ja-aqua-2)">✦ Start exploring</div>
-      <h2>Travel smarter,<br>from real journeys.</h2>
-      <p>Budget-aware, explainable recommendations across 500+ destinations in India — free to join.</p>
-    </div>
-  </div>
-  <div class="ja-auth-form">
-    <div class="ja-auth-box">
-      <a class="ja-brand" href="index.php" style="margin-bottom:26px"><img src="images/journeyai-logo.svg" class="ja-logo-mark" alt=""> JourneyAI</a>
-      <h1>Create account</h1>
-      <p class="ja-auth-lead">Join JourneyAI and start planning in minutes.</p>
-      <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-      <?php if ($err2): ?><div class="ja-err"><?= htmlspecialchars($err2) ?></div><?php endif; ?>
-      <form method="post"><?= ja_csrf_field() ?>
+<body class="ja ja-acct">
+<?php ja_auth_open('kerala', 'Create your account', 'Free. Plan trips privately from the first minute.'); ?>
+      <?php if ($errTop): ?><div class="ja-err" role="alert" id="form-err" tabindex="-1"><?= htmlspecialchars($errTop) ?></div><?php endif; ?>
+      <form method="post" data-acct-validate novalidate><?= ja_csrf_field() ?>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>First name</label><input class="ja-input" name="fname" required></div>
-          <div class="ja-field"><label>Last name</label><input class="ja-input" name="lname" required></div>
+          <?= ja_field(['id' => 'fname', 'name' => 'fname', 'label' => 'First name', 'value' => $_POST['fname'] ?? '', 'autocomplete' => 'given-name', 'required' => 1, 'rule' => 'required', 'label_text' => 'first name', 'maxlength' => 100]) ?>
+          <?= ja_field(['id' => 'lname', 'name' => 'lname', 'label' => 'Last name', 'value' => $_POST['lname'] ?? '', 'autocomplete' => 'family-name', 'required' => 1, 'rule' => 'required', 'label_text' => 'last name', 'maxlength' => 100]) ?>
         </div>
         <div style="position:absolute;left:-5000px" aria-hidden="true"><label>Website</label><input name="website" tabindex="-1" autocomplete="off"></div>
-        <div class="ja-field"><label>Email</label><input class="ja-input" type="email" name="eml" required></div>
-        <div class="ja-field"><label>Password</label><input class="ja-input" type="password" name="psw" required placeholder="8+ chars, 1 uppercase, 1 number, 1 symbol"></div>
-        <button class="ja-btn ja-btn-primary" type="submit" name="sn" data-magnetic style="width:100%">Create account</button>
+        <?= ja_field(['id' => 'eml', 'name' => 'eml', 'label' => 'Email', 'type' => 'email', 'value' => $_POST['eml'] ?? '', 'autocomplete' => 'email', 'required' => 1, 'rule' => 'email', 'label_text' => 'email address', 'error' => $errEml, 'hint' => 'We send one link to confirm it. We never show it publicly.']) ?>
+        <?= ja_field(['id' => 'psw', 'name' => 'psw', 'label' => 'Password', 'type' => 'password', 'autocomplete' => 'new-password', 'required' => 1, 'rule' => 'password', 'label_text' => 'password', 'error' => $errPsw, 'meter' => 1]) ?>
+        <button class="ja-btn ja-btn-primary acct-submit" type="submit" name="sn">Create account</button>
       </form>
-      <p class="ja-auth-alt">Already have an account? <a href="login.php">Log in</a></p>
-    </div>
-  </div>
-</div>
+      <div class="acct-next">
+        <strong>What happens next</strong>
+        <ol>
+          <li>You land on Home, signed in.</li>
+          <li>We email a link to confirm your address.</li>
+          <li>Plan and write privately right away. Sharing publicly unlocks once your email is confirmed.</li>
+        </ol>
+      </div>
+      <p class="acct-alt">Already have an account? <a href="login.php">Log in</a></p>
+<?php ja_auth_close(); ?>
 </body>
 </html>

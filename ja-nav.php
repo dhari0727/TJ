@@ -1,19 +1,19 @@
 <?php
 /**
- * JourneyAI — the ONE sidebar menu for logged-in users (single source of truth).
- * Included by ja-head.php and ja-shell.php; edit here to change navigation everywhere.
+ * JourneyAI — the ONE menu definition (single source of truth) for the sidebar, the top bar,
+ * the footer and the command palette. Edit here to change navigation everywhere.
  * Each entry: [active-key, href, icon, label]
  *
  * Where things live:
- *   Plan a Trip  — the only place to search (one-line box OR fine-tune form), incl. routes & itineraries
- *   My Trips     — everything you saved from planning: plans + routes
- *   For You      — shown on Home (personal picks); no separate menu item
+ *   Plan a trip  — the only place to search (one-line box OR fine-tune form), incl. routes & itineraries
+ *   My trips     — everything you saved from planning: plans + routes
+ *   For you      — shown on Home (personal picks); no separate menu item
  */
 $ja_side_nav = [
   ['dashboard', 'dashboard.php',    'home',    'Home'],
-  ['plan',      'plan-trip.php',    'search',  'Plan a Trip'],
-  ['plans',     'my-plans.php',     'wallet',  'My Trips'],
-  ['entries',   'my-entries.php',   'book',    'My Journal'],
+  ['plan',      'plan-trip.php',    'search',  'Plan a trip'],
+  ['plans',     'my-plans.php',     'wallet',  'My trips'],
+  ['entries',   'my-entries.php',   'book',    'My journal'],
   ['feed',      'feed.php',         'heart',   'Community'],
   ['analytics', 'analytics.php',    'chart',   'Insights'],
 ];
@@ -23,3 +23,11 @@ require_once __DIR__ . '/ja-lib.php';
 if (function_exists('ja_is_admin') && ja_is_admin()) {
     $ja_side_nav[] = ['admin', 'admin.php', 'gem', 'Admin'];
 }
+
+// Signed-out visitors: the same places, minus the personal ones.
+$ja_public_nav = [
+  ['home',      'index.php',        'home',    'Home'],
+  ['plan',      'plan-trip.php',    'search',  'Plan a trip'],
+  ['feed',      'feed.php',         'heart',   'Community'],
+  ['analytics', 'analytics.php',    'chart',   'Insights'],
+];

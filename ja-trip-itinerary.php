@@ -1,121 +1,117 @@
 <?php
 /** Day-by-day itinerary body (embedded in trip.php). Expects: $it $dest $days $style $month $party $hero $hasError $ja_saved_flag $STYLES */
+require_once __DIR__ . '/ja-trip-parts.php';
+$tp_in = !empty($_SESSION['eml']);
 ?>
-<?php if ($hasError): ?>
-  <div class="ja-pagehead"><div class="ja-container"><h1>Itinerary</h1></div></div>
-  <main class="ja-main"><div class="ja-container">
-    <?= ml_offline_banner($it) ?>
-    <?php if (empty($it['__error'])): ?><div class="ja-empty">Couldn't build an itinerary for that destination. <a href="plan-trip.php" style="color:var(--ja-teal)">Plan a trip →</a></div><?php endif; ?>
-  </div></main>
-<?php else: ?>
-
-<!-- itinerary hero -->
-<header class="ja-itin-hero" style="background-image:linear-gradient(90deg,rgba(4,24,32,.9),rgba(6,32,42,.45) 70%,rgba(6,32,42,.2))<?= !empty($hero) ? ",url('" . htmlspecialchars($hero) . "')" : ',linear-gradient(135deg,#123524,#1E7B4F)' ?>">
-  <div class="ja-container">
-    <div class="ja-hc-eyebrow"><?= ja_icon('map-pin',14) ?> <?= htmlspecialchars($it['region']) ?></div>
-    <h1><?= htmlspecialchars($it['city']) ?></h1>
-    <p><?= (int)$it['days'] ?>-day <?= htmlspecialchars($it['travel_style']) ?> itinerary
-      <?php if (!empty($it['best_season'])): ?>· best in <?= htmlspecialchars($it['best_season']) ?><?php endif; ?></p>
-    <div class="ja-itin-meta">
-      <div><span class="n">₹<?= number_format($it['total_cost']) ?></span><span class="l">Est. total (<?= (int)$it['party_size'] ?> <?= $it['party_size']==1?'traveller':'travellers' ?>)</span></div>
-      <div><span class="n">₹<?= number_format($it['per_day_cost']) ?></span><span class="l">Per day</span></div>
-      <div><span class="n"><?= count($it['highlights']) ?></span><span class="l">Highlights</span></div>
+<?php if ($hasError || empty($it['plan'])):
+  $tp_msg = (string)($it['__error'] ?? '');
+  $tp_down = $tp_msg !== '' && (stripos($tp_msg, 'offline') !== false || stripos($tp_msg, 'Invalid response') !== false);
+  $tp_place = explode(',', $dest)[0];
+?>
+  <main class="ja-main"><div class="ja-container tp-wrap">
+    <div class="tp-state" role="alert">
+      <?php if ($tp_down): ?>
+        <h2>The planner is not answering</h2>
+        <p>Your trip is fine. We could not reach the service that writes day plans. Try again in a moment.</p>
+      <?php else: ?>
+        <h2>We have no plan for <?= htmlspecialchars($tp_place) ?> yet</h2>
+        <p><?= $tp_msg !== '' ? htmlspecialchars($tp_msg) . '. ' : '' ?>Try a nearby city, or check the spelling.</p>
+      <?php endif; ?>
+      <div class="tp-state-actions">
+        <?php if ($tp_down): ?><a class="ja-btn ja-btn-primary" href="">Try again</a><?php endif; ?>
+        <a class="ja-btn <?= $tp_down ? 'ja-btn-ghost' : 'ja-btn-primary' ?>" href="plan-trip.php">Plan a different trip</a>
+      </div>
     </div>
+  </div></main>
+<?php else:
+  $offTitle = $it['city'] . ', ' . (int)$it['days'] . ' days';
+?>
+<header class="tp-head">
+  <div class="ja-container tp-head-in">
+    <div class="tp-head-text">
+      <p class="tp-region"><?= tp_icon('pin', 15) ?> <?= htmlspecialchars($it['region']) ?></p>
+      <p class="tp-lede"><?= (int)$it['days'] ?>-day <?= htmlspecialchars($it['travel_style']) ?> plan<?php if (!empty($it['best_season'])): ?>. Best in <?= htmlspecialchars($it['best_season']) ?>.<?php endif; ?></p>
+      <dl class="tp-stats">
+        <div><dt>Estimated total for <?= (int)$it['party_size'] ?> <?= $it['party_size'] == 1 ? 'traveller' : 'travellers' ?></dt><dd>₹<?= number_format($it['total_cost']) ?></dd></div>
+        <div><dt>Per day</dt><dd>₹<?= number_format($it['per_day_cost']) ?></dd></div>
+        <div><dt>Highlights</dt><dd><?= count($it['highlights']) ?></dd></div>
+      </dl>
+      <div class="tp-actions" id="tripActions">
+        <?php if ($tp_in): ?>
+          <button type="submit" form="tpSaveForm" class="ja-btn ja-btn-primary" id="tpSave"><?= tp_icon('save') ?><span>Save trip</span></button>
+        <?php else: ?>
+          <a class="ja-btn ja-btn-primary" href="login.php"><?= tp_icon('save') ?><span>Log in to save</span></a>
+        <?php endif; ?>
+        <button type="button" class="ja-btn ja-btn-ghost" data-tp-share><?= tp_icon('share') ?><span>Share</span></button>
+        <button type="button" class="ja-btn ja-btn-ghost" data-tp-print><?= tp_icon('print') ?><span>Print itinerary</span></button>
+        <a class="ja-btn ja-btn-ghost" href="packing.php?<?= htmlspecialchars(http_build_query(['dest' => $dest, 'days' => $days])) ?>"><?= tp_icon('bag') ?><span>Packing list</span></a>
+      </div>
+      <?php if ($ja_saved_flag): ?><p class="tp-saved" role="status"><?= tp_icon('check', 16) ?> Saved to My Trips.</p><?php endif; ?>
+    </div>
+    <?php if (!empty($hero)): ?>
+      <figure class="tp-photo"><img src="<?= htmlspecialchars($hero) ?>" alt="<?= htmlspecialchars($it['city']) ?>" width="560" height="380" loading="eager"></figure>
+    <?php endif; ?>
   </div>
 </header>
 
-<main class="ja-main">
-  <div class="ja-container">
-    <div class="ja-itin-layout">
-      <!-- timeline -->
-      <div class="ja-itin-days">
-        <?php foreach ($it['plan'] as $d): ?>
-          <section class="ja-itin-day reveal">
-            <div class="ja-itin-daynum"><?= (int)$d['day'] ?></div>
-            <div class="ja-itin-daybody">
-              <div class="ja-itin-dayhead">
-                <h2><?= htmlspecialchars($d['title']) ?></h2>
-                <span class="ja-pill season"><?= ja_icon('wallet',12) ?> ~₹<?= number_format($d['est_cost']) ?></span>
-              </div>
-              <div class="ja-timeline">
-                <?php foreach ($d['timeline'] as $t): ?>
-                  <div class="ja-tl-item">
-                    <div class="ja-tl-dot"><?= ja_icon($t['icon'] ?? 'clock',14) ?></div>
-                    <div class="ja-tl-content">
-                      <div class="ja-tl-time"><?= htmlspecialchars($t['time']) ?></div>
-                      <div class="ja-tl-text"><?= htmlspecialchars($t['text']) ?></div>
-                      <?php if (!empty($t['meal'])): ?><div class="ja-tl-meal"><?= ja_icon('sparkle',11) ?> <?= htmlspecialchars($t['meal']) ?></div><?php endif; ?>
-                    </div>
-                  </div>
-                <?php endforeach; ?>
-              </div>
-              <div class="ja-itin-stay"><?= ja_icon('home',15) ?> Suggested stay: <strong><?= htmlspecialchars($d['stay']) ?></strong></div>
-            </div>
-          </section>
-        <?php endforeach; ?>
+<?php if ($tp_in): ?>
+<form method="post" action="save-itinerary.php" id="tpSaveForm" hidden>
+  <input type="hidden" name="dest" value="<?= htmlspecialchars($dest) ?>">
+  <input type="hidden" name="days" value="<?= (int)$days ?>">
+  <input type="hidden" name="style" value="<?= htmlspecialchars($style) ?>">
+  <input type="hidden" name="month" value="<?= (int)($month ?? 0) ?>">
+  <input type="hidden" name="party" value="<?= (int)$party ?>">
+</form>
+<?php endif; ?>
+
+<main class="ja-main" id="tripMain">
+  <div class="ja-container tp-wrap">
+    <div class="tp-layout">
+      <div>
+        <div class="tp-sectionbar">
+          <h2>Day by day</h2>
+          <button type="button" class="tp-linkbtn" id="tpToggleDays" data-state="open">Collapse all days</button>
+        </div>
+        <?= tp_days($it) ?>
       </div>
 
-      <!-- sidebar -->
-      <aside class="ja-itin-side">
-        <div class="ja-card">
-          <h3>Cost breakdown</h3>
-          <canvas id="itinDonut" height="180"></canvas>
-          <div style="margin-top:14px;font-size:.9rem;color:var(--text-dim)">
-            Range ₹<?= number_format($it['cost_low']) ?> – ₹<?= number_format($it['cost_high']) ?>
-          </div>
-        </div>
-        <div class="ja-card" style="margin-top:20px">
-          <h3>Highlights</h3>
-          <ul style="list-style:none;padding:0;margin:6px 0 0">
-            <?php foreach ($it['highlights'] as $h): ?>
-              <li style="padding:8px 0;border-bottom:1px solid var(--brd);display:flex;gap:9px;align-items:center;font-size:.92rem">
-                <span style="color:var(--ja-teal)"><?= ja_icon('map-pin',14) ?></span><?= htmlspecialchars($h) ?></li>
-            <?php endforeach; ?>
-          </ul>
-        </div>
-        <div class="ja-card" style="margin-top:20px;background:var(--grad-hero);border:none;color:#fff">
-          <h3 style="color:#fff">Make it yours</h3>
-          <p style="color:#d7f6fb;font-size:.9rem;margin:8px 0 16px">Adjust the length or style to reshape this plan.</p>
-          <form method="get" style="display:flex;gap:8px;flex-wrap:wrap">
+      <aside class="tp-side">
+        <section class="tp-panel">
+          <h2>Where the money goes</h2>
+          <?= tp_cost_chart($it) ?>
+        </section>
+        <section class="tp-panel">
+          <h2>Highlights</h2>
+          <?= tp_highlights($it) ?>
+        </section>
+        <section class="tp-panel tp-noprint">
+          <h2>Change the plan</h2>
+          <form method="get" class="tp-rebuild">
             <input type="hidden" name="dest" value="<?= htmlspecialchars($dest) ?>"><input type="hidden" name="tab" value="itinerary">
-            <select name="days" class="ja-select" style="flex:1"><?php for($i=2;$i<=12;$i++):?><option value="<?=$i?>" <?=$i==$days?'selected':''?>><?=$i?> days</option><?php endfor;?></select>
-            <select name="style" class="ja-select" style="flex:1"><?php foreach($STYLES as $s):?><option value="<?=$s?>" <?=$s==$style?'selected':''?>><?=ucfirst($s)?></option><?php endforeach;?></select>
-            <button class="ja-btn ja-btn-primary" style="width:100%">Rebuild</button>
+            <label>Length<select name="days" class="ja-select"><?php for ($i = 2; $i <= 12; $i++): ?><option value="<?= $i ?>" <?= $i == $days ? 'selected' : '' ?>><?= $i ?> days</option><?php endfor; ?></select></label>
+            <label>Style<select name="style" class="ja-select"><?php foreach ($STYLES as $s): ?><option value="<?= $s ?>" <?= $s == $style ? 'selected' : '' ?>><?= ucfirst($s) ?></option><?php endforeach; ?></select></label>
+            <button class="ja-btn ja-btn-ghost" type="submit">Rebuild plan</button>
           </form>
-        </div>
-
-        <div class="ja-card" style="margin-top:20px">
-          <h3><?= ja_icon('heart',16) ?> Save this plan</h3>
-          <?php if ($ja_saved_flag): ?>
-            <p style="color:var(--ja-teal);font-size:.9rem;margin:8px 0 4px;font-weight:600"><?= ja_icon('check',14) ?> Saved to My Plans.</p>
-          <?php else: ?>
-            <p style="color:var(--text-dim);font-size:.9rem;margin:8px 0 16px">Keep this itinerary and get an auto-generated packing checklist.</p>
-          <?php endif; ?>
-          <form method="post" action="save-itinerary.php">
-            <input type="hidden" name="dest" value="<?= htmlspecialchars($dest) ?>">
-            <input type="hidden" name="days" value="<?= (int)$days ?>">
-            <input type="hidden" name="style" value="<?= htmlspecialchars($style) ?>">
-            <input type="hidden" name="month" value="<?= (int)($month ?? 0) ?>">
-            <input type="hidden" name="party" value="<?= (int)$party ?>">
-            <button class="ja-btn ja-btn-primary" style="width:100%"><?= ja_icon('heart',15) ?> Save this plan</button>
-          </form>
-          <button class="ja-btn ja-btn-ghost" style="width:100%;margin-top:10px" onclick="window.print()"><?= ja_icon('book',15) ?> Print / Save as PDF</button>
-        </div>
+        </section>
+        <section class="tp-panel tp-noprint" id="tpOffline" hidden>
+          <h2>Use it without a connection</h2>
+          <p>Keep this plan on this device so you can open it on the road.</p>
+          <button type="button" class="ja-btn ja-btn-ghost" id="tpOfflineBtn" data-title="<?= htmlspecialchars($offTitle) ?>" data-cost="<?= (int)$it['total_cost'] ?>" data-days="<?= (int)$it['days'] ?>"><?= tp_icon('download') ?><span>Save for offline</span></button>
+          <p class="tp-offstate" id="tpOfflineState" role="status" hidden><?= tp_icon('wifi-off', 15) ?> Available offline</p>
+        </section>
       </aside>
     </div>
   </div>
 </main>
 
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  if(typeof Chart==='undefined')return;
-  var bd=<?= json_encode($it['cost_breakdown']) ?>;
-  var LBL={food:'Food',transport:'Transport',accommodation:'Stay',shopping:'Shopping',fees_misc:'Fees & misc'};
-  new Chart(document.getElementById('itinDonut'),{type:'doughnut',
-    data:{labels:Object.keys(bd).map(function(k){return LBL[k]||k}),
-      datasets:[{data:Object.values(bd),backgroundColor:['#31C6D4','#0E7C86','#0B3D4F','#FF7A59','#FF9E7A'],borderWidth:0}]},
-    options:{plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:function(c){return c.label+': ₹'+c.raw.toLocaleString('en-IN')}}}},cutout:'58%'}});
-});
-</script>
+<!-- stays small and never leaves the page: the offline button stores exactly this -->
+<script type="application/json" id="tripData"><?= json_encode($it, JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 
+<div class="tp-bar-mobile tp-noprint" id="tpMobileBar" role="toolbar" aria-label="Trip actions">
+  <?php if ($tp_in): ?><button type="submit" form="tpSaveForm"><?= tp_icon('save', 20) ?><span>Save</span></button>
+  <?php else: ?><a href="login.php"><?= tp_icon('save', 20) ?><span>Save</span></a><?php endif; ?>
+  <button type="button" data-tp-share><?= tp_icon('share', 20) ?><span>Share</span></button>
+  <button type="button" data-tp-print><?= tp_icon('print', 20) ?><span>Print</span></button>
+  <a href="packing.php?<?= htmlspecialchars(http_build_query(['dest' => $dest, 'days' => $days])) ?>"><?= tp_icon('bag', 20) ?><span>Packing</span></a>
+</div>
 <?php endif; ?>

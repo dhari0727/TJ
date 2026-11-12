@@ -5,6 +5,7 @@ session_start();
 require 'connection.php';
 require_once 'ja-icons.php';
 require_once __DIR__ . '/ja-lib.php';
+require_once __DIR__ . '/ja-community-ui.php';
 $q = trim($_GET['q'] ?? '');
 $page = max(1, (int)($_GET['p'] ?? 1)); $per = 12; $off = ($page - 1) * $per;
 
@@ -31,46 +32,55 @@ while ($bq && ($r = mysqli_fetch_assoc($bq))) $books[] = $r;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
-<div class="ja-pagehead"><div class="ja-container">
-  <div class="ja-eyebrow"><?= ja_icon('book',14) ?> Stories from travellers</div>
+<div class="ja-pagehead pc-head"><div class="ja-container">
   <h1>Community</h1>
+  <p class="sub">Journals and storybooks that travellers chose to share, with real costs and real days.</p>
   <?php include 'ja-community-tabs.php'; ?>
 </div></div>
 
 <main class="ja-main"><div class="ja-container">
-  <form method="get" class="ja-filterbar"><input class="ja-input" name="q" placeholder="Search by place, title or story" value="<?= htmlspecialchars($q) ?>"><button class="ja-btn ja-btn-primary">Search</button></form>
+  <form method="get" class="pc-filterbar" role="search">
+    <label class="pc-sr" for="rjq">Search journals</label>
+    <input class="ja-input" id="rjq" name="q" placeholder="Search by place, title or story" value="<?= htmlspecialchars($q) ?>">
+    <button class="ja-btn ja-btn-primary">Search</button>
+  </form>
 
   <?php if ($books && !$q): ?>
-    <h2 style="font-size:1.4rem;margin:6px 0 12px">Storybooks <a class="ja-more" href="storybook-discover.php">Browse all &rarr;</a></h2>
-    <div class="ja-grid cols-3" style="margin-bottom:30px">
+    <div class="pc-section-h"><h2>Storybooks</h2><a class="ja-more pc-link" href="storybook-discover.php">Browse all storybooks</a></div>
+    <div class="pc-cards" style="margin-bottom:38px">
       <?php foreach ($books as $b): ?>
-        <a class="ja-card" href="storybook-view.php?id=<?= (int)$b['book_id'] ?>" style="text-decoration:none;color:inherit">
-          <?php if ($b['cover_img']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($b['cover_img']) ?>')"></div><?php endif; ?>
-          <h3 style="margin:10px 0 2px;font-size:1.1rem"><?= htmlspecialchars($b['title']) ?></h3>
-          <div class="ja-muted" style="font-size:.85rem">by <?= htmlspecialchars($b['fname'] ?: 'a traveller') ?><?= $b['subtitle'] ? ' &middot; ' . htmlspecialchars($b['subtitle']) : '' ?></div>
+        <a class="pc-tile" href="storybook-view.php?id=<?= (int)$b['book_id'] ?>">
+          <?php if ($b['cover_img']): ?><div class="cv" style="background-image:url('<?= htmlspecialchars($b['cover_img'], ENT_QUOTES) ?>')" role="img" aria-label="Cover of <?= htmlspecialchars($b['title']) ?>"></div>
+          <?php else: ?><div class="cv"><?= pc_icon('book', 34) ?></div><?php endif; ?>
+          <div class="tx"><h3><?= htmlspecialchars($b['title']) ?></h3>
+            <div class="by">By <?= htmlspecialchars($b['fname'] ?: 'a traveller') ?><?= $b['subtitle'] ? ', ' . htmlspecialchars($b['subtitle']) : '' ?></div></div>
         </a>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
 
-  <h2 style="font-size:1.4rem;margin:6px 0 12px">Journals <span class="ja-muted" style="font-size:1rem">(<?= (int)$total ?>)</span></h2>
+  <div class="pc-section-h"><h2>Journals</h2><span class="pc-muted"><?= (int)$total ?> shared</span></div>
   <?php if (!$rows): ?>
-    <div class="ja-empty" style="padding:50px 26px"><p style="margin:0 0 12px">No shared journals<?= $q ? ' match that search' : ' yet' ?>.</p>
-      <?php if (!empty($_SESSION['eml'])): ?><a href="my-entries.php" class="ja-btn ja-btn-primary">Share one of yours</a><?php endif; ?></div>
+    <?= pc_empty($q ? 'No journals match that search' : 'No shared journals yet', $q ? 'Try a place name, like Goa or Jaipur, or clear the search.' : 'When travellers share a journal publicly it shows up here. Yours could be the first.',
+        !empty($_SESSION['eml']) ? ($q ? ['Clear search', 'read-journals.php'] : ['Write a journal', 'new-entry.php']) : ['Log in to write one', 'login.php'], 'book') ?>
   <?php endif; ?>
-  <div class="ja-grid cols-3">
-    <?php foreach ($rows as $r): ?>
-      <a class="ja-card ja-jcard" href="journal.php?id=<?= (int)$r['entry_id'] ?>" style="text-decoration:none;color:inherit">
-        <?php if ($r['cover']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($r['cover']) ?>')"></div><?php endif; ?>
-        <h3 style="margin:10px 0 2px;font-size:1.15rem"><?= htmlspecialchars(ja_title($r['Title'])) ?></h3>
-        <div class="ja-muted" style="font-size:.86rem"><?= htmlspecialchars(trim(($r['City'] ?? '') . ', ' . ($r['Country'] ?? ''), ', ')) ?> &middot; by <?= htmlspecialchars($r['fname'] ?: 'a traveller') ?></div>
-        <p style="color:var(--text-dim);font-size:.9rem;margin:8px 0"><?= htmlspecialchars(mb_strimwidth((string)$r['Description'], 0, 140, '…')) ?></p>
-        <?php if ((float)$r['total'] > 0): ?><span class="ja-pill near">&#8377;<?= number_format((float)$r['total']) ?> &middot; <?= (int)$r['days'] ?> days</span><?php endif; ?>
+  <div class="pc-cards">
+    <?php foreach ($rows as $r): $pl = trim(($r['City'] ?? '') . ', ' . ($r['Country'] ?? ''), ', '); ?>
+      <a class="pc-tile" href="journal.php?id=<?= (int)$r['entry_id'] ?>">
+        <?php if ($r['cover']): ?><div class="cv" style="background-image:url('<?= htmlspecialchars($r['cover'], ENT_QUOTES) ?>')" role="img" aria-label="Photo from <?= htmlspecialchars(ja_title($r['Title'])) ?>"></div>
+        <?php else: ?><div class="cv"><?= pc_icon('image', 34) ?></div><?php endif; ?>
+        <div class="tx">
+          <h3><?= htmlspecialchars(ja_title($r['Title'])) ?></h3>
+          <div class="by"><?= htmlspecialchars($pl) ?><?= $pl ? ', by ' : 'By ' ?><?= htmlspecialchars($r['fname'] ?: 'a traveller') ?></div>
+          <?php if (trim((string)$r['Description']) !== ''): ?><p><?= htmlspecialchars(mb_strimwidth(preg_replace('/^#{1,3}\s+/m', '', (string)$r['Description']), 0, 160, '…')) ?></p><?php endif; ?>
+          <?php if ((float)$r['total'] > 0): ?><span class="tot">&#8377;<?= number_format((float)$r['total']) ?> over <?= (int)$r['days'] ?> days</span><?php endif; ?>
+        </div>
       </a>
     <?php endforeach; ?>
   </div>
-  <?php if ($pages > 1): ?><div class="ja-tabs" style="margin-top:20px"><?php for ($i = 1; $i <= $pages; $i++): ?><a class="<?= $i === $page ? 'on' : '' ?>" href="?<?= htmlspecialchars(http_build_query(['q' => $q, 'p' => $i])) ?>"><?= $i ?></a><?php endfor; ?></div><?php endif; ?>
+  <?php if ($pages > 1): ?><nav class="pc-pager" aria-label="Pages"><?php for ($i = 1; $i <= $pages; $i++): ?><a class="<?= $i === $page ? 'on' : '' ?>" <?= $i === $page ? 'aria-current="page"' : '' ?> href="?<?= htmlspecialchars(http_build_query(['q' => $q, 'p' => $i])) ?>"><?= $i ?></a><?php endfor; ?></nav><?php endif; ?>
 </div></main>
 <?php include 'ja-footer.php'; ?>

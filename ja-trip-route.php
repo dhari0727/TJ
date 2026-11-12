@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/ja-trip-parts.php';
 /** Route + map body (embedded in trip.php). Expects: $r $err $isBetween $place $destination */
 if (!function_exists('stop_icon')) {
 function stop_icon($cat){
@@ -18,7 +19,7 @@ function render_stops($route, $origin){
           <div class="ja-route-head">
             <div>
               <div class="ja-route-name"><?= ja_icon(stop_icon($s['category']),15) ?> <?= htmlspecialchars($s['name']) ?></div>
-              <div class="ja-route-sub"><span style="text-transform:capitalize"><?= htmlspecialchars($s['category']) ?></span> · <?= $s['leg_km'] ?> km away</div>
+              <div class="ja-route-sub"><span style="text-transform:capitalize"><?= htmlspecialchars($s['category']) ?></span>, <?= $s['leg_km'] ?> km away</div>
             </div>
             <button type="button" class="ja-route-remove" data-remove="<?= $i ?>" title="Remove stop"><?= ja_icon('trash',15) ?></button>
           </div>
@@ -41,39 +42,32 @@ function render_stops($route, $origin){
 
 }
 ?>
-<div class="ja-pagehead">
-  <div class="ja-container">
-    <div class="ja-eyebrow"><?= ja_icon('compass',14) ?> Multi-stop route</div>
-    <?php if ($isBetween): ?>
-      <h1><?= htmlspecialchars(explode(',',$r['origin']['display'])[0]) ?> → <?= htmlspecialchars(explode(',',$r['destination']['display'])[0]) ?></h1>
-      <p class="sub"><span id="rStops"><?= (int)$r['stops'] ?></span> stops · <?= (float)$r['direct_km'] ?> km direct · <span id="rKm"><?= (int)$r['total_km'] ?></span> km with stops</p>
-    <?php else: ?>
-      <h1>Your Route<?= $place ? ' from '.htmlspecialchars(explode(',',$place)[0]) : '' ?></h1>
-      <?php if (!$err): ?>
-        <p class="sub"><span id="rStops"><?= (int)$r['stops'] ?></span> stops · <span id="rKm"><?= (int)$r['total_km'] ?></span> km round trip · <?= htmlspecialchars($r['mode_label']) ?></p>
-      <?php endif; ?>
-    <?php endif; ?>
-  </div>
-</div>
+<?php
+$tp_in = !empty($_SESSION['eml']);
+if ($isBetween): ?>
+<p class="ja-container tp-wrap tp-routesum"><span id="rStops"><?= (int)$r['stops'] ?></span> stops, <?= (float)$r['direct_km'] ?> km direct, <span id="rKm"><?= (int)$r['total_km'] ?></span> km with stops.</p>
+<?php elseif (!$err): ?>
+<p class="ja-container tp-wrap tp-routesum"><span id="rStops"><?= (int)$r['stops'] ?></span> stops, <span id="rKm"><?= (int)$r['total_km'] ?></span> km round trip, <?= htmlspecialchars($r['mode_label']) ?>.</p>
+<?php endif; ?>
 
 <main class="ja-main">
-  <div class="ja-container">
+  <div class="ja-container tp-wrap tp-routepage">
     <?php if ($err): ?>
       <?= ml_offline_banner($r) ?>
-      <?php if (!empty($r['error'])): ?><div class="ja-empty"><?= htmlspecialchars($r['error']) ?> <a href="plan-trip.php" style="color:var(--ja-teal)">Plan a trip →</a></div><?php endif; ?>
+      <?php if (!empty($r['error'])): ?><div class="tp-state" role="alert"><h2>We could not find a route</h2><p><?= htmlspecialchars($r['error']) ?></p><div class="tp-state-actions"><a class="ja-btn ja-btn-primary" href="">Try again</a><a class="ja-btn ja-btn-ghost" href="plan-trip.php">Plan a different trip</a></div></div><?php endif; ?>
     <?php else: ?>
 
       <!-- route toggle: main vs alternative -->
-      <div style="display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;align-items:center">
+      <div class="tp-routebar tp-noprint">
         <div class="ja-chips" id="routeToggle">
           <span class="ja-chip on" data-route="main">Recommended route</span>
           <?php if (!empty($r['alternative'])): ?><span class="ja-chip" data-route="alt">Alternative route</span><?php endif; ?>
         </div>
-        <div style="flex:1"></div>
+        
         <?php if (!empty($_SESSION['eml'])): ?>
-          <button class="ja-btn ja-btn-primary" id="saveRouteBtn" data-magnetic><?= ja_icon('heart',16) ?> Save route</button>
+          <button class="ja-btn ja-btn-primary" id="saveRouteBtn" ><?= tp_icon('save',16) ?> Save route</button>
         <?php else: ?>
-          <a class="ja-btn ja-btn-ghost" href="login.php"><?= ja_icon('heart',16) ?> Log in to save</a>
+          <a class="ja-btn ja-btn-ghost" href="login.php"><?= tp_icon('save',16) ?> Log in to save</a><?php /* tp_icon from ja-trip-parts */ ?>
         <?php endif; ?>
       </div>
 
@@ -82,15 +76,15 @@ function render_stops($route, $origin){
           <div class="ja-route-line" id="routeLine">
             <div class="ja-route-stop origin">
               <div class="ja-route-dot"><?= ja_icon('home',16) ?></div>
-              <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Start · <?= htmlspecialchars(explode(',',$r['origin']['display'])[0]) ?></div></div></div>
+              <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Start at <?= htmlspecialchars(explode(',',$r['origin']['display'])[0]) ?></div></div></div>
             </div>
             <div id="stopsHost"><?php render_stops($r['route'], $r['origin']); ?></div>
             <div class="ja-route-stop origin">
               <div class="ja-route-dot"><?= ja_icon($isBetween ? 'map-pin' : 'home',16) ?></div>
               <?php if ($isBetween): ?>
-                <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Arrive · <?= htmlspecialchars(explode(',',$r['destination']['display'])[0]) ?> · <span id="backKm"><?= (int)$r['final_leg_km'] ?></span> km</div></div></div>
+                <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Arrive in <?= htmlspecialchars(explode(',',$r['destination']['display'])[0]) ?> · <span id="backKm"><?= (int)$r['final_leg_km'] ?></span> km</div></div></div>
               <?php else: ?>
-                <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Return home · <span id="backKm"><?= (int)$r['return_km'] ?></span> km</span></div></div></div>
+                <div class="ja-route-card"><div class="ja-route-info"><div class="ja-route-name">Return home, <span id="backKm"><?= (int)$r['return_km'] ?></span> km</span></div></div></div>
               <?php endif; ?>
             </div>
           </div>
@@ -103,7 +97,7 @@ function render_stops($route, $origin){
           </div>
           <?php if (!empty($r['food_options'])): ?>
           <div class="ja-card" style="margin-top:20px">
-            <h3><?= ja_icon('heart',18) ?> Where to eat</h3>
+            <h3>Where to eat</h3>
             <p style="color:var(--text-mut);font-size:.85rem;margin:2px 0 10px">Popular food nearby.</p>
             <?php foreach ($r['food_options'] as $f): ?>
               <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd)">
@@ -113,9 +107,7 @@ function render_stops($route, $origin){
             <?php endforeach; ?>
           </div>
           <?php endif; ?>
-          <div class="ja-card" style="margin-top:20px">
-            <a href="plan-trip.php" class="ja-btn ja-btn-ghost" style="width:100%">Plan another trip</a>
-          </div>
+          <div class="ja-card tp-noprint" style="margin-top:20px"><button type="button" class="ja-btn ja-btn-ghost" style="width:100%" data-tp-print>Print this route</button></div>
         </aside>
       </div>
 

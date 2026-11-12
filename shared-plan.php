@@ -6,6 +6,8 @@
 $ja_title = "Shared Plan"; $ja_active = "";
 require_once 'ja-icons.php';
 require 'connection.php';
+require_once 'ja-trip-parts.php';
+require_once 'ja-images.php';
 
 $MONTHS = [1=>'Jan',2=>'Feb',3=>'Mar',4=>'Apr',5=>'May',6=>'Jun',7=>'Jul',8=>'Aug',9=>'Sep',10=>'Oct',11=>'Nov',12=>'Dec'];
 
@@ -31,111 +33,68 @@ $it = $plan ? json_decode($plan['itinerary'], true) : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css"></head>
-<body class="ja">
+<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css">
+<link rel="stylesheet" href="css/pages-trips.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-trips.css') ?>">
+<meta name="robots" content="noindex">
+<script src="js/trips-ui.js?v=<?= (int)@filemtime(__DIR__ . '/js/trips-ui.js') ?>" defer></script></head>
+<body class="ja tp-page">
 
-<div class="ja-pagehead">
-  <div class="ja-container">
-    <div class="ja-eyebrow"><?= ja_icon('sparkle',14) ?> Shared itinerary</div>
-    <h1><?= $plan ? htmlspecialchars($plan['destination']) : 'Shared Plan' ?></h1>
-    <?php if ($plan): ?>
-      <p class="sub"><?= (int)$plan['days'] ?>-day <?= htmlspecialchars($plan['travel_style']) ?>
-        <?php if ($plan['month']): ?>· <?= $MONTHS[(int)$plan['month']] ?><?php endif; ?>
-        · <?= (int)$plan['party_size'] ?> traveller<?= $plan['party_size']==1?'':'s' ?></p>
-    <?php endif; ?>
+<?php if (!$plan || !$it || empty($it['plan'])): ?>
+<main class="ja-main"><div class="ja-container tp-wrap">
+  <div class="tp-state" role="alert">
+    <h2>This link does not open a plan</h2>
+    <p>It may have been mistyped, or the owner removed the plan. Ask them to send a fresh link.</p>
+    <div class="tp-state-actions"><a href="index.php" class="ja-btn ja-btn-primary">Go to JourneyAI</a><a href="plan-trip.php" class="ja-btn ja-btn-ghost">Plan your own trip</a></div>
   </div>
-</div>
+</div></main>
+<?php else: $hero = ja_image_for($plan['destination']); ?>
+<header class="tp-head">
+  <div class="ja-container tp-head-in">
+    <div class="tp-head-text">
+      <p class="tp-region"><?= tp_icon('share', 15) ?> A plan shared with you</p>
+      <h1 style="font-size:clamp(2rem,5vw,3.1rem);margin:0 0 8px;line-height:1.05"><?= htmlspecialchars($plan['destination']) ?></h1>
+      <p class="tp-lede"><?= (int)$plan['days'] ?> days, <?= htmlspecialchars($plan['travel_style']) ?><?php if ($plan['month']): ?>, <?= $MONTHS[(int)$plan['month']] ?><?php endif; ?>, <?= (int)$plan['party_size'] ?> traveller<?= $plan['party_size']==1?'':'s' ?>.</p>
+      <?php if (!empty($it['total_cost'])): ?>
+      <dl class="tp-stats">
+        <div><dt>Estimated total</dt><dd>₹<?= number_format($it['total_cost']) ?></dd></div>
+        <?php if (!empty($it['per_day_cost'])): ?><div><dt>Per day</dt><dd>₹<?= number_format($it['per_day_cost']) ?></dd></div><?php endif; ?>
+      </dl>
+      <?php endif; ?>
+      <div class="tp-actions">
+        <button type="button" class="ja-btn ja-btn-primary" data-tp-print><?= tp_icon('print') ?><span>Print itinerary</span></button>
+        <a class="ja-btn ja-btn-ghost" href="plan-trip.php"><span>Plan your own trip</span></a>
+      </div>
+    </div>
+    <?php if ($hero): ?><figure class="tp-photo"><img src="<?= htmlspecialchars($hero) ?>" alt="<?= htmlspecialchars(explode(',', $plan['destination'])[0]) ?>" width="560" height="380"></figure><?php endif; ?>
+  </div>
+</header>
 
 <main class="ja-main">
-  <div class="ja-container">
-
-    <?php if (!$plan || !$it || empty($it['plan'])): ?>
-      <div class="ja-empty" style="padding:60px 30px">
-        <div style="color:var(--ja-coral);margin-bottom:12px"><?= ja_icon('compass',40) ?></div>
-        <p style="font-size:1.1rem;color:var(--text-dim)">This link is invalid or has expired.</p>
-        <a href="index.php" class="ja-btn ja-btn-primary" style="margin-top:14px">Go to JourneyAI</a>
+  <div class="ja-container tp-wrap">
+    <div class="tp-layout">
+      <div>
+        <div class="tp-sectionbar"><h2>Day by day</h2><button type="button" class="tp-linkbtn" id="tpToggleDays" data-state="open">Collapse all days</button></div>
+        <?= tp_days($it) ?>
       </div>
-    <?php else: ?>
-
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px" class="no-print">
-        <button class="ja-btn ja-btn-ghost" onclick="window.print()"><?= ja_icon('book',15) ?> Print / Save as PDF</button>
-      </div>
-
-      <div class="ja-itin-layout">
-        <div class="ja-itin-days">
-          <?php foreach ($it['plan'] as $d): ?>
-            <section class="ja-itin-day reveal">
-              <div class="ja-itin-daynum"><?= (int)$d['day'] ?></div>
-              <div class="ja-itin-daybody">
-                <div class="ja-itin-dayhead">
-                  <h2><?= htmlspecialchars($d['title']) ?></h2>
-                  <span class="ja-pill season"><?= ja_icon('wallet',12) ?> ~₹<?= number_format($d['est_cost']) ?></span>
-                </div>
-                <div class="ja-timeline">
-                  <?php foreach ($d['timeline'] as $t): ?>
-                    <div class="ja-tl-item">
-                      <div class="ja-tl-dot"><?= ja_icon($t['icon'] ?? 'clock',14) ?></div>
-                      <div class="ja-tl-content">
-                        <div class="ja-tl-time"><?= htmlspecialchars($t['time']) ?></div>
-                        <div class="ja-tl-text"><?= htmlspecialchars($t['text']) ?></div>
-                        <?php if (!empty($t['meal'])): ?><div class="ja-tl-meal"><?= ja_icon('sparkle',11) ?> <?= htmlspecialchars($t['meal']) ?></div><?php endif; ?>
-                      </div>
-                    </div>
-                  <?php endforeach; ?>
-                </div>
-                <div class="ja-itin-stay"><?= ja_icon('home',15) ?> Suggested stay: <strong><?= htmlspecialchars($d['stay']) ?></strong></div>
-              </div>
-            </section>
-          <?php endforeach; ?>
-        </div>
-
-        <aside class="ja-itin-side">
-          <?php if (!empty($it['cost_breakdown'])): ?>
-          <div class="ja-card">
-            <h3>Cost breakdown</h3>
-            <div style="margin-top:10px;font-size:.9rem;color:var(--text-dim)">
-              Range ₹<?= number_format($it['cost_low'] ?? 0) ?> – ₹<?= number_format($it['cost_high'] ?? 0) ?>
-            </div>
-            <ul style="list-style:none;padding:0;margin:12px 0 0">
-              <?php $LBL=['food'=>'Food','transport'=>'Transport','accommodation'=>'Stay','shopping'=>'Shopping','fees_misc'=>'Fees & misc'];
-              foreach ($it['cost_breakdown'] as $k=>$v): ?>
-                <li style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:.88rem">
-                  <span><?= htmlspecialchars($LBL[$k] ?? $k) ?></span><strong>₹<?= number_format($v) ?></strong></li>
-              <?php endforeach; ?>
-            </ul>
-          </div>
-          <?php endif; ?>
-
-          <?php if (!empty($it['highlights'])): ?>
-          <div class="ja-card" style="margin-top:20px">
-            <h3>Highlights</h3>
-            <ul style="list-style:none;padding:0;margin:6px 0 0">
-              <?php foreach ($it['highlights'] as $h): ?>
-                <li style="padding:8px 0;border-bottom:1px solid var(--brd);display:flex;gap:9px;align-items:center;font-size:.92rem">
-                  <span style="color:var(--ja-teal)"><?= ja_icon('map-pin',14) ?></span><?= htmlspecialchars($h) ?></li>
-              <?php endforeach; ?>
-            </ul>
-          </div>
-          <?php endif; ?>
-
-          <?php if ($packing): ?>
-          <div class="ja-card ja-pack-list" style="margin-top:20px">
-            <h3><?= ja_icon('wallet',16) ?> Packing checklist</h3>
-            <ul style="list-style:none;padding:0;margin:12px 0 0">
-              <?php foreach ($packing as $p): ?>
-                <li style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--brd)">
-                  <input type="checkbox" disabled <?= $p['is_checked'] ? 'checked' : '' ?> style="width:17px;height:17px;flex:none">
-                  <span style="flex:1;font-size:.9rem;<?= $p['is_checked'] ? 'text-decoration:line-through;color:var(--text-mut)' : '' ?>"><?= htmlspecialchars($p['label']) ?></span>
-                </li>
-              <?php endforeach; ?>
-            </ul>
-          </div>
-          <?php endif; ?>
-        </aside>
-      </div>
-    <?php endif; ?>
+      <aside class="tp-side">
+        <?php if (!empty($it['cost_breakdown'])): ?><section class="tp-panel"><h2>Where the money goes</h2><?= tp_cost_chart($it) ?></section><?php endif; ?>
+        <?php if (!empty($it['highlights'])): ?><section class="tp-panel"><h2>Highlights</h2><?= tp_highlights($it) ?></section><?php endif; ?>
+        <?php if ($packing): ?>
+        <section class="tp-panel">
+          <h2>Packing checklist</h2>
+          <ul class="tp-hl">
+            <?php foreach ($packing as $p): ?>
+              <li><input type="checkbox" disabled <?= $p['is_checked'] ? 'checked' : '' ?> aria-label="<?= $p['is_checked'] ? 'Packed' : 'Not packed' ?>" style="width:17px;height:17px;flex:none;margin-top:3px">
+                <span style="<?= $p['is_checked'] ? 'text-decoration:line-through;color:var(--text-mut)' : '' ?>"><?= htmlspecialchars($p['label']) ?><?= (int)$p['qty'] > 1 ? ' x' . (int)$p['qty'] : '' ?></span></li>
+            <?php endforeach; ?>
+          </ul>
+        </section>
+        <?php endif; ?>
+      </aside>
+    </div>
   </div>
 </main>
+<?php endif; ?>
 
 <?php include 'ja-footer.php'; ?>
 </body>

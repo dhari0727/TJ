@@ -44,46 +44,65 @@ function trip_url($tab, $extra = []) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css"></head>
-<body class="ja">
+<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css">
+<link rel="stylesheet" href="css/pages-trips.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-trips.css') ?>">
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14213D"><link rel="apple-touch-icon" href="images/icon-192.png">
+<script src="js/trips-ui.js?v=<?= (int)@filemtime(__DIR__ . '/js/trips-ui.js') ?>" defer></script>
+<script src="js/pwa.js?v=<?= (int)@filemtime(__DIR__ . '/js/pwa.js') ?>" defer></script></head>
+<body class="ja tp-page">
 
-<div class="ja-pagehead" style="padding-bottom:0">
+<div class="tp-top">
   <div class="ja-container">
-    <a href="plan-trip.php" class="ja-muted" style="font-size:.85rem">&larr; Plan another trip</a>
-    <h1 style="margin:6px 0 14px"><?= htmlspecialchars($title) ?></h1>
-    <div class="ja-tabs" style="margin-bottom:0">
-      <a href="<?= htmlspecialchars(trip_url('itinerary')) ?>" class="<?= $tab === 'itinerary' ? 'on' : '' ?>">Day by day &amp; cost</a>
-      <a href="<?= htmlspecialchars(trip_url('route')) ?>" class="<?= $tab === 'route' ? 'on' : '' ?>">Route &amp; map</a>
-      <a href="packing.php?<?= htmlspecialchars(http_build_query(['dest' => $dest, 'days' => $days])) ?>">Packing list &rarr;</a>
-    </div>
+    <a href="plan-trip.php" class="tp-back">&larr; Plan another trip</a>
+    <h1><?= htmlspecialchars($title) ?></h1>
+    <nav class="tp-tabs" aria-label="Trip views">
+      <a href="<?= htmlspecialchars(trip_url('itinerary')) ?>" <?= $tab === 'itinerary' ? 'aria-current="page"' : '' ?>>Day by day and cost</a>
+      <a href="<?= htmlspecialchars(trip_url('route')) ?>" <?= $tab === 'route' ? 'aria-current="page"' : '' ?>>Route and map</a>
+      <a href="packing.php?<?= htmlspecialchars(http_build_query(['dest' => $dest, 'days' => $days])) ?>">Packing list</a>
+    </nav>
   </div>
 </div>
 
 <?php
+/* Lookups can take several seconds when cold, so paint a skeleton with progress text first, then hide it once the content is ready. */
+function tp_loading($msg, $kind) {
+    echo '<div id="tpLoading" class="ja-container tp-wrap tp-loading" role="status" aria-live="polite"><p class="tp-loadtext">' . htmlspecialchars($msg) . '</p>'
+       . '<div class="tp-skel ' . $kind . '"><i></i><i></i><i></i><i></i></div></div>';
+    echo str_repeat(' ', 1024) . "
+";
+    while (ob_get_level() > 0) @ob_end_flush();
+    flush();
+}
+function tp_loaded() { echo '<style>#tpLoading{display:none}</style>'; }
+?>
+<?php
 if ($tab === 'itinerary') {
+    tp_loading('Building a ' . $days . '-day plan for ' . explode(',', $dest)[0] . '. The first lookup can take a few seconds.', 'itin');
     $it = ml_itinerary(['destination' => $dest, 'days' => $days, 'travel_style' => $style, 'month' => $month, 'party_size' => $party]);
     $hero = ja_image_for($dest);
     $hasError = !empty($it['__error']) || ($it['status'] ?? '') === 'error';
+    tp_loaded();
     include 'ja-trip-itinerary.php';
     $sim = ml_similar($dest, 4);
     if (empty($sim['__error']) && !empty($sim['similar'])): ?>
-<section class="ja-card" style="margin-top:18px"><h3 style="margin:0 0 4px">If you like this, try</h3>
-  <p class="ja-muted" style="margin:0 0 12px;font-size:.88rem">Matched on what travellers wrote, what you do there, cost and region.</p>
-  <div class="ja-similar" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">
+<section class="ja-container tp-wrap tp-similar"><h2>If you like this, try</h2>
+  <p class="tp-sub">Matched on what travellers wrote, what you do there, cost and region.</p>
+  <ul>
   <?php foreach ($sim['similar'] as $x): $pic = ja_image_for($x['destination']); ?>
-    <a href="trip.php?<?= htmlspecialchars(http_build_query(['dest' => $x['destination'], 'days' => $days])) ?>" style="text-decoration:none;color:inherit;display:block">
-      <?php if ($pic): ?><img src="<?= htmlspecialchars($pic) ?>" alt="" loading="lazy" style="width:100%;height:110px;object-fit:cover;border-radius:10px"><?php else: ?><div class="ja-reco-noimg" style="height:110px;border-radius:10px"></div><?php endif; ?>
-      <strong style="display:block;margin-top:8px"><?= htmlspecialchars(explode(',', $x['destination'])[0]) ?></strong>
-      <span class="ja-muted" style="font-size:.84rem"><?= htmlspecialchars($x['why']) ?></span>
-    </a>
-  <?php endforeach; ?></div></section>
+    <li><a href="trip.php?<?= htmlspecialchars(http_build_query(['dest' => $x['destination'], 'days' => $days])) ?>">
+      <?php if ($pic): ?><img src="<?= htmlspecialchars($pic) ?>" alt="" loading="lazy" width="210" height="110"><?php else: ?><span class="tp-noimg"></span><?php endif; ?>
+      <strong><?= htmlspecialchars(explode(',', $x['destination'])[0]) ?></strong>
+      <span><?= htmlspecialchars($x['why']) ?></span></a></li>
+  <?php endforeach; ?></ul></section>
 <?php endif;
 } else {
     $reqBody = ['place' => $place, 'mode' => $mode, 'interests' => array_values($interests), 'stops' => $stops];
     if ($destination !== '') $reqBody['destination'] = $destination;
+    tp_loading('Finding stops near ' . explode(',', $place)[0] . '. Cold lookups can take up to a minute.', 'route');
     $r = ml_request('POST', '/route', $reqBody, 60);
     $isBetween = ($destination !== '' && empty($r['__error']));
     $err = !empty($r['__error']) || ($r['status'] ?? '') === 'error';
+    tp_loaded();
     include 'ja-trip-route.php';
 }
 ?>

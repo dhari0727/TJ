@@ -4,6 +4,7 @@ session_start();
 require 'connection.php';
 require 'ml_client.php';
 require_once __DIR__ . '/ja-lib.php';
+require_once __DIR__ . '/ja-dest.php';
 
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $eml = $_SESSION['eml'];
@@ -69,26 +70,24 @@ $result = ml_recommend([
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
+<head><?php include 'ja-head.php'; ?><link rel="stylesheet" href="css/pages-discover.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-discover.css') ?>"></head>
+<body class="ja dz-plan">
 
-<section class="ja-section" style="padding-top:56px">
-  <div class="ja-container">
-    <div class="ja-eyebrow reveal">✦ Personalised from your journeys</div>
-    <h1 class="reveal" style="font-size:clamp(2.2rem,5vw,3.6rem)">Recommended for you</h1>
-    <p class="sub reveal">Based on the trips you've saved and rated, and travellers who share your taste.</p>
+<header class="dz-pagehead">
+  <h1>Picked for you</h1>
+  <p class="dz-lede">Chosen from your journals, saved trips and ratings, and from travellers whose taste matches yours.
+    <?php if (!empty($prefs['interests'])): ?>We are using your interests in <?= htmlspecialchars(implode(', ', array_slice($prefs['interests'], 0, 4))) ?> and a budget of about <?= ja_inr(ja_inr_round($user_budget)) ?>.<?php endif; ?></p>
+</header>
 
-    <?php if ($flash): ?><div class="ja-ok reveal">✓ <?= htmlspecialchars($flash) ?></div><?php endif; ?>
+<main class="dz-wrap">
+  <?php if ($flash): ?><div class="ja-ok dz-flash" role="status"><?= htmlspecialchars($flash) ?></div><?php endif; ?>
 
-    <?php if (!empty($result['__error'])): ?>
-      <?= ml_offline_banner($result) ?>
-    <?php else: ?>
-      <?php require 'ja-cards.php'; ja_render_cards($result['recommendations'] ?? []); ?>
-      <div class="reveal" style="margin-top:36px">
-        <a href="plan-trip.php" class="ja-btn ja-btn-ghost">Plan a specific trip →</a>
-      </div>
-    <?php endif; ?>
-  </div>
-</section>
+  <?php if (!empty($result['__error'])): ?>
+    <?= ja_service_error($result, 'pick destinations') ?>
+  <?php else: ?>
+    <?php require 'ja-cards.php'; ja_render_cards($result['recommendations'] ?? []); ?>
+    <p class="dz-after">Want something specific, like a long weekend in March under a set budget? <a href="plan-trip.php">Plan a trip with your own answers</a>. Rate the places you know with the stars on each card and these picks get sharper.</p>
+  <?php endif; ?>
+</main>
 
-<?php include 'ja-footer.php'; ?>
+<?php ja_discover_assets(); include 'ja-footer.php'; ?>

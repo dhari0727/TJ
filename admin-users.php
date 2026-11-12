@@ -1,4 +1,5 @@
 <?php
+$ja_css_extra = ['pages-account.css'];
 $ja_title = "Users"; $ja_active = "admin"; $ja_tab = "users";
 require_once __DIR__ . '/ja-trust.php';
 require_once __DIR__ . '/mail.php';
@@ -109,20 +110,20 @@ $pages = max(1, (int)ceil($total / $per));
 </form>
 
 <div class="ja-card" style="padding:0;overflow-x:auto">
-<table class="ja-table ja-table-wide">
-  <thead><tr><th>User</th><th>Status</th><th>Entries</th><th>Joined</th><th>Last login</th><th></th></tr></thead>
+<table class="ja-table ja-table-wide adm-stack">
+  <thead><tr><th>User</th><th>Status</th><th>Entries</th><th>Joined</th><th>Last login</th><th><span class="ja-sr">Actions</span></th></tr></thead>
   <tbody>
   <?php foreach ($users as $u): $isSelf = strcasecmp($u['eml'], $me['eml']) === 0; ?>
     <tr>
-      <td><strong><?= htmlspecialchars($u['fname'] . ' ' . $u['lname']) ?></strong><br><span class="ja-muted"><?= htmlspecialchars($u['eml']) ?></span></td>
-      <td><?= $u['role'] === 'admin' ? '<span class="ja-pill near">admin</span> ' : '' ?><?= $u['is_active'] ? '<span class="ja-pill near">active</span>' : '<span class="ja-pill season">suspended</span>' ?></td>
-      <td><?= (int)$u['entries'] ?></td>
-      <td class="ja-muted"><?= htmlspecialchars(substr((string)$u['created_at'], 0, 10) ?: 'n/a') ?></td>
-      <td class="ja-muted"><?= htmlspecialchars(substr((string)$u['last_login'], 0, 10) ?: 'never') ?></td>
-      <td>
+      <td data-label="User"><strong><?= htmlspecialchars($u['fname'] . ' ' . $u['lname']) ?></strong><br><span class="ja-muted"><?= htmlspecialchars($u['eml']) ?></span></td>
+      <td data-label="Status"><?= $u['role'] === 'admin' ? '<span class="ja-pill near">admin</span> ' : '' ?><?= $u['is_active'] ? '<span class="ja-pill near">active</span>' : '<span class="ja-pill season">suspended</span>' ?></td>
+      <td data-label="Entries"><?= (int)$u['entries'] ?></td>
+      <td class="ja-muted" data-label="Joined"><?= htmlspecialchars(substr((string)$u['created_at'], 0, 10) ?: 'n/a') ?></td>
+      <td class="ja-muted" data-label="Last login"><?= htmlspecialchars(substr((string)$u['last_login'], 0, 10) ?: 'never') ?></td>
+      <td data-label="Actions">
         <form method="post" class="ja-rowact" onsubmit="return this.act.value!=='delete' || confirm('Delete this user and ALL their data? This cannot be undone.')">
           <?= ja_csrf_field() ?><input type="hidden" name="eml" value="<?= htmlspecialchars($u['eml']) ?>">
-          <select name="act" class="ja-select" onchange="if(this.value)this.form.requestSubmit()">
+          <select name="act" class="ja-select" aria-label="Action for <?= htmlspecialchars($u['eml']) ?>" onchange="if(this.value)this.form.requestSubmit()">
             <option value="">Actions…</option>
             <?php if (!$isSelf): ?>
               <option value="<?= $u['is_active'] ? 'suspend' : 'activate' ?>"><?= $u['is_active'] ? 'Suspend' : 'Reactivate' ?></option>

@@ -13,6 +13,7 @@ if ((int)mysqli_fetch_row($r)[0] > 0) { header('Location: login.php'); exit; }
 
 $err = '';
 if (isset($_POST['create'])) {
+    ja_csrf_enforce();
     $fname = trim($_POST['fname'] ?? ''); $lname = trim($_POST['lname'] ?? '');
     $eml = trim($_POST['eml'] ?? ''); $psw = $_POST['psw'] ?? '';
     $strong = preg_match('@[A-Z]@', $psw) && preg_match('@[a-z]@', $psw) && preg_match('@[0-9]@', $psw)
@@ -34,24 +35,24 @@ if (isset($_POST['create'])) {
         $err = 'Could not create the admin. Check that sql/admin.sql has been run.';
     }
 }
+require_once __DIR__ . '/ja-auth.php';
+$ja_css_extra = ['pages-account.css']; $ja_no_shell = true; $ja_no_nav = true;   // standalone page: no top bar or sidebar
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
-<div class="ja-auth"><div class="ja-auth-form" style="margin:0 auto"><div class="ja-auth-box">
-  <h1>Create the admin account</h1>
-  <p class="ja-auth-lead">No admin exists yet. This page disappears once you create one.</p>
-  <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-  <form method="post">
+<body class="ja ja-acct">
+<?php ja_auth_open('taj-mahal', 'Create the admin account', 'No admin exists yet. This page disappears once you create one.'); ?>
+  <?php if ($err): ?><div class="ja-err" role="alert"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+  <form method="post" data-acct-validate novalidate>
     <div class="ja-fieldrow">
-      <div class="ja-field"><label>First name</label><input class="ja-input" name="fname" required value="<?= htmlspecialchars($_POST['fname'] ?? '') ?>"></div>
-      <div class="ja-field"><label>Last name</label><input class="ja-input" name="lname" value="<?= htmlspecialchars($_POST['lname'] ?? '') ?>"></div>
+      <?= ja_field(['id' => 'fname', 'name' => 'fname', 'label' => 'First name', 'value' => $_POST['fname'] ?? '', 'required' => 1, 'rule' => 'required', 'label_text' => 'first name']) ?>
+      <?= ja_field(['id' => 'lname', 'name' => 'lname', 'label' => 'Last name', 'value' => $_POST['lname'] ?? '']) ?>
     </div>
-    <div class="ja-field"><label>Email</label><input class="ja-input" type="email" name="eml" required value="<?= htmlspecialchars($_POST['eml'] ?? '') ?>"></div>
-    <div class="ja-field"><label>Password</label><input class="ja-input" type="password" name="psw" required placeholder="8+ chars, 1 uppercase, 1 number, 1 symbol"></div>
-    <button class="ja-btn ja-btn-primary" type="submit" name="create" style="width:100%">Create admin</button>
+    <?= ja_field(['id' => 'eml', 'name' => 'eml', 'label' => 'Email', 'type' => 'email', 'value' => $_POST['eml'] ?? '', 'required' => 1, 'rule' => 'email', 'label_text' => 'email address']) ?>
+    <?= ja_field(['id' => 'psw', 'name' => 'psw', 'label' => 'Password', 'type' => 'password', 'autocomplete' => 'new-password', 'required' => 1, 'rule' => 'password', 'label_text' => 'password', 'meter' => 1]) ?>
+    <button class="ja-btn ja-btn-primary acct-submit" type="submit" name="create">Create admin</button>
   </form>
-</div></div></div>
+<?php ja_auth_close(); ?>
 </body>
 </html>

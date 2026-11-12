@@ -2,6 +2,7 @@
 $ja_title = "My Storybooks"; $ja_active = "entries"; $ja_jtab = "books";
 session_start();
 require 'connection.php';
+require_once __DIR__ . '/ja-community-ui.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 
@@ -42,19 +43,19 @@ if ($bookIds) {
 <html lang="en">
 <head><?php include 'ja-head.php'; ?>
 <link rel="stylesheet" href="css/storybook.css">
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>">
 <script src="js/csrf.js"></script>
 </head>
 <body class="ja">
 
-<div class="ja-pagehead">
+<div class="ja-pagehead pc-head">
   <div class="ja-container">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
       <div>
-        <div class="ja-eyebrow">✦ Your travel storybooks</div>
-        <h1>My Journal</h1>
+        <h1>Storybooks</h1>
         <p class="sub"><?= count($books) ?> storybook<?= count($books)===1?'':'s' ?>.</p>
       </div>
-      <a href="storybook-create.php" class="ja-btn ja-btn-primary" data-magnetic>+ New Storybook</a>
+      <a href="storybook-create.php" class="ja-btn ja-btn-primary" data-magnetic>New storybook</a>
     </div>
     <?php include 'ja-journal-tabs.php'; ?>
   </div>
@@ -63,11 +64,7 @@ if ($bookIds) {
 <main class="ja-main">
   <div class="ja-container">
     <?php if (!$books): ?>
-      <div class="sb-my-empty" style="border:1px solid var(--sb-border);border-radius:14px;background:var(--sb-surface)">
-        <div class="sb-my-empty-icon">📖</div>
-        <p class="sb-my-empty-text">You haven't created any storybooks yet.</p>
-        <a href="storybook-create.php" class="ja-btn ja-btn-primary">Create your first storybook</a>
-      </div>
+      <?= pc_empty('No storybooks yet', 'A storybook turns one trip into a paged keepsake with photos, stickers and your own words. Start with a trip you have already written about.', ['Create your first storybook', 'storybook-create.php'], 'book') ?>
     <?php else: ?>
       <div class="sb-my-grid">
         <?php foreach ($books as $b):
@@ -82,7 +79,7 @@ if ($bookIds) {
                 <img class="sb-my-cover" src="<?= htmlspecialchars($cover) ?>" alt="<?= htmlspecialchars($b['title']) ?>">
               <?php else: ?>
                 <div class="sb-my-cover sb-my-cover-placeholder" data-sb-theme="<?= htmlspecialchars($b['theme']) ?>">
-                  <span class="sb-my-cover-icon">📖</span>
+                  <span class="sb-my-cover-icon"><?= pc_icon("book", 36) ?></span>
                   <span class="sb-my-cover-title"><?= htmlspecialchars($b['title']) ?></span>
                 </div>
               <?php endif; ?>
@@ -94,7 +91,6 @@ if ($bookIds) {
               <?php endif; ?>
               <div class="sb-my-meta">
                 <span><?= (int)$b['page_count'] ?> page<?= (int)$b['page_count']===1?'':'s' ?></span>
-                <span>·</span>
                 <span><?= date('M j, Y', strtotime($b['updated_at'])) ?></span>
               </div>
               <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
@@ -108,12 +104,12 @@ if ($bookIds) {
               </div>
             </div>
             <div class="sb-my-actions">
-              <a href="storybook-edit.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" onclick="event.stopPropagation()">✏️ Edit</a>
-              <a href="storybook-view.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">👁 View</a>
-              <a href="storybook-print.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">🖨 Print</a>
+              <a href="storybook-edit.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" onclick="event.stopPropagation()">Edit</a>
+              <a href="storybook-view.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">View</a>
+              <a href="storybook-print.php?id=<?= $bid ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" target="_blank" onclick="event.stopPropagation()">Print</a>
               <button type="button" data-pin-kind="book" data-pin-id="<?= $bid ?>" data-pinned="<?= (int)$b['is_pinned'] ?>" class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem" title="Pin to your public profile">Pin</button>
-              <button class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem;color:var(--ja-coral);border-color:var(--ja-coral)"
-                onclick="event.stopPropagation();deleteBook(<?= $bid ?>)">🗑 Delete</button>
+              <button class="ja-btn ja-btn-ghost" style="padding:7px 14px;font-size:.82rem;color:#B3261E;border-color:#B3261E"
+                onclick="event.stopPropagation();deleteBook(<?= $bid ?>)">Delete</button>
             </div>
           </div>
         <?php endforeach; ?>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14213D">
+<title>You are offline - JourneyAI</title>
+<style>
+:root{--bg:#F5F6F2;--text:#14213D;--dim:#44506B;--hair:rgba(20,33,61,.14);--gold:#F4A300}
+@media(prefers-color-scheme:dark){:root{--bg:#0E1424;--text:#EEF0F6;--dim:#B4BCD0;--hair:rgba(238,240,246,.16)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Familjen Grotesk","Segoe UI",system-ui,sans-serif;line-height:1.5}
+main{max-width:620px;margin:0 auto;padding:56px 20px}
+h1{font-size:2rem;line-height:1.1;margin:0 0 10px;letter-spacing:-.02em}
+h2{font-size:1.15rem;margin:34px 0 4px}
+p{margin:0 0 12px;color:var(--dim);font-family:Literata,Georgia,serif}
+ul{list-style:none;margin:10px 0 0;padding:0}
+li{padding:13px 0;border-bottom:1px solid var(--hair);display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+li a{color:var(--text);font-weight:600}
+li span{color:var(--dim);font-size:.9rem;white-space:nowrap}
+.btn{display:inline-block;margin-top:6px;padding:11px 18px;border-radius:10px;background:var(--gold);color:#14213D;font-weight:600;border:0;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+a:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+</style>
+</head>
+<body>
+<main>
+  <h1>You are offline</h1>
+  <p>Your connection dropped, so this page could not load. Pages you saved for offline use still open from this device.</p>
+  <button class="btn" type="button" onclick="location.reload()">Try again</button>
+  <h2>Saved on this device</h2>
+  <div id="saved"><p>Looking for saved plans.</p></div>
+</main>
+<script>
+(function () {
+  var box = document.getElementById('saved');
+  function none() { box.innerHTML = '<p>Nothing is saved yet. Open a plan while you are online and choose Save for offline.</p>'; }
+  if (!('caches' in window)) { none(); return; }
+  var idx = new URL('offline-index.json', document.baseURI).href;
+  caches.open('ja-offline-pages').then(function (c) { return c.match(idx); }).then(function (r) { return r ? r.json() : []; }).then(function (list) {
+    if (!list.length) { none(); return; }
+    var ul = document.createElement('ul');
+    list.sort(function (a, b) { return b.saved - a.saved; }).forEach(function (p) {
+      var li = document.createElement('li'), a = document.createElement('a'), s = document.createElement('span');
+      a.href = p.url; a.textContent = p.title;
+      s.textContent = p.cost ? 'about ₹' + Number(p.cost).toLocaleString('en-IN') : '';
+      li.appendChild(a); li.appendChild(s); ul.appendChild(li);
+    });
+    box.innerHTML = ''; box.appendChild(ul);
+  }).catch(none);
+})();
+</script>
+</body>
+</html>

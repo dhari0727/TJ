@@ -19,16 +19,21 @@ $nav = $ja_side_nav;
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>(function(){try{var t=localStorage.getItem('ja-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= htmlspecialchars($ja_title) ?> — JourneyAI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Bagel+Fat+One&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/journeyai.css">
+<link rel="stylesheet" href="css/journeyai-brand.css?v=<?= (int)@filemtime(__DIR__ . '/css/journeyai-brand.css') ?>">
+<script src="js/journey.js?v=<?= (int)@filemtime(__DIR__ . '/js/journey.js') ?>" defer></script>
+<script src="js/ja-palette.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-palette.js') ?>" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 <script src="js/journeyai.js" defer></script>
 </head>
 <body class="ja ja-app">
 <div class="ja-aurora"></div>
+<a class="ja-skip" href="#main" data-ja-skip>Skip to content</a>
 
 <aside class="ja-sidebar" id="jaSidebar">
   <a class="ja-side-brand" href="dashboard.php">
@@ -49,4 +54,4 @@ $nav = $ja_side_nav;
 <button class="ja-side-toggle" id="jaSideToggle" aria-label="Menu"><?= ja_icon('compass',22) ?></button>
 
 <div class="ja-app-main">
-  <main class="ja-app-content">
+  <main id="main" tabindex="-1" class="ja-app-content">

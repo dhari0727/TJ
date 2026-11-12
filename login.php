@@ -80,36 +80,22 @@ if (isset($_POST['lgn'])) {
         }
     }
 }
-require 'ja-images.php';
-$img = ja_local_images()['maldives'] ?? (ja_local_images()['goa'] ?? '');
+require_once __DIR__ . '/ja-auth.php';
+$ja_css_extra = ['pages-account.css']; $ja_no_shell = true; $ja_no_nav = true;   // standalone page: no top bar or sidebar
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
-<div class="ja-auth">
-  <div class="ja-auth-visual" style="background-image:linear-gradient(160deg,rgba(11,61,79,.35),rgba(11,61,79,.75)),url('<?= htmlspecialchars($img) ?>')">
-    <div class="ja-auth-quote">
-      <div class="ja-eyebrow" style="color:var(--ja-aqua-2)">✦ Welcome back</div>
-      <h2>Your next journey<br>is waiting.</h2>
-      <p>Pick up where you left off — your saved plans and journals are right here.</p>
-    </div>
-  </div>
-  <div class="ja-auth-form">
-    <div class="ja-auth-box">
-      <a class="ja-brand" href="index.php" style="margin-bottom:26px"><img src="images/journeyai-logo.svg" class="ja-logo-mark" alt=""> JourneyAI</a>
-      <h1>Log in</h1>
-      <p class="ja-auth-lead">Welcome back. Enter your details to continue.</p>
-      <?php if ($evalue): ?><div class="ja-err"><?= htmlspecialchars($evalue) ?></div><?php endif; ?>
-      <form method="post"><?= ja_csrf_field() ?>
-        <div class="ja-field"><label>Email</label><input class="ja-input" type="email" name="eml" required autofocus></div>
-        <div class="ja-field"><label>Password</label><input class="ja-input" type="password" name="password" required></div>
-        <button class="ja-btn ja-btn-primary" type="submit" name="lgn" data-magnetic style="width:100%">Log in</button>
+<body class="ja ja-acct">
+<?php ja_auth_open('jaipur', 'Log in', 'Your saved trips and journals are waiting.'); ?>
+      <?php if ($evalue): ?><div class="ja-err" role="alert" id="form-err" tabindex="-1"><?= htmlspecialchars($evalue) ?><?php if (stripos($evalue, 'suspended') === false): ?> <a href="forgot-pswd.php">Reset your password</a><?php endif; ?></div><?php endif; ?>
+      <form method="post" data-acct-validate novalidate><?= ja_csrf_field() ?>
+        <?= ja_field(['id' => 'eml', 'name' => 'eml', 'label' => 'Email', 'type' => 'email', 'value' => $_POST['eml'] ?? '', 'autocomplete' => 'username', 'required' => 1, 'autofocus' => empty($evalue), 'rule' => 'email', 'label_text' => 'email address', 'invalid' => (bool)$evalue, 'also' => $evalue ? 'form-err' : '']) ?>
+        <?= ja_field(['id' => 'psw', 'name' => 'password', 'label' => 'Password', 'type' => 'password', 'autocomplete' => 'current-password', 'required' => 1, 'label_text' => 'password', 'rule' => 'required', 'aside' => '<a class="acct-aside" href="forgot-pswd.php">Forgot password?</a>', 'invalid' => (bool)$evalue, 'also' => $evalue ? 'form-err' : '']) ?>
+        <button class="ja-btn ja-btn-primary acct-submit" type="submit" name="lgn">Log in</button>
       </form>
-      <p class="ja-auth-alt"><a href="forgot-pswd.php">Forgot your password?</a></p>
-      <p class="ja-auth-alt">New here? <a href="register.php">Create an account</a></p>
-    </div>
-  </div>
-</div>
+      <p class="acct-next"><strong>What happens next</strong> You land on Home, with your saved trips and recent journals.</p>
+      <p class="acct-alt">New here? <a href="register.php">Create an account</a></p>
+<?php ja_auth_close(); ?>
 </body>
 </html>

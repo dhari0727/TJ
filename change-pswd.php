@@ -27,42 +27,30 @@ if (isset($_POST['Save'])) {
         mysqli_stmt_close($stmt);
     }
 }
+require_once __DIR__ . '/ja-auth.php';
+$ja_css_extra = ['pages-account.css'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
+<body class="ja ja-acct-page">
 
-<div class="ja-pagehead">
-  <div class="ja-container">
-    <div class="ja-eyebrow">✦ Security</div>
-    <h1>Change Password</h1>
-    <p class="sub">Choose a strong password to keep your account secure.</p>
-  </div>
-</div>
-
-<main class="ja-main">
-  <div class="ja-container" style="max-width:520px">
-    <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-    <?php if ($ok): ?><div class="ja-ok"><?= ja_icon('check',16) ?> <?= htmlspecialchars($ok) ?></div><?php endif; ?>
-    <div class="ja-card">
-      <form method="post">
-        <div class="ja-field">
-          <label>Current password</label>
-          <input class="ja-input" type="password" name="CUR" required autocomplete="current-password">
-        </div>
-        <div class="ja-field">
-          <label>New password</label>
-          <input class="ja-input" type="password" name="PASS" required
-                 placeholder="8+ chars, 1 uppercase, 1 number, 1 symbol">
-        </div>
-        <div style="display:flex;gap:10px">
-          <button class="ja-btn ja-btn-primary" type="submit" name="Save" data-magnetic>Update password</button>
-          <a href="profile.php" class="ja-btn ja-btn-ghost">Back</a>
-        </div>
-      </form>
+<main class="acct-page acct-narrow">
+  <header class="acct-head">
+    <h1>Change password</h1>
+    <p>Choose a new one. Your other devices are signed out when you save it.</p>
+  </header>
+  <?php if ($err): ?><div class="ja-err" role="alert" id="form-err" tabindex="-1"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+  <?php if ($ok): ?><div class="ja-ok" role="status"><?= ja_icon('check',16) ?> <?= htmlspecialchars($ok) ?></div><?php endif; ?>
+  <form method="post" class="acct-formbox" data-acct-validate novalidate>
+    <?= ja_field(['id' => 'cur', 'name' => 'CUR', 'label' => 'Current password', 'type' => 'password', 'autocomplete' => 'current-password', 'required' => 1, 'rule' => 'required', 'label_text' => 'current password', 'invalid' => ($err && stripos($err, 'current') !== false), 'also' => ($err && stripos($err, 'current') !== false) ? 'form-err' : '']) ?>
+    <?= ja_field(['id' => 'new', 'name' => 'PASS', 'label' => 'New password', 'type' => 'password', 'autocomplete' => 'new-password', 'required' => 1, 'rule' => 'password', 'label_text' => 'new password', 'meter' => 1, 'invalid' => ($err && stripos($err, 'current') === false), 'also' => ($err && stripos($err, 'current') === false) ? 'form-err' : '']) ?>
+    <div class="acct-actions">
+      <button class="ja-btn ja-btn-primary" type="submit" name="Save">Update password</button>
+      <a href="profile.php" class="ja-btn ja-btn-ghost">Back to profile</a>
     </div>
-  </div>
+  </form>
 </main>
 
 <?php include 'ja-footer.php'; ?>
+<script src="js/ja-auth.js?v=<?= (int)@filemtime(__DIR__ . '/js/ja-auth.js') ?>" defer></script>

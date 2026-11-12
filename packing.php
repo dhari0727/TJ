@@ -112,11 +112,12 @@ $preDest = trim($_GET['dest'] ?? ''); $preDays = max(1, min(60, (int)($_GET['day
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css"></head>
-<body class="ja">
-<div class="ja-pagehead"><div class="ja-container">
-  <div class="ja-eyebrow"><?= ja_icon('check',14) ?> Never forget the charger</div>
-  <h1>My Trips</h1>
+<head><?php include 'ja-head.php'; ?><link rel="stylesheet" media="print" href="css/journeyai-print.css">
+<link rel="stylesheet" href="css/pages-trips.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-trips.css') ?>">
+<script src="js/trips-ui.js?v=<?= (int)@filemtime(__DIR__ . '/js/trips-ui.js') ?>" defer></script></head>
+<body class="ja tp-page">
+<div class="tp-top tp-noprint"><div class="ja-container">
+  <h1>My trips</h1>
   <?php include 'ja-trips-tabs.php'; ?>
 </div></div>
 
@@ -197,17 +198,17 @@ $preDest = trim($_GET['dest'] ?? ''); $preDays = max(1, min(60, (int)($_GET['day
     });
     document.getElementById('addForm').addEventListener('submit',function(e){
       e.preventDefault(); var f=e.target; api({action:'add',list_id:LIST,label:f.label.value,qty:f.qty.value,category:f.category.value}).then(function(r){
-        if(r.error){alert(r.error);return;} var it=r.item, sec=document.querySelector('.ja-pack-cat[data-cat="'+it.category+'"]');
+        if(r.error){JATrips.toast(r.error);return;} var it=r.item, sec=document.querySelector('.ja-pack-cat[data-cat="'+it.category+'"]');
         if(!sec){ sec=document.createElement('section'); sec.className='ja-pack-cat'; sec.dataset.cat=it.category; sec.innerHTML='<h3></h3><ul class="ja-pack-list"></ul>'; sec.querySelector('h3').innerHTML=(CATS[it.category]||'Other')+' <span class="ja-muted cnt">0/0</span>'; document.getElementById('cats').appendChild(sec); }
         var li=document.createElement('li'); li.dataset.item=it.item_id; li.innerHTML='<label><input type="checkbox"> <span class="lbl"></span></label><input class="qty no-print" type="number" min="1" max="99" value="'+it.qty+'"><span class="qty-print"></span><button class="del no-print" type="button">&times;</button>'; li.querySelector('.lbl').textContent=it.label;
         sec.querySelector('ul').appendChild(li); catCount(sec); prog(r); f.label.value=''; f.label.focus();
       });
     });
-    document.getElementById('btnRegen').onclick=function(){ api({action:'regenerate',list_id:LIST}).then(function(r){ if(r.ok){ alert(r.added? r.added+' new suggestion'+(r.added>1?'s':'')+' added.' : 'Nothing new to suggest. Your list is up to date.'); if(r.added) location.reload(); } }); };
+    document.getElementById('btnRegen').onclick=function(){ api({action:'regenerate',list_id:LIST}).then(function(r){ if(r.ok){ JATrips.toast(r.added? r.added+' new suggestion'+(r.added>1?'s':'')+' added.' : 'Nothing new to suggest. Your list is up to date.'); if(r.added) setTimeout(function(){location.reload();},900); } }); };
     document.getElementById('btnUncheck').onclick=function(){ api({action:'uncheck_all',list_id:LIST}).then(function(){ location.reload(); }); };
     document.getElementById('btnDup').onclick=function(){ api({action:'duplicate',list_id:LIST}).then(function(r){ if(r.list_id) location.href='packing.php?list='+r.list_id; }); };
-    document.getElementById('btnDel').onclick=function(){ if(confirm('Delete this packing list?')) api({action:'delete_list',list_id:LIST}).then(function(){ location.href='packing.php'; }); };
-    document.getElementById('listName').addEventListener('dblclick',function(){ var n=prompt('Rename list',this.textContent); if(n) api({action:'rename',list_id:LIST,name:n}).then(function(r){ if(r.ok) document.getElementById('listName').textContent=r.name; }); });
+    document.getElementById('btnDel').onclick=function(){ var b=this, t=setTimeout(function(){ api({action:'delete_list',list_id:LIST}).then(function(){ location.href='packing.php'; }); },6000); b.disabled=true; JATrips.toast('Deleted this packing list.','Undo',function(){ clearTimeout(t); b.disabled=false; },6000); };
+    document.getElementById('listName').addEventListener('dblclick',function(){ var n=window.prompt('Rename list',this.textContent); if(n) api({action:'rename',list_id:LIST,name:n}).then(function(r){ if(r.ok) document.getElementById('listName').textContent=r.name; }); });
   })();
   </script>
 

@@ -16,11 +16,14 @@
   function svg(n) { return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + (ICONS[n] || ICONS.pin) + '"/></svg>'; }
 
   function loading() {
-    out.innerHTML = '<div class="ja-smart-loading">' +
-      '<div class="ja-skel" style="height:120px"></div>' +
-      '<div class="ja-skel" style="height:120px"></div>' +
-      '<div class="ja-skel" style="height:120px"></div></div>';
+    out.innerHTML = '<p class="dz-hint" role="status">Working out your plan. Places and routes can take a few seconds to look up.</p>' +
+      '<div class="dz-grid" aria-hidden="true">' + [1, 2, 3].map(function () { return '<div class="dz-skel"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i></div>'; }).join('') + '</div>';
     out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function failed(msg) {
+    out.innerHTML = '<div class="dz-error" role="alert"><h3>That did not work</h3><p>' + esc(msg) + '</p><button type="button" class="ja-btn ja-btn-ghost" id="smartRetry">Try again</button></div>';
+    var r = document.getElementById('smartRetry'); if (r) r.addEventListener('click', function () { run(input.value); });
   }
 
   function placeCard(p) {
@@ -76,7 +79,7 @@
       list.forEach(function (s, i) { pts.push([s.lat, s.lon]); L.marker([s.lat, s.lon]).addTo(layer).bindPopup((i + 1) + '. ' + esc(s.name)); });
       if (r.destination) { pts.push([r.destination.lat, r.destination.lon]); L.marker([r.destination.lat, r.destination.lon]).addTo(layer).bindPopup('Destination'); }
       else pts.push([o.lat, o.lon]);
-      L.polyline(pts, { color: '#0E7C86', weight: 4, opacity: .8 }).addTo(layer);
+      L.polyline(pts, { color: '#1F6F5C', weight: 4, opacity: .8 }).addTo(layer);
       map.fitBounds(pts, { padding: [30, 30] });
     }
     draw(r.route);
@@ -134,31 +137,32 @@
 
   function renderRecos(d) {
     var cards = (d.recommendations || []).map(function (r) {
-      return '<div class="ja-reco-mini">' +
-        '<div class="ja-rm-name">' + esc(r.destination) + '</div>' +
-        '<div class="ja-rm-cost">' + inr(r.predicted_cost) + '</div>' +
-        '<div class="ja-rm-why">' + esc((r.explanation || '').slice(0, 130)) + '</div>' +
-        '<a class="ja-btn ja-btn-ghost" href="trip.php?tab=itinerary&dest=' + encodeURIComponent(r.destination) + '&days=' + d.days + '">Build itinerary →</a></div>';
+      var city = String(r.destination).split(',')[0];
+      return '<li class="dz-rec-row"><div><a class="dz-rec-name" href="destination.php?d=' + encodeURIComponent(city) + '">' + esc(city) + '</a>' +
+        '<p>' + esc((r.explanation || '').slice(0, 150)) + '</p></div>' +
+        '<div class="dz-rec-cost">' + inr(r.predicted_cost) + '</div>' +
+        '<div class="dz-rec-act"><a class="ja-btn ja-btn-ghost" href="trip.php?tab=itinerary&dest=' + encodeURIComponent(r.destination) + '&days=' + d.days + '">Build itinerary</a>' +
+        '<button type="button" class="dz-compare" data-compare="' + esc(city) + '" aria-pressed="false"><span>Compare</span></button></div></li>';
     }).join('');
-    return section(svg('star') + ' Best matches for your ' + d.days + '-day trip', (d.budget ? 'under ' + inr(d.budget) : 'ranked & explained'),
-      '<div class="ja-reco-mini-grid">' + cards + '</div>');
+    return section('Best matches for your ' + d.days + '-day trip', (d.budget ? 'under ' + inr(d.budget) : 'best fit first'),
+      '<ul class="dz-rec-list">' + cards + '</ul>');
   }
 
   function section(title, sub, body) {
-    return '<div class="ja-smart-section reveal in"><div class="ja-ss-head"><h2>' + title + '</h2><span>' + esc(sub) + '</span></div>' + body + '</div>';
+    return '<section class="dz-section"><div class="dz-ss-head"><h2>' + title + '</h2><span>' + esc(sub) + '</span></div>' + body + '</section>';
   }
 
   function render(d) {
-    if (d.error) { out.innerHTML = '<div class="ja-empty">' + esc(d.error) + '</div>'; return; }
+    if (d.error) { failed(d.error + ' Rephrase it with a place name and a number of days, for example "3 days in Udaipur".'); return; }
     var html = '';
     if (d.kind === 'route_between' && d.route) html += renderRouteBetween(d);
     else if (d.kind === 'route' && d.route) html += renderRoute(d);
     else if (d.kind === 'nearby') html += renderNearby(d);
     else if (d.kind === 'itinerary' && d.itinerary) html += renderItinerary(d);
     else if (d.kind === 'recommend') html += renderRecos(d);
-    else html += '<div class="ja-empty">Try adding where you\'re starting from.</div>';
+    else html += '<div class="dz-empty"><h3>We could not tell where to start</h3><p>Add a starting place and a length, for example "weekend from Surat, food and temples".</p></div>';
     // cost strip
-    if (d.est_cost) html += '<div class="ja-cost-strip">' + svg('heart') + ' Rough local budget: <strong>' + inr(d.est_cost) + '</strong> for ' + d.days + ' day(s)</div>';
+    if (d.est_cost) html += '<div class="dz-coststrip">Rough local budget: <strong>' + inr(d.est_cost) + '</strong> for ' + d.days + ' day(s)</div>';
     out.innerHTML = html;
     if ((d.kind === 'route' || d.kind === 'route_between') && d.route) initMiniMap(d);
   }
@@ -171,7 +175,7 @@
     fetch('smart-plan.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       .then(function (r) { return r.json(); })
       .then(render)
-      .catch(function () { out.innerHTML = '<div class="ja-empty">Something went wrong. Try again.</div>'; });
+      .catch(function () { failed('The planner did not answer. Check your connection and try again.'); });
   }
 
   form.addEventListener('submit', function (e) { e.preventDefault(); run(input.value); });

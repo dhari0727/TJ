@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/ja-icons.php';
 require_once __DIR__ . '/ja-images.php';
+require_once __DIR__ . '/ja-dest.php';
 
 /** Representative image for a destination (local curated photo, graceful fallback). */
 function ja_dest_image($destination) {
@@ -48,177 +49,119 @@ function ja_dest_rating($destination) {
     return $cache[$destination] ?? null;
 }
 
+
+
+/** One recommendation card. $r is a /recommend item; $i its position. */
+function ja_render_card($r, $i = 0, $signedIn = false) {
+    $destRaw = $r['destination'];
+    $dest   = htmlspecialchars($destRaw);
+    $city   = htmlspecialchars(explode(',', $destRaw)[0]);
+    $low    = (int)($r['cost_low'] ?? $r['low'] ?? 0);
+    $high   = (int)($r['cost_high'] ?? $r['high'] ?? 0);
+    $cost   = (int)($r['predicted_cost'] ?? 0);
+    if ($cost <= 0 && $low > 0) $cost = (int)round(($low + max($low, $high)) / 2);   // never show a zero price when we have a range
+    $days   = (int)($r['duration_days'] ?? 0);
+    $score  = max(0, min(1, (float)($r['score'] ?? 0)));
+    $fit    = (string)($r['budget_fit'] ?? 'within');
+    $within = ($fit === 'within');
+    $gem    = !empty($r['lesser_known']);
+    $acts   = array_slice($r['top_activities'] ?? [], 0, 4);
+    $expl   = htmlspecialchars($r['explanation'] ?? '');
+    $about  = htmlspecialchars($r['description'] ?? '');
+    $titles = $r['sample_journal_titles'] ?? [];
+    $bd     = $r['cost_breakdown'] ?? [];
+    $season = htmlspecialchars($r['best_season'] ?? '');
+    $distKm = $r['distance_km'] ?? null; $driveH = $r['drive_hours'] ?? null;
+    $distLbl = htmlspecialchars($r['distance_label'] ?? '');
+    $img    = ja_dest_image($destRaw);
+    $userEntry = ja_has_user_entry($destRaw);
+    $rating = ja_dest_rating($destRaw);
+    $guide  = htmlspecialchars(ja_dest_url($destRaw));
+    $bdTotal = array_sum($bd);
+    $segCls = ['food' => 's1', 'stay' => 's2', 'transport' => 's3', 'shopping' => 's4', 'misc' => 's5'];
+    ?>
+    <article class="dz-card">
+      <a class="dz-photo" href="<?= $guide ?>" tabindex="-1" aria-hidden="true">
+        <?php if ($img): ?><img src="<?= htmlspecialchars($img) ?>" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add('nophoto');this.remove()"><?php else: ?><span class="dz-nophoto-mark"><?= $city ?></span><?php endif; ?>
+        <?php if ($gem): ?><span class="dz-badge"><?= ja_icon('gem', 12) ?> Hidden gem</span><?php endif; ?>
+      </a>
+      <div class="dz-body">
+        <h3 class="dz-name"><a href="<?= $guide ?>"><?= $city ?></a></h3>
+        <p class="dz-meta">
+          <?php if ($distKm): ?>About <?= (int)$distKm ?> km away<?= $driveH ? ', ' . htmlspecialchars((string)$driveH) . ' h by road' : ', fly or take a train' ?><?php elseif ($distLbl): ?><?= $distLbl ?><?php endif; ?>
+          <?php if ($userEntry): ?><?= ($distKm || $distLbl) ? '. ' : '' ?>Travellers have written journals here<?php endif; ?>
+        </p>
+
+        <p class="dz-price"><strong><?= ja_inr($cost) ?></strong>
+          <span><?= $days ? 'for ' . $days . ' day' . ($days == 1 ? '' : 's') : 'estimated' ?><?= $high > 0 ? ', usually ' . number_format($low) . ' to ' . number_format($high) : '' ?></span></p>
+        <p class="dz-fit <?= $within ? 'ok' : 'stretch' ?>"><?= $within ? 'Fits your budget' : 'Stretches your budget' ?></p>
+
+        <?php if ($season): ?><p class="dz-line"><span>Best time</span> <?= $season ?></p><?php endif; ?>
+        <?php if ($acts): ?><p class="dz-line"><span>Known for</span> <?= htmlspecialchars(implode(', ', array_map('strtolower', $acts))) ?></p><?php endif; ?>
+        <div class="dz-match" title="How well this fits what you asked for"><span class="dz-match-lab">Match</span>
+          <div class="dz-meter" role="img" aria-label="Match <?= round($score * 100) ?> out of 100"><i style="width:<?= round($score * 100) ?>%"></i></div>
+          <span class="dz-match-n"><?= round($score * 100) ?>%</span></div>
+
+        <?php if ($bdTotal > 0): ?>
+        <details class="dz-more">
+          <summary>Where the money goes</summary>
+          <div class="dz-split" role="img" aria-label="Cost split">
+            <?php foreach ($bd as $k => $v): if ($v <= 0) continue; ?><i class="<?= $segCls[$k] ?? 's5' ?>" style="flex:<?= (int)$v ?>"></i><?php endforeach; ?>
+          </div>
+          <ul class="dz-legend">
+            <?php foreach ($bd as $k => $v): if ($v <= 0) continue; ?>
+              <li><i class="<?= $segCls[$k] ?? 's5' ?>"></i><?= htmlspecialchars(ucfirst($k)) ?> <b><?= ja_inr($v) ?></b></li>
+            <?php endforeach; ?>
+          </ul>
+        </details>
+        <?php endif; ?>
+
+        <?php if ($expl): ?>
+        <details class="dz-more">
+          <summary>Why this destination</summary>
+          <p><?= $expl ?></p>
+          <?php if ($about): ?><p class="dz-about"><?= $about ?></p><?php endif; ?>
+          <?php if ($titles): ?><p class="dz-evidence">From journals: <?= htmlspecialchars(implode('; ', $titles)) ?></p><?php endif; ?>
+        </details>
+        <?php endif; ?>
+
+        <div class="dz-actions">
+          <a class="ja-btn ja-btn-primary" href="trip.php?dest=<?= urlencode($destRaw) ?>&days=<?= $days ?: 5 ?>">Build itinerary</a>
+          <?= ja_compare_btn($destRaw) ?>
+          <?php if ($signedIn): ?>
+          <form method="post" action="save-plan.php" class="dz-save">
+            <input type="hidden" name="destination" value="<?= $dest ?>">
+            <input type="hidden" name="predicted_cost" value="<?= $cost ?>">
+            <button class="dz-iconbtn" type="submit" aria-label="Save <?= $city ?> to your plans" title="Save to your plans"><?= ja_icon('heart', 18) ?></button>
+          </form>
+          <?php endif; ?>
+        </div>
+
+        <div class="dz-rating ja-dest-rating" data-dest="<?= $dest ?>">
+          <span class="ja-dest-rating-avg">
+            <?php if ($rating): ?><b>Rated <?= number_format($rating['avg'], 1) ?> of 5</b> by <?= $rating['n'] ?> traveller<?= $rating['n'] == 1 ? '' : 's' ?>
+            <?php else: ?>No ratings yet<?php endif; ?>
+          </span>
+          <?php if ($signedIn): ?>
+          <span class="ja-star-widget" role="group" aria-label="Rate <?= $city ?>" data-dest="<?= $dest ?>">
+            <?php for ($s = 1; $s <= 5; $s++): ?><button type="button" class="ja-star-pick" data-val="<?= $s ?>" aria-label="<?= $s ?> star<?= $s == 1 ? '' : 's' ?>">★</button><?php endfor; ?>
+          </span>
+          <?php endif; ?>
+        </div>
+      </div>
+    </article>
+    <?php
+}
+
 function ja_render_cards($recs) {
+    ja_discover_assets();
     if (empty($recs)) {
-        echo '<div class="ja-empty">No destinations matched. Try widening your budget or interests.</div>';
+        echo '<div class="dz-empty"><h3>No destinations matched yet</h3><p>Try a higher budget, a longer trip, or remove one interest. Fewer filters give the planner more places to rank.</p>'
+           . '<a class="ja-btn ja-btn-ghost" href="plan-trip.php">Change your answers</a></div>';
         return;
     }
-    echo '<div class="ja-reco-grid" id="recoGrid">';
-    $i = 0;
-    foreach ($recs as $r) {
-        $dest   = htmlspecialchars($r['destination']);
-        $city   = htmlspecialchars(explode(',', $r['destination'])[0]);
-        $cost   = (int)($r['predicted_cost'] ?? 0);
-        $low    = (int)($r['cost_low'] ?? $r['low'] ?? 0);
-        $high   = (int)($r['cost_high'] ?? $r['high'] ?? 0);
-        $score  = max(0, min(1, (float)($r['score'] ?? 0)));
-        $fit    = htmlspecialchars($r['budget_fit'] ?? 'within');
-        $gem    = !empty($r['lesser_known']);
-        $acts   = $r['top_activities'] ?? [];
-        $expl   = htmlspecialchars($r['explanation'] ?? '');
-        $about  = htmlspecialchars($r['description'] ?? '');
-        $titles = $r['sample_journal_titles'] ?? [];
-        $bd     = $r['cost_breakdown'] ?? [];
-        $season = htmlspecialchars($r['best_season'] ?? '');
-        $distLbl= htmlspecialchars($r['distance_label'] ?? '');
-        $isIntl = ($distLbl === 'International');
-        $distKm = $r['distance_km'] ?? null; $driveH = $r['drive_hours'] ?? null;
-        $img    = ja_dest_image($r['destination']);
-        $userEntry = ja_has_user_entry($r['destination']);
-        $rating = ja_dest_rating($r['destination']);
-        $fitCls = ($fit === 'within') ? 'within' : 'stretch';
-        $bdJson = htmlspecialchars(json_encode(array_values($bd)), ENT_QUOTES);
-        $bdLbls = htmlspecialchars(json_encode(array_map('ucfirst', array_keys($bd))), ENT_QUOTES);
-        ?>
-        <article class="ja-reco reveal" data-tilt style="transition-delay:<?= $i*0.08 ?>s">
-          <?php if ($gem): ?><div class="ja-gem"><?= ja_icon('gem',12) ?> Hidden Gem</div><?php endif; ?>
-          <div class="ja-reco-top">
-            <?php if ($img): ?><img src="<?= htmlspecialchars($img) ?>" alt="<?= $city ?>" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'"><?php else: ?><div class="ja-reco-noimg" aria-hidden="true"></div><?php endif; ?>
-            <div class="ja-reco-city"><?= $city ?></div>
-            <?php if ($distKm): ?><div class="ja-usertag" style="left:auto;right:10px"><?= ja_icon('map-pin',11) ?> ~<?= (int)$distKm ?> km<?= $driveH ? ' · ' . $driveH . ' h drive' : ' · fly or train' ?></div><?php endif; ?>
-            <?php if ($userEntry): ?><div class="ja-usertag"><?= ja_icon('user',11) ?> User Entry</div><?php endif; ?>
-          </div>
-          <div class="ja-reco-body">
-            <div class="ja-reco-row">
-              <div class="ja-cost">₹<span data-countup="<?= $cost ?>">0</span><br><small><?= number_format($low) ?>–<?= number_format($high) ?> range</small></div>
-              <span class="ja-fit <?= $fitCls ?>"><?= $fit ?> budget</span>
-            </div>
-
-            <div class="ja-dest-rating" data-dest="<?= $dest ?>" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px;font-size:.82rem">
-              <span class="ja-dest-rating-avg" style="color:var(--text-mut)">
-                <?php if ($rating): ?>
-                  <span style="color:var(--ja-coral);font-weight:700">★ <?= number_format($rating['avg'], 1) ?></span>
-                  (<?= $rating['n'] ?> rating<?= $rating['n']==1?'':'s' ?>)
-                <?php else: ?>
-                  <span style="color:var(--text-mut)">No ratings yet</span>
-                <?php endif; ?>
-              </span>
-              <span class="ja-star-widget" data-dest="<?= $dest ?>" style="display:flex;gap:2px;cursor:pointer;line-height:1">
-                <?php for ($s = 1; $s <= 5; $s++): ?>
-                  <span class="ja-star-pick" data-val="<?= $s ?>" style="color:var(--brd);font-size:1.05rem;transition:color .12s">★</span>
-                <?php endfor; ?>
-              </span>
-            </div>
-
-            <div style="display:flex;gap:7px;flex-wrap:wrap;margin:2px 0 12px">
-              <?php if ($distLbl): ?>
-                <span class="ja-pill <?= $isIntl?'intl':'near' ?>"><?= ja_icon('map-pin',12) ?> <?= $distLbl ?></span>
-              <?php endif; ?>
-              <?php if ($season): ?>
-                <span class="ja-pill season"><?= ja_icon('sun',12) ?> Best: <?= $season ?></span>
-              <?php endif; ?>
-            </div>
-
-            <div style="font-size:.82rem;color:var(--text-mut);margin-bottom:2px">Match score</div>
-            <div class="ja-score-bar"><div class="ja-score-fill" data-score="<?= $score ?>"></div></div>
-            <div class="ja-acts">
-              <?php foreach ($acts as $a): ?><span><?= htmlspecialchars($a) ?></span><?php endforeach; ?>
-            </div>
-
-            <div style="display:flex;gap:16px;align-items:center;margin:12px 0 4px">
-              <canvas class="ja-donut" data-breakdown="<?= $bdJson ?>" data-labels="<?= $bdLbls ?>" width="74" height="74"></canvas>
-              <div style="font-size:.8rem;color:var(--text-dim)">Cost breakdown<br>
-                <span style="color:var(--text-mut)">food · stay · transport · shopping · misc</span></div>
-            </div>
-
-            <?php if ($expl): ?>
-            <details class="ja-why">
-              <summary>Why this destination?</summary>
-              <p><?= $expl ?></p>
-              <?php if ($about): ?>
-                <p class="ja-about"><?= $about ?></p>
-              <?php endif; ?>
-              <?php if ($titles): ?>
-                <div class="ja-evidence"><b>From journals:</b> <?= htmlspecialchars(implode(' · ', $titles)) ?></div>
-              <?php endif; ?>
-            </details>
-            <?php endif; ?>
-
-            <div style="display:flex;gap:8px;margin-top:14px">
-              <a class="ja-btn ja-btn-primary" style="flex:1;padding:11px;justify-content:center"
-                 href="trip.php?dest=<?= urlencode($r['destination']) ?>&days=<?= (int)($r['duration_days'] ?? 5) ?>"><?= ja_icon('compass',16) ?> Itinerary</a>
-              <form method="post" action="save-plan.php" style="flex:none">
-                <input type="hidden" name="destination" value="<?= $dest ?>">
-                <input type="hidden" name="predicted_cost" value="<?= $cost ?>">
-                <button class="ja-btn ja-btn-ghost" style="padding:11px 14px" type="submit" title="Save"><?= ja_icon('heart',16) ?></button>
-              </form>
-            </div>
-          </div>
-        </article>
-        <?php
-        $i++;
-    }
+    $signedIn = !empty($_SESSION['eml']);
+    echo '<div class="dz-grid" id="recoGrid">';
+    foreach ($recs as $i => $r) ja_render_card($r, $i, $signedIn);
     echo '</div>';
-    ?>
-    <script>
-    (function(){
-      function draw(){
-        if(typeof Chart==="undefined")return;
-        document.querySelectorAll('canvas.ja-donut[data-breakdown]').forEach(function(cv){
-          if(cv.__done)return; cv.__done=true;
-          var data=JSON.parse(cv.getAttribute('data-breakdown')||'[]');
-          var labels=JSON.parse(cv.getAttribute('data-labels')||'[]');
-          new Chart(cv,{type:'doughnut',data:{labels:labels,datasets:[{data:data,
-            backgroundColor:['#31C6D4','#0E7C86','#0B3D4F','#FF7A59','#FF9E7A'],borderWidth:0}]},
-            options:{responsive:false,maintainAspectRatio:false,
-              plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.label+': ₹'+c.raw.toLocaleString('en-IN')}}}},
-              cutout:'62%',animation:{animateRotate:true,duration:900}}});
-        });
-      }
-      if(document.readyState!=='loading')draw();else document.addEventListener('DOMContentLoaded',draw);
-      setTimeout(draw,600);
-      if(window.jaInit)window.jaInit();
-    })();
-    (function(){
-      function paint(widget, hoverVal){
-        var stars = widget.querySelectorAll('.ja-star-pick');
-        var val = hoverVal || parseInt(widget.getAttribute('data-my-rating') || '0', 10);
-        stars.forEach(function(st){
-          st.style.color = (parseInt(st.getAttribute('data-val'),10) <= val) ? 'var(--ja-coral)' : 'var(--brd)';
-        });
-      }
-      function wire(widget){
-        if (widget.__wired) return; widget.__wired = true;
-        var dest = widget.getAttribute('data-dest');
-        widget.addEventListener('mouseover', function(e){
-          var st = e.target.closest('.ja-star-pick'); if (!st) return;
-          paint(widget, parseInt(st.getAttribute('data-val'),10));
-        });
-        widget.addEventListener('mouseleave', function(){ paint(widget); });
-        widget.addEventListener('click', function(e){
-          var st = e.target.closest('.ja-star-pick'); if (!st) return;
-          var val = parseInt(st.getAttribute('data-val'), 10);
-          widget.setAttribute('data-my-rating', val);
-          paint(widget);
-          var fd = new FormData();
-          fd.append('destination', dest);
-          fd.append('rating', val);
-          fetch('rate-destination.php', {method:'POST', body: fd, credentials:'same-origin'})
-            .then(function(r){ return r.json(); })
-            .then(function(data){
-              if (!data || !data.ok) return;
-              var row = widget.closest('.ja-dest-rating');
-              if (!row) return;
-              var avgEl = row.querySelector('.ja-dest-rating-avg');
-              if (avgEl && typeof data.avg === 'number') {
-                avgEl.innerHTML = '<span style="color:var(--ja-coral);font-weight:700">★ ' + data.avg.toFixed(1) + '</span> (' + data.n + ' rating' + (data.n==1?'':'s') + ')';
-              }
-            })
-            .catch(function(){ /* silent — optimistic UI already applied */ });
-        });
-      }
-      document.querySelectorAll('.ja-star-widget').forEach(wire);
-    })();
-    </script>
-    <?php
 }

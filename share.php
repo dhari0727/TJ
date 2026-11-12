@@ -9,6 +9,7 @@ session_start();
 require 'connection.php';
 require 'ja-media.php';
 require_once 'ja-trust.php';
+require_once 'ja-community-ui.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 $msg = ''; $err = '';
@@ -88,58 +89,59 @@ $mine = mysqli_fetch_all(mysqli_stmt_get_result($q), MYSQLI_ASSOC); mysqli_stmt_
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
-<div class="ja-pagehead"><div class="ja-container">
-  <div class="ja-eyebrow"><?= ja_icon('sparkle',14) ?> Share a moment</div>
+<div class="ja-pagehead pc-head"><div class="ja-container">
   <h1>Community</h1>
+  <p class="sub">Share a photo or short video from the road. Add hashtags and a place so others can find it.</p>
   <?php include 'ja-community-tabs.php'; ?>
 </div></div>
 
 <main class="ja-main"><div class="ja-container" style="max-width:900px">
-  <?php if ($msg): ?><div class="ja-ok"><?= htmlspecialchars($msg) ?> <a href="feed.php" style="color:var(--ja-teal);font-weight:600">See the feed &rarr;</a></div><?php endif; ?>
-  <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+  <?php if ($msg): ?><div class="ja-ok" role="status"><?= htmlspecialchars($msg) ?> <a class="pc-link" href="feed.php">See the feed</a></div><?php endif; ?>
+  <?php if ($err): ?><div class="ja-err" role="alert"><?= htmlspecialchars($err) ?></div><?php endif; ?>
 
-  <form method="post" enctype="multipart/form-data" class="ja-card" id="shareForm">
+  <form method="post" enctype="multipart/form-data" class="ps-form" id="shareForm">
     <?= ja_csrf_field() ?>
     <?php if ($entry): ?><input type="hidden" name="entry_id" value="<?= (int)$entry['entry_id'] ?>">
-      <p class="ja-muted" style="margin-top:0">Posting from your journal: <strong><?= htmlspecialchars($entry['Title']) ?></strong></p><?php endif; ?>
-    <div id="mediaDrop" class="ja-media-drop">
-      <?= ja_icon('compass',30) ?>
-      <p style="margin:10px 0 4px;font-weight:600">Add photos or short videos</p>
-      <p style="margin:0;color:var(--text-mut);font-size:.85rem">JPG, PNG, WEBP, MP4, WEBM &middot; up to 40 MB each</p>
+      <p class="pc-muted" style="margin-top:0">Posting from your journal: <strong><?= htmlspecialchars($entry['Title']) ?></strong></p><?php endif; ?>
+    <div id="mediaDrop" class="pw-drop" aria-label="Add photos or videos">
+      <?= pc_icon('upload', 30) ?>
+      <strong>Drag photos and videos here, or choose files</strong>
+      <span>JPG, PNG, WEBP, MP4 or WEBM, up to 40 MB each</span>
       <input type="file" name="media[]" id="mediaInput" accept="image/*,video/*" multiple hidden>
     </div>
-    <div id="mediaPreview" class="ja-media-preview"></div>
-    <div class="ja-field" style="margin-top:14px"><label>Caption <span class="ja-muted">(add #hashtags like #goa #sunset)</span></label>
-      <textarea class="ja-input" name="caption" rows="3" maxlength="480" placeholder="What's the story behind this shot?"></textarea></div>
+    <ul id="mediaList" class="pw-files"></ul>
+    <div class="ja-field" style="margin-top:16px"><label for="sh-cap">Caption <span class="pc-muted">(add #hashtags like #goa #sunset)</span></label>
+      <textarea class="ja-input" id="sh-cap" name="caption" rows="3" maxlength="480" placeholder="What is the story behind this shot?"></textarea></div>
     <div class="ja-fieldrow">
-      <div class="ja-field"><label>Place</label><input class="ja-input" name="place" value="<?= htmlspecialchars($entry ? trim(($entry['City'] ?? '') . ', ' . ($entry['Country'] ?? ''), ', ') : '') ?>" placeholder="e.g. Udaipur, India"></div>
-      <div class="ja-field"><label>Who can see this?</label>
-        <select class="ja-select" name="audience"><option value="public">Everyone (in the Feed)</option><option value="private">Only me</option></select></div>
+      <div class="ja-field"><label for="sh-place">Place</label><input class="ja-input" id="sh-place" name="place" value="<?= htmlspecialchars($entry ? trim(($entry['City'] ?? '') . ', ' . ($entry['Country'] ?? ''), ', ') : '') ?>" placeholder="Udaipur, India"></div>
+      <div class="ja-field"><label for="sh-aud">Who can see this?</label>
+        <select class="ja-select" id="sh-aud" name="audience"><option value="public">Everyone, in the feed</option><option value="private">Only me</option></select></div>
     </div>
     <input type="hidden" name="lat" id="lat"><input type="hidden" name="lon" id="lon">
-    <button class="ja-btn ja-btn-primary ja-btn-lg" type="submit">Post</button>
+    <button class="ja-btn ja-btn-primary" type="submit">Post</button>
   </form>
 
-  <h2 style="margin:34px 0 14px;font-size:1.4rem">Your posts (<?= count($mine) ?>)</h2>
-  <?php if (!$mine): ?><p class="ja-muted">Nothing posted yet.</p><?php endif; ?>
-  <div class="ja-post-grid">
+  <div class="pc-section-h"><h2>Your posts</h2><span class="pc-muted"><?= count($mine) ?></span></div>
+  <?php if (!$mine): ?><?= pc_empty('You have not posted anything yet', 'Your posts will be listed here, where you can pin, hide or delete them. Add your first photo above.', null, 'image') ?><?php endif; ?>
+  <div class="ps-grid">
     <?php foreach ($mine as $p): ?>
-      <div class="ja-post" data-pin-card>
-        <div class="ja-post-media">
+      <div class="ps-post" data-pin-card>
+        <div class="m">
           <?php if ($p['kind'] === 'video'): ?><video src="<?= htmlspecialchars($p['filepath']) ?>" muted preload="metadata"></video>
-          <?php else: ?><img src="<?= htmlspecialchars($p['filepath']) ?>" alt="" loading="lazy"><?php endif; ?>
-          <span class="ja-post-flag"><?= $p['is_pinned'] ? 'Pinned &middot; ' : '' ?><?= $p['is_public'] ? 'Public' : 'Private' ?></span>
+          <?php else: ?><img src="<?= htmlspecialchars($p['filepath']) ?>" alt="<?= htmlspecialchars($p['caption'] ?: 'Your post') ?>" loading="lazy"><?php endif; ?>
+          <span class="flag"><?= $p['is_pinned'] ? 'Pinned, ' : '' ?><?= $p['is_public'] ? 'Public' : 'Private' ?></span>
         </div>
-        <div class="ja-post-body">
-          <div class="ja-post-cap"><?= htmlspecialchars($p['caption'] ?: 'No caption') ?></div>
-          <div class="ja-muted" style="font-size:.78rem"><?= (int)$p['likes'] ?> likes &middot; <?= (int)$p['n_comments'] ?> comments<?= $p['destination'] ? ' &middot; ' . htmlspecialchars($p['destination']) : '' ?></div>
-          <form method="post" class="ja-post-actions" onsubmit="return this.do.value!=='delete_post'||confirm('Delete this post?')">
+        <div class="b">
+          <p class="c"><?= htmlspecialchars($p['caption'] ?: 'No caption') ?></p>
+          <div class="meta"><?= (int)$p['likes'] ?> likes, <?= (int)$p['n_comments'] ?> comments<?= $p['destination'] ? ', ' . htmlspecialchars($p['destination']) : '' ?></div>
+          <form method="post" onsubmit="return this.do.value!=='delete_post'||confirm('Delete this post?')">
             <?= ja_csrf_field() ?><input type="hidden" name="media_id" value="<?= (int)$p['media_id'] ?>">
-            <button type="button" data-pin-kind="media" data-pin-id="<?= (int)$p['media_id'] ?>" data-pinned="<?= (int)$p['is_pinned'] ?>" class="ja-btn ja-btn-ghost" style="padding:6px 12px;font-size:.82rem">Pin</button>
-            <button name="do" value="toggle_post" class="ja-btn ja-btn-ghost" style="padding:6px 12px;font-size:.82rem"><?= $p['is_public'] ? 'Make private' : 'Make public' ?></button>
-            <button name="do" value="delete_post" class="ja-btn ja-btn-ghost" style="padding:6px 12px;font-size:.82rem;color:var(--ja-coral)">Delete</button>
+            <button type="button" data-pin-kind="media" data-pin-id="<?= (int)$p['media_id'] ?>" data-pinned="<?= (int)$p['is_pinned'] ?>" class="ja-btn ja-btn-ghost pc-btn-sm">Pin</button>
+            <button name="do" value="toggle_post" class="ja-btn ja-btn-ghost pc-btn-sm"><?= $p['is_public'] ? 'Make private' : 'Make public' ?></button>
+            <button name="do" value="delete_post" class="ja-btn ja-btn-ghost pc-btn-sm" style="color:#B3261E">Delete</button>
           </form>
         </div>
       </div>
@@ -147,23 +149,10 @@ $mine = mysqli_fetch_all(mysqli_stmt_get_result($q), MYSQLI_ASSOC); mysqli_stmt_
   </div>
 </div></main>
 
+<script src="js/media-drop.js?v=<?= (int)@filemtime(__DIR__ . '/js/media-drop.js') ?>"></script>
 <script>
 (function(){
-  var drop=document.getElementById('mediaDrop'),input=document.getElementById('mediaInput'),prev=document.getElementById('mediaPreview');
-  drop.addEventListener('click',function(){input.click();});
-  drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('drag');});
-  drop.addEventListener('dragleave',function(){drop.classList.remove('drag');});
-  drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('drag');input.files=e.dataTransfer.files;render();});
-  input.addEventListener('change',render);
-  function render(){
-    prev.innerHTML='';
-    Array.prototype.forEach.call(input.files,function(f){
-      var url=URL.createObjectURL(f),el;
-      if(f.type.indexOf('video')===0){el=document.createElement('video');el.src=url;el.muted=true;}
-      else{el=document.createElement('img');el.src=url;}
-      el.className='ja-media-thumb'; prev.appendChild(el);
-    });
-  }
+  PCDrop.init({drop:document.getElementById('mediaDrop'),input:document.getElementById('mediaInput'),list:document.getElementById('mediaList'),captions:false});
   if(navigator.geolocation)navigator.geolocation.getCurrentPosition(function(p){document.getElementById('lat').value=p.coords.latitude;document.getElementById('lon').value=p.coords.longitude;},function(){},{maximumAge:300000,timeout:6000});
 })();
 </script>

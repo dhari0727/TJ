@@ -37,41 +37,30 @@ if ($valid && isset($_POST['next'])) {
         $valid = false; // token is spent; hide the form
     }
 }
-require 'ja-images.php';
-$img = ja_local_images()['bali'] ?? (ja_local_images()['goa'] ?? '');
+require_once __DIR__ . '/ja-auth.php';
+$ja_css_extra = ['pages-account.css']; $ja_no_shell = true; $ja_no_nav = true;   // standalone page: no top bar or sidebar
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><?php include 'ja-head.php'; ?></head>
-<body class="ja">
-<div class="ja-auth">
-  <div class="ja-auth-visual" style="background-image:linear-gradient(160deg,rgba(11,61,79,.35),rgba(11,61,79,.75)),url('<?= htmlspecialchars($img) ?>')">
-    <div class="ja-auth-quote">
-      <div class="ja-eyebrow" style="color:var(--ja-aqua-2)">✦ Almost there</div>
-      <h2>Choose a new<br>password.</h2>
-      <p>Pick something strong you haven't used before.</p>
-    </div>
-  </div>
-  <div class="ja-auth-form">
-    <div class="ja-auth-box">
-      <a class="ja-brand" href="index.php" style="margin-bottom:26px"><img src="images/journeyai-logo.svg" class="ja-logo-mark" alt=""> JourneyAI</a>
-      <h1>Reset password</h1>
-      <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
-      <?php if ($ok): ?><div class="ja-ok"><?= htmlspecialchars($ok) ?></div><?php endif; ?>
-      <?php if ($valid): ?>
-        <p class="ja-auth-lead">Enter a new password for <?= htmlspecialchars($row['eml']) ?>.</p>
-        <form method="post"><?= ja_csrf_field() ?>
+<body class="ja ja-acct">
+<?php ja_auth_open('kerala', 'Choose a new password', $valid ? 'For ' . $row['eml'] . '. Pick one you have not used before.' : ''); ?>
+      <?php if ($err && !$valid && !$ok): ?><div class="ja-err" role="alert"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+      <?php if ($ok): ?>
+        <div class="ja-ok" role="status"><?= ja_icon('check', 16) ?> <?= htmlspecialchars($ok) ?></div>
+        <p><a class="ja-btn ja-btn-primary acct-submit" href="login.php">Log in</a></p>
+      <?php elseif ($valid): ?>
+        <form method="post" data-acct-validate novalidate><?= ja_csrf_field() ?>
           <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
-          <div class="ja-field"><label>New password</label><input class="ja-input" type="password" name="psw" required placeholder="8+ chars, 1 uppercase, 1 number, 1 symbol"></div>
-          <button class="ja-btn ja-btn-primary" type="submit" name="next" value="1" data-magnetic style="width:100%">Set new password</button>
+          <?= ja_field(['id' => 'psw', 'name' => 'psw', 'label' => 'New password', 'type' => 'password', 'autocomplete' => 'new-password', 'required' => 1, 'autofocus' => 1, 'rule' => 'password', 'label_text' => 'new password', 'error' => $err, 'meter' => 1]) ?>
+          <button class="ja-btn ja-btn-primary acct-submit" type="submit" name="next" value="1">Save new password</button>
         </form>
-      <?php elseif (!$ok): ?>
-        <p class="ja-auth-lead">This reset link is invalid or has expired.</p>
-        <p class="ja-auth-alt"><a href="forgot-pswd.php">Request a new reset link</a></p>
+        <p class="acct-next"><strong>What happens next</strong> Your other devices are signed out, then you log in with the new password.</p>
+      <?php else: ?>
+        <p class="acct-note">This reset link is invalid or has expired. Links work once and last 1 hour.</p>
+        <p><a class="ja-btn ja-btn-primary acct-submit" href="forgot-pswd.php">Request a new link</a></p>
       <?php endif; ?>
-      <p class="ja-auth-alt">Remembered it? <a href="login.php">Log in</a></p>
-    </div>
-  </div>
-</div>
+      <p class="acct-alt">Remembered it? <a href="login.php">Log in</a></p>
+<?php ja_auth_close(); ?>
 </body>
 </html>

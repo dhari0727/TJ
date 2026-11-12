@@ -8,6 +8,7 @@ session_start();
 require 'connection.php';
 require_once 'ja-icons.php';
 require_once 'ja-lib.php';
+require_once 'ja-community-ui.php';
 $me = $_SESSION['eml'] ?? null;
 $h = trim($_GET['h'] ?? '');
 
@@ -38,51 +39,73 @@ $name = $u ? trim($u['fname'] . ' ' . mb_substr((string)$u['lname'], 0, 1) . '.'
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
-<section class="ja-section" style="padding-top:48px"><div class="ja-container" style="max-width:1000px">
+<main class="ja-main" style="padding-top:44px"><div class="ja-container" style="max-width:1040px">
 <?php if (!$u): ?>
-  <div class="ja-empty" style="padding:60px 30px"><h2>Traveller not found</h2><a href="feed.php" class="ja-btn ja-btn-primary" style="margin-top:14px">Back to Community</a></div>
+  <?= pc_empty('Traveller not found', 'That profile does not exist or is no longer active. The Community page lists people who are sharing right now.', ['Back to Community', 'feed.php'], 'user') ?>
 <?php else: ?>
-  <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:22px">
-    <span class="ja-feed-avatar" style="width:72px;height:72px;font-size:1.5rem"><?= htmlspecialchars(strtoupper(mb_substr($u['fname'], 0, 1) . mb_substr((string)$u['lname'], 0, 1))) ?></span>
+  <?php
+    function pc_tr_journal_tile($j, $badge = '') {
+        $pl = trim(($j['City'] ?? '') . ', ' . ($j['Country'] ?? ''), ', ');
+        ob_start(); ?>
+        <a class="pc-tile" href="journal.php?id=<?= (int)$j['entry_id'] ?>">
+          <?php if ($j['cover']): ?><div class="cv" style="background-image:url('<?= htmlspecialchars($j['cover'], ENT_QUOTES) ?>')" role="img" aria-label="Photo from <?= htmlspecialchars(ja_title($j['Title'])) ?>"></div><?php else: ?><div class="cv"><?= pc_icon('image', 30) ?></div><?php endif; ?>
+          <div class="tx"><h3><?= htmlspecialchars(ja_title($j['Title'])) ?></h3><?php if ($pl): ?><div class="by"><?= htmlspecialchars($pl) ?></div><?php endif; ?><?= $badge ?></div>
+        </a>
+        <?php return ob_get_clean();
+    }
+    function pc_tr_book_tile($b, $badge = '') {
+        ob_start(); ?>
+        <a class="pc-tile" href="storybook-view.php?id=<?= (int)$b['book_id'] ?>">
+          <?php if ($b['cover_img']): ?><div class="cv" style="background-image:url('<?= htmlspecialchars($b['cover_img'], ENT_QUOTES) ?>')" role="img" aria-label="Cover of <?= htmlspecialchars($b['title']) ?>"></div><?php else: ?><div class="cv"><?= pc_icon('book', 30) ?></div><?php endif; ?>
+          <div class="tx"><h3><?= htmlspecialchars($b['title']) ?></h3><?= $badge ?></div>
+        </a>
+        <?php return ob_get_clean();
+    }
+    $pin = function ($t) { return '<span class="pc-pin">' . ja_icon('star', 13) . ' Pinned ' . $t . '</span>'; };
+  ?>
+  <header class="pt-head">
+    <span class="pt-av" aria-hidden="true"><?= htmlspecialchars(strtoupper(mb_substr($u['fname'], 0, 1) . mb_substr((string)$u['lname'], 0, 1))) ?></span>
     <div style="flex:1;min-width:220px">
-      <h1 style="margin:0;font-size:clamp(1.8rem,4vw,2.6rem)"><?= htmlspecialchars($name) ?></h1>
-      <div class="ja-muted">Travelling with JourneyAI since <?= htmlspecialchars(date('M Y', strtotime($u['created_at'] ?: 'now'))) ?> &middot; <?= count($posts) ?> posts &middot; <?= count($journals) ?> journals &middot; <?= count($books) ?> storybooks</div>
-      <?php if ($u['bio']): ?><p style="margin:8px 0 0"><?= htmlspecialchars($u['bio']) ?></p><?php endif; ?>
+      <h1><?= htmlspecialchars($name) ?></h1>
+      <div class="pt-stats">
+        <span>Travelling with JourneyAI since <?= htmlspecialchars(date('M Y', strtotime($u['created_at'] ?: 'now'))) ?></span>
+        <span><?= count($posts) ?> post<?= count($posts) === 1 ? '' : 's' ?></span>
+        <span><?= count($journals) ?> journal<?= count($journals) === 1 ? '' : 's' ?></span>
+        <span><?= count($books) ?> storybook<?= count($books) === 1 ? '' : 's' ?></span>
+      </div>
+      <?php if ($u['bio']): ?><p class="pt-bio"><?= htmlspecialchars($u['bio']) ?></p><?php endif; ?>
     </div>
     <?php if ($isMe): ?><a href="profile.php" class="ja-btn ja-btn-ghost">Edit profile</a><?php endif; ?>
-  </div>
+  </header>
 
   <?php $pinnedPosts = array_filter($posts, function ($p) { return $p['is_pinned']; }); $pinnedJ = array_filter($journals, function ($j) { return $j['is_pinned']; }); $pinnedB = array_filter($books, function ($b) { return $b['is_pinned']; }); ?>
   <?php if ($pinnedPosts || $pinnedJ || $pinnedB): ?>
-    <h2 style="font-size:1.3rem;margin:6px 0 12px"><?= ja_icon('star',16) ?> Pinned</h2>
-    <div class="ja-grid cols-3" style="margin-bottom:26px">
-      <?php foreach ($pinnedB as $b): ?><a class="ja-card" href="storybook-view.php?id=<?= (int)$b['book_id'] ?>" style="text-decoration:none;color:inherit"><?php if ($b['cover_img']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($b['cover_img']) ?>')"></div><?php endif; ?><h3 style="margin:10px 0 0;font-size:1.05rem"><?= htmlspecialchars($b['title']) ?></h3><span class="ja-pinned-badge">Storybook</span></a><?php endforeach; ?>
-      <?php foreach ($pinnedJ as $j): ?><a class="ja-card" href="journal.php?id=<?= (int)$j['entry_id'] ?>" style="text-decoration:none;color:inherit"><?php if ($j['cover']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($j['cover']) ?>')"></div><?php endif; ?><h3 style="margin:10px 0 0;font-size:1.05rem"><?= htmlspecialchars(ja_title($j['Title'])) ?></h3><span class="ja-pinned-badge">Journal</span></a><?php endforeach; ?>
-      <?php foreach ($pinnedPosts as $p): ?><a class="ja-card" href="feed.php?dest=<?= urlencode((string)$p['destination']) ?>" style="text-decoration:none;color:inherit;padding:0;overflow:hidden"><div class="ja-post-media"><?php if ($p['kind'] === 'video'): ?><video src="<?= htmlspecialchars($p['filepath']) ?>" muted preload="metadata"></video><?php else: ?><img src="<?= htmlspecialchars($p['filepath']) ?>" alt="" loading="lazy"><?php endif; ?></div><div style="padding:10px 14px"><span class="ja-pinned-badge">Post</span> <?= htmlspecialchars(mb_strimwidth((string)$p['caption'], 0, 60, '…')) ?></div></a><?php endforeach; ?>
-    </div>
+    <section class="pt-sec"><h2>Pinned</h2>
+    <div class="pc-cards">
+      <?php foreach ($pinnedB as $b) echo pc_tr_book_tile($b, $pin('storybook')); ?>
+      <?php foreach ($pinnedJ as $j) echo pc_tr_journal_tile($j, $pin('journal')); ?>
+      <?php foreach ($pinnedPosts as $p): ?><a class="pc-tile" href="feed.php?dest=<?= urlencode((string)$p['destination']) ?>"><div class="cv" style="aspect-ratio:16 / 10;overflow:hidden;display:block"><?php if ($p['kind'] === 'video'): ?><video src="<?= htmlspecialchars($p['filepath']) ?>" muted preload="metadata" style="width:100%;height:100%;object-fit:cover"></video><?php else: ?><img src="<?= htmlspecialchars($p['filepath']) ?>" alt="<?= htmlspecialchars((string)$p['caption']) ?>" loading="lazy" style="width:100%;height:100%;object-fit:cover"><?php endif; ?></div><div class="tx"><?= $pin('post') ?><p><?= htmlspecialchars(mb_strimwidth((string)$p['caption'], 0, 90, '…')) ?></p></div></a><?php endforeach; ?>
+    </div></section>
   <?php endif; ?>
 
   <?php if ($journals): ?>
-    <h2 style="font-size:1.3rem;margin:6px 0 12px">Journals</h2>
-    <div class="ja-grid cols-3" style="margin-bottom:26px">
-      <?php foreach ($journals as $j): ?><a class="ja-card" href="journal.php?id=<?= (int)$j['entry_id'] ?>" style="text-decoration:none;color:inherit"><?php if ($j['cover']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($j['cover']) ?>')"></div><?php endif; ?><h3 style="margin:10px 0 2px;font-size:1.05rem"><?= htmlspecialchars(ja_title($j['Title'])) ?></h3><div class="ja-muted" style="font-size:.85rem"><?= htmlspecialchars(trim(($j['City'] ?? '') . ', ' . ($j['Country'] ?? ''), ', ')) ?></div></a><?php endforeach; ?>
-    </div>
+    <section class="pt-sec"><h2>Journals</h2><div class="pc-cards"><?php foreach ($journals as $j) echo pc_tr_journal_tile($j); ?></div></section>
   <?php endif; ?>
   <?php if ($books): ?>
-    <h2 style="font-size:1.3rem;margin:6px 0 12px">Storybooks</h2>
-    <div class="ja-grid cols-3" style="margin-bottom:26px">
-      <?php foreach ($books as $b): ?><a class="ja-card" href="storybook-view.php?id=<?= (int)$b['book_id'] ?>" style="text-decoration:none;color:inherit"><?php if ($b['cover_img']): ?><div class="ja-jcover" style="background-image:url('<?= htmlspecialchars($b['cover_img']) ?>')"></div><?php endif; ?><h3 style="margin:10px 0 0;font-size:1.05rem"><?= htmlspecialchars($b['title']) ?></h3></a><?php endforeach; ?>
-    </div>
+    <section class="pt-sec"><h2>Storybooks</h2><div class="pc-cards"><?php foreach ($books as $b) echo pc_tr_book_tile($b); ?></div></section>
   <?php endif; ?>
   <?php if ($posts): ?>
-    <h2 style="font-size:1.3rem;margin:6px 0 12px">Posts</h2>
-    <div class="ja-post-grid">
-      <?php foreach ($posts as $p): ?><a class="ja-post" href="feed.php?dest=<?= urlencode((string)$p['destination']) ?>" style="text-decoration:none;color:inherit"><div class="ja-post-media"><?php if ($p['kind'] === 'video'): ?><video src="<?= htmlspecialchars($p['filepath']) ?>" muted preload="metadata"></video><?php else: ?><img src="<?= htmlspecialchars($p['filepath']) ?>" alt="" loading="lazy"><?php endif; ?></div><div class="ja-post-body"><div class="ja-post-cap"><?= htmlspecialchars($p['caption'] ?: '') ?></div><div class="ja-muted" style="font-size:.78rem"><?= (int)$p['likes'] ?> likes</div></div></a><?php endforeach; ?>
-    </div>
+    <section class="pt-sec"><h2>Posts</h2>
+    <div class="ps-grid">
+      <?php foreach ($posts as $p): ?><a class="ps-post" href="feed.php?dest=<?= urlencode((string)$p['destination']) ?>" style="text-decoration:none;color:inherit"><div class="m"><?php if ($p['kind'] === 'video'): ?><video src="<?= htmlspecialchars($p['filepath']) ?>" muted preload="metadata"></video><?php else: ?><img src="<?= htmlspecialchars($p['filepath']) ?>" alt="<?= htmlspecialchars((string)$p['caption']) ?>" loading="lazy"><?php endif; ?></div><div class="b"><p class="c"><?= htmlspecialchars($p['caption'] ?: '') ?></p><div class="meta"><?= (int)$p['likes'] ?> like<?= (int)$p['likes'] === 1 ? '' : 's' ?></div></div></a><?php endforeach; ?>
+    </div></section>
   <?php endif; ?>
-  <?php if (!$posts && !$journals && !$books): ?><div class="ja-empty" style="padding:40px"><p style="margin:0">Nothing shared publicly yet.</p></div><?php endif; ?>
+  <?php if (!$posts && !$journals && !$books): ?>
+    <?= $isMe ? pc_empty('You have not shared anything yet', 'Public journals, storybooks and posts appear on your profile. Share one to get started.', ['Write a journal', 'new-entry.php'], 'pen') : pc_empty('Nothing shared yet', $name . ' has not shared anything publicly yet. Check back later.', ['Browse the Community', 'feed.php'], 'user') ?>
+  <?php endif; ?>
 <?php endif; ?>
-</div></section>
+</div></main>
 <?php include 'ja-footer.php'; ?>

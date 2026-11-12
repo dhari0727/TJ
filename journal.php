@@ -10,6 +10,7 @@ require 'connection.php';
 require_once 'ja-media.php';
 require_once 'ja-icons.php';
 require_once 'ja-lib.php';
+require_once 'ja-community-ui.php';
 $me = $_SESSION['eml'] ?? null;
 $id = (int)($_GET['id'] ?? 0);
 $token = (string)($_GET['token'] ?? '');
@@ -33,96 +34,132 @@ if ($allowed) {
     if ($me) { $lq = mysqli_prepare($conn, 'SELECT 1 FROM journal_likes WHERE entry_id = ? AND eml = ?'); mysqli_stmt_bind_param($lq, 'is', $id, $me); mysqli_stmt_execute($lq); $iLiked = (bool)mysqli_fetch_row(mysqli_stmt_get_result($lq)); mysqli_stmt_close($lq); }
 }
 $author = $allowed ? trim(($e['fname'] ?? 'A traveller') . ' ' . mb_substr((string)($e['lname'] ?? ''), 0, 1) . '.') : '';
+
+$story = $allowed ? pc_story($e['Description']) : ['html' => '', 'toc' => [], 'words' => 0];
+$readMin = pc_read_min($story['words']);
+$places = [];
+if ($allowed) {
+    $country = trim((string)($e['Country'] ?? ''));
+    if (!empty($e['City'])) $places[] = trim($e['City'] . ($country !== '' ? ', ' . $country : ''));
+    foreach (preg_split('/[,;\n]+/u', (string)($e['ptv'] ?? '')) as $pl) {
+        $pl = trim($pl);
+        if ($pl === '' || mb_strlen($pl) > 60) continue;
+        $full = $pl . ($country !== '' ? ', ' . $country : '');
+        if (!in_array($full, $places, true)) $places[] = $full;
+    }
+    $places = array_slice($places, 0, 12);
+}
+$photos = array_values(array_filter($media, function ($m) { return $m['kind'] !== 'video'; }));
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
-<section class="ja-section" style="padding-top:48px"><div class="ja-container" style="max-width:900px">
 <?php if (!$allowed): ?>
-  <div class="ja-empty" style="padding:60px 30px"><h2>This journal isn't available</h2>
-    <p class="ja-muted">It may be private, or the link is wrong.</p>
-    <a href="read-journals.php" class="ja-btn ja-btn-primary" style="margin-top:14px">Read other journals</a></div>
+<main class="ja-main pr-page"><div class="ja-container">
+  <div class="pr-unavailable"><?= pc_empty("This journal isn't available", 'It may be private, or the link is wrong. Public journals from other travellers are a good place to start.', ['Read other journals', 'read-journals.php'], 'book') ?></div>
+</div></main>
 <?php else: ?>
-  <a href="read-journals.php" class="ja-muted" style="font-size:.85rem">&larr; All journals</a>
-  <?php if ($owner && $e['moderation_status'] !== 'approved'): ?>
-    <div class="ja-warn" style="margin-top:10px"><strong><?= ['pending' => 'Waiting for review', 'hidden' => 'Hidden after reports', 'rejected' => 'Not approved'][$e['moderation_status']] ?? 'Under review' ?>.</strong>
-      Only you can see this right now.<?= $e['mod_reason'] ? ' ' . htmlspecialchars($e['mod_reason']) : '' ?></div>
-  <?php endif; ?>
-  <?php if ($owner && $e['visibility'] === 'private'): ?><div class="ja-ok" style="margin-top:10px">Only you can see this. <a href="my-entries.php" style="color:var(--ja-teal);font-weight:600">Share it from My entries</a>.</div><?php endif; ?>
-  <h1 style="font-size:clamp(2rem,5vw,3.2rem);margin:10px 0 6px"><?= htmlspecialchars(ja_title($e['Title'])) ?></h1>
-  <p class="sub"><?= htmlspecialchars($place) ?> &middot; <?= (int)$e['duration_days'] ?> days &middot; by <?php if ($authorHandle): ?><a href="traveller.php?h=<?= urlencode($authorHandle) ?>" style="color:inherit;text-decoration:underline"><?= htmlspecialchars($author) ?></a><?php else: ?><?= htmlspecialchars($author) ?><?php endif; ?><?= $e['dv'] ? ' &middot; ' . htmlspecialchars(date('M Y', strtotime($e['dv']))) : '' ?></p>
+<div class="pr-progress" aria-hidden="true"><i id="prBar"></i></div>
+<main class="ja-main pr-page" id="prRoot" data-id="<?= (int)$id ?>" data-token="<?= htmlspecialchars($token) ?>" data-me="<?= $me ? '1' : '0' ?>"><div class="ja-container">
+
+  <header class="pr-top">
+    <a class="pr-back" href="read-journals.php"><?= pc_icon('left', 16) ?> All journals</a>
+    <?php if ($owner && $e['moderation_status'] !== 'approved'): ?>
+      <div class="pr-note"><strong><?= ['pending' => 'Waiting for review', 'hidden' => 'Hidden after reports', 'rejected' => 'Not approved'][$e['moderation_status']] ?? 'Under review' ?>.</strong>
+        Only you can see this right now.<?= $e['mod_reason'] ? ' ' . htmlspecialchars($e['mod_reason']) : '' ?></div>
+    <?php endif; ?>
+    <?php if ($owner && $e['visibility'] === 'private'): ?><div class="pr-note">Only you can see this. <a class="pc-link" href="my-entries.php">Share it from My journal</a>.</div><?php endif; ?>
+    <h1 class="pr-title"><?= htmlspecialchars(ja_title($e['Title'])) ?></h1>
+    <div class="pr-meta">
+      <?php if ($place): ?><span><?= ja_icon('map-pin', 16) ?> <?= htmlspecialchars($place) ?></span><?php endif; ?>
+      <?php if ((int)$e['duration_days'] > 0): ?><span><?= ja_icon('calendar', 16) ?> <?= (int)$e['duration_days'] ?> days<?= $e['dv'] ? ', ' . htmlspecialchars(date('M Y', strtotime($e['dv']))) : '' ?></span><?php endif; ?>
+      <span id="prReadTime"><?= ja_icon('clock', 16) ?> <?= $readMin ?> min read</span>
+      <span><?= ja_icon('user', 16) ?> <?php if ($authorHandle): ?><a href="traveller.php?h=<?= urlencode($authorHandle) ?>"><?= htmlspecialchars($author) ?></a><?php else: ?><?= htmlspecialchars($author) ?><?php endif; ?></span>
+    </div>
+  </header>
 
   <?php if ($media): ?>
-  <div class="ja-journal-gallery">
-    <?php foreach ($media as $m): ?>
-      <figure>
-        <?php if ($m['kind'] === 'video'): ?><video src="<?= htmlspecialchars($m['filepath']) ?>" controls preload="metadata"></video>
-        <?php else: ?><img src="<?= htmlspecialchars($m['filepath']) ?>" alt="" loading="lazy"><?php endif; ?>
-        <?php if ($m['caption']): ?><figcaption><?= htmlspecialchars($m['caption']) ?></figcaption><?php endif; ?>
-      </figure>
+  <div class="pr-gallery <?= count($media) >= 5 ? 'lead' : 'n' . count($media) ?>" id="prGallery">
+    <?php $pi = 0; foreach ($media as $m): ?>
+      <?php if ($m['kind'] === 'video'): ?>
+        <figure class="pr-shot vid"><video src="<?= htmlspecialchars($m['filepath']) ?>" controls preload="metadata"></video><?php if ($m['caption']): ?><figcaption><?= htmlspecialchars($m['caption']) ?></figcaption><?php endif; ?></figure>
+      <?php else: $alt = trim((string)$m['caption']) !== '' ? $m['caption'] : 'Photo ' . ($pi + 1) . ' from ' . ja_title($e['Title']); ?>
+        <button type="button" class="pr-shot" data-lb="<?= $pi ?>" data-src="<?= htmlspecialchars($m['filepath']) ?>" data-cap="<?= htmlspecialchars((string)$m['caption']) ?>" aria-label="Open photo <?= $pi + 1 ?> of <?= count($photos) ?>">
+          <img src="<?= htmlspecialchars($m['filepath']) ?>" alt="<?= htmlspecialchars($alt) ?>" loading="lazy" decoding="async">
+          <?php if ($m['caption']): ?><figcaption><?= htmlspecialchars($m['caption']) ?></figcaption><?php endif; ?>
+        </button>
+      <?php $pi++; endif; ?>
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
-  <div class="ja-card" style="margin-top:22px"><h3>The story</h3>
-    <p style="white-space:pre-wrap;color:var(--text-dim)"><?= htmlspecialchars($e['Description'] ?: 'No story written yet.') ?></p>
-    <?php if (!empty($e['ptv'])): ?><p><strong>Places visited:</strong> <?= htmlspecialchars($e['ptv']) ?></p><?php endif; ?>
-    <?php if (!empty($e['hn'])): ?><p><strong>Stayed at:</strong> <?= htmlspecialchars($e['hn']) ?></p><?php endif; ?>
-  </div>
+  <div class="pr-layout<?= count($story['toc']) >= 2 ? ' has-toc' : '' ?>">
+    <?php if (count($story['toc']) >= 2): ?>
+    <nav class="pr-toc" aria-label="In this journal"><details id="prToc"><summary>In this journal</summary>
+      <ol><?php foreach ($story['toc'] as [$tid, $tl]): ?><li><a href="#<?= $tid ?>"><?= htmlspecialchars($tl) ?></a></li><?php endforeach; ?></ol></details></nav>
+    <?php endif; ?>
 
-  <?php $total = (float)$e['true_total']; if ($total > 0): ?>
-  <div class="ja-card" style="margin-top:18px"><h3>What this trip cost</h3>
-    <div class="ja-cost" style="font-size:1.8rem">&#8377;<?= number_format($total) ?> <span class="ja-muted" style="font-size:.9rem">total &middot; about &#8377;<?= number_format($total / max(1, (int)$e['duration_days'])) ?>/day</span></div>
-    <div class="ja-cost-bars">
-    <?php foreach (['Food' => 'food_total', 'Transport' => 'transport_total', 'Stay' => 'accommodation_total', 'Shopping' => 'shopping_total', 'Fees & misc' => 'fees_misc_total'] as $lbl => $k):
-        $v = (float)$e[$k]; if ($v <= 0) continue; $pct = round($v / $total * 100); ?>
-      <div class="ja-cb"><span><?= $lbl ?></span><div><i style="width:<?= $pct ?>%"></i></div><span>&#8377;<?= number_format($v) ?></span></div>
-    <?php endforeach; ?></div>
-  </div>
-  <?php endif; ?>
+    <article>
+      <div class="pr-story" id="prStory">
+        <?= $story['html'] !== '' ? $story['html'] : '<p>No story written yet.</p>' ?>
+      </div>
+      <?php if (!empty($e['hn'])): ?><dl class="pr-facts"><div><dt>Stayed at</dt><dd><?= htmlspecialchars($e['hn']) ?></dd></div></dl><?php endif; ?>
 
-  <div class="ja-card" style="margin-top:18px">
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <button type="button" class="ja-feed-likebtn <?= $iLiked ? 'liked' : '' ?>" id="jLike" data-login="<?= $me ? '0' : '1' ?>">
-        <?= ja_icon('heart',18) ?> <span id="jLikeN"><?= (int)$likes ?></span>
-      </button>
-      <span class="ja-muted" style="font-size:.9rem">Comments</span>
-    </div>
-    <div class="ja-cmts" style="border-top:none;padding-top:10px">
-      <div class="ja-cmts-list" id="jCmtList" style="max-height:none"></div>
-      <?php if ($me): ?><form class="ja-cmts-form" id="jCmtForm"><input id="jCmtInput" maxlength="600" placeholder="Write a comment" autocomplete="off"><button type="submit">Post</button></form>
-      <?php else: ?><a href="login.php" class="ja-muted" style="font-size:.85rem">Log in to like and comment</a><?php endif; ?>
-    </div>
-  </div>
-  <script>
-  (function(){
-    var ID = <?= (int)$id ?>, TOKEN = <?= json_encode($token) ?>, CSRF = <?= json_encode(ja_csrf()) ?>, ME = <?= $me ? 'true' : 'false' ?>;
-    function esc(t){ var d=document.createElement('div'); d.textContent=t==null?'':String(t); return d.innerHTML; }
-    function post(data){ var fd=new FormData(); Object.keys(data).forEach(function(k){fd.append(k,data[k]);}); fd.append('csrf',CSRF); fd.append('kind','journal'); fd.append('id',ID); if(TOKEN) fd.append('token',TOKEN); return fetch('engage.php',{method:'POST',body:fd}).then(function(r){return r.json();}); }
-    function load(){ fetch('engage.php?action=comments&kind=journal&id='+ID+(TOKEN?'&token='+encodeURIComponent(TOKEN):'')).then(function(r){return r.json();}).then(function(d){
-      var box=document.getElementById('jCmtList');
-      box.innerHTML=(d.comments&&d.comments.length)?d.comments.map(function(c){ var who=c.handle?'<a href="traveller.php?h='+encodeURIComponent(c.handle)+'">'+esc(c.name)+'</a>':esc(c.name); return '<div class="ja-cmt" data-cid="'+c.id+'"><b>'+who+'</b> '+esc(c.body)+(c.can_delete?' <button type="button" class="ja-cmt-del" title="Delete">&times;</button>':'')+'</div>'; }).join(''):'<span class="ja-muted">No comments yet.</span>'; }); }
-    load();
-    var like=document.getElementById('jLike');
-    if(!ME) like.addEventListener('click',function(){ location.href='login.php'; });
-    if(ME) like.addEventListener('click',function(){ post({action:'like'}).then(function(d){ if(d.error){alert(d.error);return;} like.classList.toggle('liked',d.liked); document.getElementById('jLikeN').textContent=d.likes; }); });
-    var f=document.getElementById('jCmtForm');
-    if(f) f.addEventListener('submit',function(e){ e.preventDefault(); var i=document.getElementById('jCmtInput'); post({action:'comment_add',body:i.value}).then(function(d){ if(d.error){alert(d.error);return;} i.value=''; load(); }); });
-    document.getElementById('jCmtList').addEventListener('click',function(e){ if(!e.target.classList.contains('ja-cmt-del'))return; post({action:'comment_delete',comment_id:e.target.closest('.ja-cmt').dataset.cid}).then(function(d){ if(d.ok) load(); }); });
-  })();
-  </script>
+      <?php if ($places): ?>
+      <section class="pr-section" aria-labelledby="prPlacesH">
+        <h3 id="prPlacesH">Places mentioned</h3>
+        <div class="pr-places"><?php foreach ($places as $pl): ?><a href="trip.php?dest=<?= urlencode($pl) ?>&amp;days=<?= max(1, min(7, (int)$e['duration_days'])) ?>"><?= ja_icon('map-pin', 15) ?> <?= htmlspecialchars(explode(',', $pl)[0]) ?></a><?php endforeach; ?></div>
+      </section>
+      <?php endif; ?>
 
-  <?php if ($me && !$owner): ?>
-  <details class="ja-report"><summary>Report this journal</summary>
-    <form id="jReport"><select name="reason"><option value="fake">Looks fake or made up</option><option value="spam">Spam or advertising</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Copied from somewhere else</option><option value="other">Something else</option></select>
-    <input name="detail" maxlength="300" placeholder="Optional detail"><button type="submit">Send report</button><span id="jReportMsg" class="ja-muted"></span></form></details>
-  <script>document.getElementById('jReport').addEventListener('submit',function(e){e.preventDefault();var f=e.target,fd=new FormData();fd.append('action','report');fd.append('kind','journal');fd.append('id',<?= (int)$id ?>);fd.append('reason',f.reason.value);fd.append('detail',f.detail.value);fd.append('csrf',<?= json_encode(ja_csrf()) ?>);<?= $token !== '' ? "fd.append('token'," . json_encode($token) . ");" : '' ?>fetch('engage.php',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){document.getElementById('jReportMsg').textContent=d.message||d.error||'';});});</script>
-  <?php endif; ?>
+      <?php $total = (float)$e['true_total']; if ($total > 0): ?>
+      <section class="pr-section" aria-labelledby="prCostH">
+        <h3 id="prCostH">What this trip cost</h3>
+        <div class="pr-cost">
+          <div class="big">&#8377;<?= number_format($total) ?> <small>total, about &#8377;<?= number_format($total / max(1, (int)$e['duration_days'])) ?> a day</small></div>
+          <div class="pr-bars">
+          <?php foreach (['Food' => 'food_total', 'Transport' => 'transport_total', 'Stay' => 'accommodation_total', 'Shopping' => 'shopping_total', 'Fees and misc' => 'fees_misc_total'] as $lbl => $k):
+              $v = (float)$e[$k]; if ($v <= 0) continue; $pct = round($v / $total * 100); ?>
+            <div class="pr-bar"><span><?= $lbl ?></span><div><i style="width:<?= $pct ?>%"></i></div><span>&#8377;<?= number_format($v) ?></span></div>
+          <?php endforeach; ?></div>
+        </div>
+      </section>
+      <?php endif; ?>
 
-  <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
-    <a class="ja-btn ja-btn-primary" href="trip.php?dest=<?= urlencode($place) ?>&days=<?= max(1, (int)$e['duration_days']) ?>"><?= ja_icon('compass',16) ?> Plan a similar trip to <?= htmlspecialchars(explode(',', $place)[0]) ?></a>
+      <section class="pr-section pr-engage" aria-labelledby="prTalkH">
+        <h3 id="prTalkH">Comments</h3>
+        <div class="pc-actions" style="margin-bottom:12px">
+          <button type="button" class="pc-act" id="prLike" aria-pressed="<?= $iLiked ? 'true' : 'false' ?>" aria-label="Like this journal"><?= ja_icon('heart', 17) ?><span class="n" id="prLikeN"><?= (int)$likes ?></span></button>
+        </div>
+        <div class="pc-cmts" style="border-top:0;padding-top:0">
+          <div class="pc-cmts-list" id="prCmtList" style="max-height:none"></div>
+          <?php if ($me): ?><form class="pc-cmts-form" id="prCmtForm"><label class="pc-sr" for="prCmtInput">Write a comment</label><input id="prCmtInput" type="text" maxlength="600" placeholder="Write a comment" autocomplete="off"><button type="submit">Post</button></form>
+          <?php else: ?><a href="login.php" class="pc-link">Log in to like and comment</a><?php endif; ?>
+        </div>
+        <?php if ($me && !$owner): ?>
+        <details class="ja-report"><summary>Report this journal</summary>
+          <form id="prReport"><select name="reason" aria-label="Reason"><option value="fake">Looks fake or made up</option><option value="spam">Spam or advertising</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Copied from somewhere else</option><option value="other">Something else</option></select>
+          <input name="detail" maxlength="300" placeholder="Optional detail" aria-label="Detail"><button type="submit">Send report</button><span id="prReportMsg" class="pc-muted" role="status"></span></form></details>
+        <?php endif; ?>
+      </section>
+
+      <div class="pr-cta">
+        <a class="ja-btn ja-btn-primary" href="trip.php?dest=<?= urlencode($place) ?>&amp;days=<?= max(1, (int)$e['duration_days']) ?>"><?= ja_icon('compass', 16) ?> Plan a similar trip to <?= htmlspecialchars(explode(',', $place)[0]) ?></a>
+      </div>
+    </article>
   </div>
+</div></main>
+
+<div class="pc-lb" id="prLb" role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <button type="button" class="pc-lb-close" data-close aria-label="Close viewer"><?= pc_icon('close', 20) ?></button>
+  <button type="button" class="pc-lb-nav prev" data-nav="-1" aria-label="Previous photo"><?= pc_icon('left', 22) ?></button>
+  <figure class="pc-lb-stage"><img id="prLbImg" alt=""><figcaption id="prLbCap"></figcaption></figure>
+  <button type="button" class="pc-lb-nav next" data-nav="1" aria-label="Next photo"><?= pc_icon('right', 22) ?></button>
+  <div class="pc-lb-count" id="prLbCount" aria-live="polite"></div>
+</div>
+<script>window.PC_READ = { csrf: <?= json_encode(ja_csrf()) ?> };</script>
+<script src="js/reader.js?v=<?= (int)@filemtime(__DIR__ . '/js/reader.js') ?>" defer></script>
 <?php endif; ?>
-</div></section>
 <?php include 'ja-footer.php'; ?>

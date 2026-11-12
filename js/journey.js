@@ -56,6 +56,49 @@
   nameFields();
   new MutationObserver(function (m) { m.forEach(function (x) { x.addedNodes.forEach(function (nd) { if (nd.nodeType === 1) nameFields(nd); }); }); }).observe(document.body, { childList: true, subtree: true });
 
+  /* ---- theme: saved choice wins, otherwise the system preference (the head script already applied it before first paint) ---- */
+  var root = document.documentElement, mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  var effective = function () { var t = root.getAttribute('data-theme'); return t === 'dark' || t === 'light' ? t : (mq && mq.matches ? 'dark' : 'light'); };
+  var paintTheme = function () {
+    var dark = effective() === 'dark', meta = $('meta[name=theme-color]');
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+    meta.content = dark ? '#0E1424' : '#F5F6F2';
+    [].forEach.call(document.querySelectorAll('[data-ja-theme-toggle]'), function (b) {
+      b.__jaBound = true;   // js/journeyai.js skips buttons already bound, so a click flips the theme once
+      b.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme'); b.title = dark ? 'Switch to light theme' : 'Switch to dark theme';
+      var l = b.querySelector('[data-ja-theme-label]'); if (l) l.textContent = dark ? 'Light theme' : 'Dark theme';
+    });
+  };
+  window.jaSetTheme = function (t) {
+    root.setAttribute('data-theme', t); try { localStorage.setItem('ja-theme', t); } catch (e) {}
+    paintTheme(); window.dispatchEvent(new CustomEvent('ja-theme', { detail: t }));
+  };
+  window.jaToggleTheme = function () { window.jaSetTheme(effective() === 'dark' ? 'light' : 'dark'); };
+  window.jaThemeIsDark = function () { return effective() === 'dark'; };
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-ja-theme-toggle]'); if (!b) return;
+    e.preventDefault(); window.jaToggleTheme();
+  });
+  if (mq && mq.addEventListener) mq.addEventListener('change', paintTheme);
+  paintTheme();
+
+  /* ---- skip link: move focus to <main> (works even when a <base> tag is present) ---- */
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-ja-skip]'); if (!a) return;
+    var m = document.getElementById('main'); if (!m) return;
+    e.preventDefault(); if (!m.hasAttribute('tabindex')) m.setAttribute('tabindex', '-1');
+    m.focus({ preventScroll: true }); m.scrollIntoView({ block: 'start' });
+  });
+
+  /* ---- top bar menu on phones ---- */
+  var nav = $('#jaNav'), menu = $('#jaNavMenu');
+  if (nav && menu) {
+    var setMenu = function (o) { nav.classList.toggle('open', o); menu.setAttribute('aria-expanded', o ? 'true' : 'false'); menu.setAttribute('aria-label', o ? 'Close menu' : 'Open menu'); };
+    menu.addEventListener('click', function () { setMenu(!nav.classList.contains('open')); });
+    document.addEventListener('click', function (e) { if (nav.classList.contains('open') && !nav.contains(e.target)) setMenu(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && nav.classList.contains('open')) { setMenu(false); menu.focus(); } });
+  }
+
   /* ---- landing page ---- */
   var land = $('[data-cj-landing]'); if (!land) return;
 

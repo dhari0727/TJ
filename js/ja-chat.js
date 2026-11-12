@@ -323,6 +323,19 @@
 
   renderHistory();
 
+  // on phones the launcher slides out of the way while you scroll down, and returns when you scroll up
+  (function () {
+    var last = window.pageYOffset || 0, ticking = false;
+    window.addEventListener("scroll", function () {
+      if (ticking) return; ticking = true;
+      window.requestAnimationFrame(function () {
+        var y = window.pageYOffset || 0, d = y - last;
+        if (Math.abs(d) > 8) { root.classList.toggle("tucked", d > 0 && y > 120); last = y; }
+        ticking = false;
+      });
+    }, { passive: true });
+  })();
+
   // restore open state within the session
   try {
     if (sessionStorage.getItem(K_OPEN) === "1") open();

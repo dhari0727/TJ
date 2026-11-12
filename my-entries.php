@@ -3,12 +3,14 @@ $ja_title = "My Journal"; $ja_active = "entries"; $ja_jtab = "entries";
 session_start();
 require 'connection.php';
 require_once 'ja-lib.php';
+require_once 'ja-community-ui.php';
 if (empty($_SESSION['eml'])) { header('Location: login.php'); exit; }
 $em = $_SESSION['eml'];
 
 $stmt = mysqli_prepare($conn,
   "SELECT j.entry_id, j.Title, j.City, j.Country, j.cd, j.duration_days, j.true_total, d.visibility, d.share_token, d.is_pinned, d.moderation_status,
-          (SELECT COUNT(*) FROM media m WHERE m.entry_id = j.entry_id) AS n_media
+          (SELECT COUNT(*) FROM media m WHERE m.entry_id = j.entry_id) AS n_media,
+          (SELECT m2.filepath FROM media m2 WHERE m2.entry_id = j.entry_id AND m2.kind = 'photo' ORDER BY m2.media_id LIMIT 1) AS cover
    FROM journals j JOIN db d ON d.entry_id = j.entry_id WHERE j.eml = ? ORDER BY d.is_pinned DESC, j.entry_id DESC");
 mysqli_stmt_bind_param($stmt, 's', $em);
 mysqli_stmt_execute($stmt);
@@ -29,70 +31,68 @@ mysqli_stmt_close($stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
 
-<div class="ja-pagehead">
+<div class="ja-pagehead pc-head">
   <div class="ja-container">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
-      <div>
-        <div class="ja-eyebrow">✦ Your travel journal</div>
-        <h1>My Journal</h1>
-        <p class="sub"><?= count($rows) ?> trip<?= count($rows)===1?'':'s' ?> recorded. Share any of them, or turn them into posts.</p>
-      </div>
-    </div>
+    <h1>My journal</h1>
+    <p class="sub"><?= count($rows) ?> trip<?= count($rows)===1?'':'s' ?> recorded. Share any of them, or turn the photos into posts.</p>
     <?php include 'ja-journal-tabs.php'; ?>
   </div>
 </div>
 
 <main class="ja-main">
   <div class="ja-container">
-    <div class="ja-card" style="margin-bottom:28px">
-      <h3><?= ja_icon('map-pin',18) ?> Map view</h3>
-      <?php if ($pins): ?>
-        <p style="color:var(--text-mut);font-size:.85rem;margin:2px 0 10px">
-          <?= count($pins) ?> photo<?= count($pins)===1?'':'s' ?> with a known location.</p>
-        <div id="entriesMap" style="height:340px;border-radius:14px;overflow:hidden"></div>
-      <?php else: ?>
-        <div class="ja-empty" style="padding:34px 20px">
-          <p style="margin:0">No located photos yet. Allow location access next time you add photos in <a href="new-entry.php" style="color:var(--ja-teal)">New Entry</a> to see them pinned here.</p>
-        </div>
-      <?php endif; ?>
-    </div>
+    <?php if ($pins): ?>
+    <section class="pc-mapcard" aria-label="Map of your photos">
+      <h2>Where your photos were taken</h2>
+      <p><?= count($pins) ?> photo<?= count($pins)===1?'':'s' ?> with a known location.</p>
+      <div id="entriesMap" style="height:340px;border-radius:12px;overflow:hidden"></div>
+    </section>
+    <?php endif; ?>
     <?php if (!$rows): ?>
-      <div class="ja-empty" style="padding:60px 30px">
-        <div style="margin-bottom:12px;color:var(--ja-aqua)"><?= ja_icon('book',40) ?></div>
-        <p style="font-size:1.1rem;color:var(--text-dim)">You haven't recorded any trips yet.</p>
-        <a href="new-entry.php" class="ja-btn ja-btn-primary" style="margin-top:16px">Create your first entry</a>
-      </div>
+      <?= pc_empty('You have not written a journal yet', 'Record a trip with its story, photos and what it cost. It stays private until you choose to share it.', ['Write your first journal', 'new-entry.php'], 'pen') ?>
     <?php else: ?>
-      <div class="ja-grid cols-3">
-        <?php foreach ($rows as $r): $city = htmlspecialchars($r['City'] ?: $r['Title']); ?>
-          <div class="ja-card" data-tilt data-pin-card>
-            <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+      <div class="pc-jgrid">
+        <?php foreach ($rows as $r):
+          $eid = (int)$r['entry_id'];
+          $pl = trim(($r['City'] ?? '') . ', ' . ($r['Country'] ?? ''), ', ');
+          $pend = $r['visibility'] === 'public' && $r['moderation_status'] !== 'approved';
+        ?>
+          <article class="pc-j" data-pin-card>
+            <?php if ($r['cover']): ?><div class="pc-j-cover" style="background-image:url('<?= htmlspecialchars($r['cover'], ENT_QUOTES) ?>')" role="img" aria-label="Cover photo of <?= htmlspecialchars($r['Title']) ?>"></div>
+            <?php else: ?><div class="pc-j-cover"><?= pc_icon('image', 30) ?></div><?php endif; ?>
+            <div class="pc-j-body">
               <div>
-                <h3 style="margin-bottom:2px;font-size:1.2rem"><?= htmlspecialchars($r['Title']) ?></h3>
-                <div style="color:var(--text-mut);font-size:.88rem"><?= $city ?><?= $r['Country']?', '.htmlspecialchars($r['Country']):'' ?></div>
+                <h3><a href="display.php?id=<?= $eid ?>"><?= htmlspecialchars($r['Title']) ?></a></h3>
+                <?php if ($pl): ?><p class="pc-j-place"><?= htmlspecialchars($pl) ?></p><?php endif; ?>
               </div>
-              <span class="ja-pill near"><?= (int)$r['duration_days'] ?>d</span>
+              <div class="pc-facts">
+                <?php if ((int)$r['duration_days'] > 0): ?><span><?= ja_icon('calendar', 15) ?> <?= (int)$r['duration_days'] ?> day<?= (int)$r['duration_days'] === 1 ? '' : 's' ?></span><?php endif; ?>
+                <?php if ((float)$r['true_total'] > 0): ?><span><?= ja_icon('wallet', 15) ?> &#8377;<?= number_format((float)$r['true_total']) ?></span><?php endif; ?>
+                <span><?= pc_icon('image', 15) ?> <?= (int)$r['n_media'] ?></span>
+                <span class="ja-vis <?= $pend ? htmlspecialchars($r['moderation_status']) : htmlspecialchars($r['visibility']) ?>" id="vis-<?= $eid ?>"><?= $pend ? ['pending'=>'Under review','hidden'=>'Hidden','rejected'=>'Not approved'][$r['moderation_status']] : (['private'=>'Private','link'=>'Link-shared','public'=>'Public'][$r['visibility']] ?? 'Private') ?></span>
+              </div>
+              <div class="pc-j-row">
+                <a href="display.php?id=<?= $eid ?>" class="ja-btn ja-btn-ghost pc-btn-sm">View</a>
+                <a href="update.php?id=<?= $eid ?>" class="ja-btn ja-btn-ghost pc-btn-sm">Edit</a>
+                <button type="button" class="ja-btn ja-btn-primary pc-btn-sm" data-share="<?= $eid ?>" data-vis="<?= htmlspecialchars($r['visibility']) ?>"><?= pc_icon('link', 15) ?> Share</button>
+                <details class="pc-menu"><summary class="ja-btn ja-btn-ghost pc-btn-sm" aria-label="More actions for <?= htmlspecialchars($r['Title']) ?>"><?= pc_icon('dots', 16) ?></summary>
+                  <div class="pc-menu-list">
+                    <button type="button" data-pin-kind="journal" data-pin-id="<?= $eid ?>" data-pinned="<?= (int)$r['is_pinned'] ?>" title="Pin to your public profile">Pin to profile</button>
+                    <a href="share.php?entry=<?= $eid ?>">Post its photos to the feed</a>
+                    <form method="post" action="delete.php" onsubmit="return confirm('Delete this entry, its photos and its comments? This cannot be undone.')">
+                      <?= ja_csrf_field() ?><input type="hidden" name="id" value="<?= $eid ?>">
+                      <button class="danger">Delete journal</button>
+                    </form>
+                  </div>
+                </details>
+              </div>
+              <div class="ja-share-pop" id="pop-<?= $eid ?>" style="display:none"></div>
             </div>
-            <div class="ja-cost" style="font-size:1.5rem;margin:16px 0 2px">₹<?= number_format((float)$r['true_total']) ?></div>
-            <div style="color:var(--text-mut);font-size:.82rem;margin-bottom:18px">Total trip cost</div>
-            <div style="margin-bottom:12px"><?php $ja_pend = $r['visibility'] === 'public' && $r['moderation_status'] !== 'approved'; ?><span class="ja-vis <?= $ja_pend ? htmlspecialchars($r['moderation_status']) : htmlspecialchars($r['visibility']) ?>" id="vis-<?= (int)$r['entry_id'] ?>"><?= $ja_pend ? ['pending'=>'Under review','hidden'=>'Hidden','rejected'=>'Not approved'][$r['moderation_status']] : (['private'=>'Private','link'=>'Link-shared','public'=>'Public'][$r['visibility']] ?? 'Private') ?></span>
-              <span class="ja-muted" style="font-size:.78rem;margin-left:6px"><?= (int)$r['n_media'] ?> photo/video<?= (int)$r['n_media'] === 1 ? '' : 's' ?></span></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <a href="display.php?id=<?= (int)$r['entry_id'] ?>" class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem">View</a>
-              <a href="update.php?id=<?= (int)$r['entry_id'] ?>" class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem">Edit</a>
-              <button type="button" data-pin-kind="journal" data-pin-id="<?= (int)$r['entry_id'] ?>" data-pinned="<?= (int)$r['is_pinned'] ?>" class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem" title="Pin to your public profile">Pin</button>
-              <button type="button" class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem" data-share="<?= (int)$r['entry_id'] ?>" data-vis="<?= htmlspecialchars($r['visibility']) ?>">Share</button>
-              <a href="share.php?entry=<?= (int)$r['entry_id'] ?>" class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem">Post media</a>
-              <form method="post" action="delete.php" style="display:inline" onsubmit="return confirm('Delete this entry, its photos and its comments? This cannot be undone.')">
-                <?= ja_csrf_field() ?><input type="hidden" name="id" value="<?= (int)$r['entry_id'] ?>">
-                <button class="ja-btn ja-btn-ghost" style="padding:9px 14px;font-size:.88rem;color:var(--ja-coral)">Delete</button>
-              </form>
-            </div>
-            <div class="ja-share-pop" id="pop-<?= (int)$r['entry_id'] ?>" style="display:none"></div>
-          </div>
+          </article>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>

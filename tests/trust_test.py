@@ -275,7 +275,7 @@ def main():
         t = ftok(sess, "forgot-pswd.php")
         return sess.post(f"{BASE}/forgot-pswd.php", data={"csrf": t, "next": "1", "email": addr}, timeout=60).text
     def shape(html):
-        m = re.search(r'class="ja-ok">(.*?)</div>', html, re.S)
+        m = re.search(r'class="ja-ok"[^>]*>(.*?)</div>', html, re.S)
         return re.sub(r"[a-f0-9]{64}", "TOKEN", m.group(1)) if m else html[-300:]
     known = forgot(F, ec)
     unknown = forgot(F, f"nobody-{secrets.token_hex(3)}@test.invalid")
@@ -284,7 +284,7 @@ def main():
     rt = mt.group(1) if mt else "0" * 64
     stored = db("SELECT reset_token FROM signup WHERE eml=%s", (ec,))[0][0]
     check("reset token is stored hashed, not raw", mt and stored == hashlib.sha256(rt.encode()).hexdigest() and stored != rt, stored)
-    check("the raw token opens the reset page", "Enter a new password" in requests.get(f"{BASE}/reset-password.php?token={rt}", timeout=30).text)
+    check("the raw token opens the reset page", "Choose a new password" in requests.get(f"{BASE}/reset-password.php?token={rt}", timeout=30).text)
     check("the stored hash is not accepted as a token", "invalid or has expired" in requests.get(f"{BASE}/reset-password.php?token={stored}", timeout=30).text)
     R = requests.Session()
     page = R.get(f"{BASE}/reset-password.php?token={rt}", timeout=30).text

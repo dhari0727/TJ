@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     if ($title === '') {
         $err = 'Please give your trip a title.';
+        if (strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'XMLHttpRequest') === 0) { header('Content-Type: application/json'); echo json_encode(['error' => $err]); exit; }
     } else {
         // core (db) — named INSERT
         $s = mysqli_prepare($conn, "INSERT INTO db(Title,Description,Country,City,cd,dv,dr,hn,address,ptv,tv,budget_target,eml) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -82,170 +83,149 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pr = ja_publish_journal($newId, $em, $vis);
             $_SESSION['ja_flash'] = $pr['ok'] ? ($pr['message'] ?: 'Saved.') : ('Saved privately. ' . $pr['message']);
         }
+        if (strcasecmp($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '', 'XMLHttpRequest') === 0) {
+            header('Content-Type: application/json'); echo json_encode(['redirect' => 'display.php?id=' . $newId . '&new=1']); exit;
+        }
         header('Location: display.php?id='.$newId.'&new=1'); exit;
     }
 }
 ?>
+<?php require_once 'ja-community-ui.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
-<head><?php include 'ja-head.php'; ?></head>
+<head><?php include 'ja-head.php'; ?>
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>"></head>
 <body class="ja">
 
-<div class="ja-pagehead">
+<div class="ja-pagehead pc-head">
   <div class="ja-container">
-    <div class="ja-eyebrow">✦ Record a journey</div>
-    <h1>My Journal</h1>
-    <p class="sub">Capture your trip. The details help JourneyAI recommend better journeys to you and others.</p>
+    <h1>Write a journal</h1>
+    <p class="sub">Tell the story of a trip. The details you add help JourneyAI suggest better journeys to you and to others.</p>
     <?php include 'ja-journal-tabs.php'; ?>
   </div>
 </div>
 
 <main class="ja-main">
-  <div class="ja-container" style="max-width:860px">
-    <?php if ($err): ?><div class="ja-err"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+  <div class="ja-container">
+    <div class="pw-form">
+    <?php if ($err): ?><div class="pw-err" role="alert"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+    <div class="pw-err" id="pwErr" role="alert" hidden></div>
+    <div class="pw-restored" id="pwRestored" hidden>
+      <span>Restored your draft from <strong id="pwRestoredWhen"></strong>. Photos are not kept in drafts, so add them again.</span>
+      <button type="button" id="pwDiscard">Discard draft</button>
+    </div>
+
     <form method="post" id="entryForm" enctype="multipart/form-data">
+      <ol class="pw-steps" aria-label="Sections">
+        <li><a href="#pwDetails"><b>1</b> Trip details</a></li>
+        <li><a href="#pwStory"><b>2</b> Story and photos</a></li>
+        <li><a href="#pwBudget"><b>3</b> Budget</a></li>
+        <li><a href="#pwShare"><b>4</b> Sharing</a></li>
+      </ol>
 
-      <!-- step indicators (visual only; single page) -->
-      <div class="ja-steps">
-        <div class="ja-step active"><span class="num">1</span> Trip details</div>
-        <div class="ja-step"><span class="num">2</span> Story & places</div>
-        <div class="ja-step"><span class="num">3</span> Budget</div>
-      </div>
-
-      <div class="ja-card" style="margin-bottom:22px">
+      <section class="pw-card" id="pwDetails">
         <h3>Trip details</h3>
-        <div class="ja-field"><label>Trip title *</label><input class="ja-input" name="title" placeholder="e.g. Monsoon in Munnar" required></div>
+        <p class="hint">Where you went and when. Only the title is required.</p>
+        <div class="ja-field"><label for="f-title">Trip title</label><input class="ja-input" id="f-title" name="title" placeholder="Monsoon in Munnar" required maxlength="150"></div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Country</label><input class="ja-input" name="coun" placeholder="India"></div>
-          <div class="ja-field"><label>City / place</label><input class="ja-input" name="city" placeholder="Munnar"></div>
+          <div class="ja-field"><label for="f-coun">Country</label><input class="ja-input" id="f-coun" name="coun" placeholder="India"></div>
+          <div class="ja-field"><label for="f-city">City or place</label><input class="ja-input" id="f-city" name="city" placeholder="Munnar"></div>
         </div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Date of visit</label><input class="ja-input" type="date" name="dv"></div>
-          <div class="ja-field"><label>Date of return</label><input class="ja-input" type="date" name="dr"></div>
+          <div class="ja-field"><label for="f-dv">Date of visit</label><input class="ja-input" id="f-dv" type="date" name="dv"></div>
+          <div class="ja-field"><label for="f-dr">Date of return</label><input class="ja-input" id="f-dr" type="date" name="dr"></div>
         </div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Travel mode</label><input class="ja-input" name="tv" placeholder="flight / train / car"></div>
-          <div class="ja-field"><label>Hotel / stay</label><input class="ja-input" name="hn" placeholder="where you stayed"></div>
+          <div class="ja-field"><label for="f-tv">Travel mode</label><input class="ja-input" id="f-tv" name="tv" placeholder="Flight, train or car"></div>
+          <div class="ja-field"><label for="f-hn">Where you stayed</label><input class="ja-input" id="f-hn" name="hn" placeholder="Hotel or homestay"></div>
         </div>
-      </div>
+      </section>
 
-      <div class="ja-card" style="margin-bottom:22px">
-        <h3>Your story & places</h3>
-        <div class="ja-field"><label>How was the trip?</label>
-          <textarea class="ja-input" name="desc" rows="5" placeholder="Describe the experience, the vibe, what you loved or didn't…"></textarea></div>
-        <div class="ja-field"><label>Interesting places you visited</label>
-          <textarea class="ja-input" name="ptv" rows="2" placeholder="comma-separated attractions"></textarea></div>
-        <div class="ja-field"><label>Address / area</label><input class="ja-input" name="ad" placeholder="neighbourhood or address"></div>
-      </div>
+      <section class="pw-card pw-story" id="pwStory">
+        <h3>Your story</h3>
+        <p class="hint">Write it the way you would tell a friend. Start a line with <code>##</code> or <code>Day 2:</code> to make a section heading; long journals then get a contents list.</p>
+        <div class="ja-field"><label for="f-desc">How was the trip?</label>
+          <textarea class="ja-input" id="f-desc" name="desc" rows="9" placeholder="What did you do, what did it cost, and what would you do differently?"></textarea>
+          <div class="pw-counts" id="pwCounts" aria-live="polite"></div></div>
+        <div class="ja-field"><label for="f-ptv">Places you visited</label>
+          <textarea class="ja-input" id="f-ptv" name="ptv" rows="2" placeholder="Separate with commas: Hawa Mahal, Amber Fort"></textarea>
+          <p class="hint" style="margin:6px 0 0">Readers can open each place as a trip plan.</p></div>
+        <div class="ja-field"><label for="f-ad">Address or area</label><input class="ja-input" id="f-ad" name="ad" placeholder="Neighbourhood or street"></div>
 
-      <div class="ja-card" style="margin-bottom:22px">
-        <h3>Photos &amp; videos <span style="color:var(--text-mut);font-weight:400;font-size:.9rem">(share your trip — add #hashtags in the caption)</span></h3>
-        <div id="mediaDrop" class="ja-media-drop">
-          <?= ja_icon('compass',30) ?>
-          <p style="margin:10px 0 4px;font-weight:600">Add photos or short videos</p>
-          <p style="margin:0;color:var(--text-mut);font-size:.85rem">JPG, PNG, WEBP, MP4, WEBM · up to 40 MB each</p>
+        <h3 style="margin-top:26px">Photos and videos</h3>
+        <p class="hint">Drop files here or choose them. Add a caption to each, with #hashtags if you want them in the Community feed.</p>
+        <div id="mediaDrop" class="pw-drop" aria-label="Add photos or videos">
+          <?= pc_icon('upload', 30) ?>
+          <strong>Drag photos and videos here, or choose files</strong>
+          <span>JPG, PNG, WEBP, MP4 or WEBM, up to 40 MB each</span>
           <input type="file" name="media[]" id="mediaInput" accept="image/*,video/*" multiple hidden>
         </div>
-        <div id="mediaPreview" class="ja-media-preview"></div>
-        <p id="mediaCaptionHint" class="ja-media-cap" style="display:none;margin-top:10px">Add a caption under each photo/video <span style="color:var(--text-mut)">(optional — #hashtags e.g. #beach #goa)</span></p>
-        <p id="mediaGeoStatus" style="margin:10px 0 0;color:var(--text-mut);font-size:.8rem"></p>
-        <input type="hidden" name="media_lat" id="mediaLat">
-        <input type="hidden" name="media_lon" id="mediaLon">
-      </div>
+        <ul id="mediaList" class="pw-files"></ul>
+        <p id="mediaGeoStatus" class="pw-geo"></p>
+        <input type="hidden" name="media_lat"><input type="hidden" name="media_lon">
+      </section>
 
-      <div class="ja-card" style="margin-bottom:22px">
-        <h3>Budget <span style="color:var(--text-mut);font-weight:400;font-size:.9rem">(in ₹, optional — powers cost insights)</span></h3>
-        <div class="ja-field"><label>Budget for this trip <span style="color:var(--text-mut);font-weight:400">(target total, optional)</span></label>
-          <input class="ja-input" type="number" name="budget_target" min="0" step="0.01" placeholder="e.g. 25000"></div>
+      <section class="pw-card" id="pwBudget">
+        <h3>Budget</h3>
+        <p class="hint">In rupees. Optional, but it powers the cost breakdown readers see.</p>
+        <div class="ja-field"><label for="f-bt">Target total for this trip</label>
+          <input class="ja-input" id="f-bt" type="number" name="budget_target" min="0" step="0.01" placeholder="25000"></div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Flight / air</label><input class="ja-input" type="number" name="flight" min="0" value="0"></div>
-          <div class="ja-field"><label>Train</label><input class="ja-input" type="number" name="train" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-flight">Flight</label><input class="ja-input" id="f-flight" type="number" name="flight" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-train">Train</label><input class="ja-input" id="f-train" type="number" name="train" min="0" value="0"></div>
         </div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Taxi / local</label><input class="ja-input" type="number" name="taxi" min="0" value="0"></div>
-          <div class="ja-field"><label>Bus / car</label><input class="ja-input" type="number" name="bus" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-taxi">Taxi and local</label><input class="ja-input" id="f-taxi" type="number" name="taxi" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-bus">Bus and car</label><input class="ja-input" id="f-bus" type="number" name="bus" min="0" value="0"></div>
         </div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Accommodation</label><input class="ja-input" type="number" name="hotel" min="0" value="0"></div>
-          <div class="ja-field"><label>Food (total)</label><input class="ja-input" type="number" name="dinner" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-hotel">Stay</label><input class="ja-input" id="f-hotel" type="number" name="hotel" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-dinner">Food, total</label><input class="ja-input" id="f-dinner" type="number" name="dinner" min="0" value="0"></div>
         </div>
         <div class="ja-fieldrow">
-          <div class="ja-field"><label>Activities / entry fees</label><input class="ja-input" type="number" name="activities" min="0" value="0"></div>
-          <div class="ja-field"><label>Shopping</label><input class="ja-input" type="number" name="shopping" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-act">Activities and entry fees</label><input class="ja-input" id="f-act" type="number" name="activities" min="0" value="0"></div>
+          <div class="ja-field"><label for="f-shop">Shopping</label><input class="ja-input" id="f-shop" type="number" name="shopping" min="0" value="0"></div>
         </div>
-        <div class="ja-field"><label>Misc</label><input class="ja-input" type="number" name="misc" min="0" value="0"></div>
-      </div>
+        <div class="ja-field"><label for="f-misc">Anything else</label><input class="ja-input" id="f-misc" type="number" name="misc" min="0" value="0"></div>
+      </section>
 
-      <div class="ja-card" style="margin-bottom:22px">
+      <section class="pw-card" id="pwShare">
         <h3>Sharing</h3>
-        <div class="ja-field"><label>Who can read this journal?</label>
-          <select class="ja-select" name="visibility">
-            <option value="private">Only me (you can share it later)</option>
+        <p class="hint">You can change this any time from My journal.</p>
+        <div class="ja-field"><label for="f-vis">Who can read this journal?</label>
+          <select class="ja-select" id="f-vis" name="visibility">
+            <option value="private">Only me</option>
             <option value="link">Anyone with the link</option>
-            <option value="public">Everyone. List it in Read journals</option>
+            <option value="public">Everyone, listed in Read journals</option>
           </select></div>
         <label class="ja-switch"><input type="checkbox" name="post_media" value="1"> <span>Also post my photos and videos to the Community feed</span></label>
-      </div>
+      </section>
 
-      <div style="display:flex;gap:12px">
-        <button class="ja-btn ja-btn-primary ja-btn-lg" type="submit" data-magnetic>✦ Save journal entry</button>
-        <a href="dashboard.php" class="ja-btn ja-btn-ghost ja-btn-lg">Cancel</a>
+      <div class="pw-foot">
+        <button class="ja-btn ja-btn-primary" type="submit">Preview journal</button>
+        <a href="my-entries.php" class="ja-btn ja-btn-ghost">Cancel</a>
+        <span class="pw-state" id="pwState" role="status"><i></i><span id="pwStateTxt">Drafts save as you type</span></span>
       </div>
     </form>
+    </div>
   </div>
 </main>
 
-<script>
-(function(){
-  // Best-effort geolocation capture: tag uploaded photos with where they were taken.
-  // Purely optional — never blocks the form, silently no-ops if denied/unsupported.
-  var latF=document.getElementById('mediaLat'),lonF=document.getElementById('mediaLon'),
-      geoStatus=document.getElementById('mediaGeoStatus');
-  if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(function(pos){
-      latF.value=pos.coords.latitude;lonF.value=pos.coords.longitude;
-      if(geoStatus)geoStatus.textContent='Location captured — your photos will be pinned on the map.';
-    },function(){
-      if(geoStatus)geoStatus.textContent='';
-    },{maximumAge:300000,timeout:8000});
-  }
-})();
-(function(){
-  var drop=document.getElementById('mediaDrop'),input=document.getElementById('mediaInput'),prev=document.getElementById('mediaPreview'),hint=document.getElementById('mediaCaptionHint');
-  if(!drop)return;
-  drop.addEventListener('click',function(){input.click();});
-  drop.addEventListener('dragover',function(e){e.preventDefault();drop.classList.add('drag');});
-  drop.addEventListener('dragleave',function(){drop.classList.remove('drag');});
-  drop.addEventListener('drop',function(e){e.preventDefault();drop.classList.remove('drag');input.files=e.dataTransfer.files;render();});
-  input.addEventListener('change',render);
-  function render(){
-    // remember captions already typed (by index) so re-render (e.g. re-drop) doesn't wipe them
-    var prevCaptions=Array.prototype.map.call(prev.querySelectorAll('.ja-media-cap-input'),function(i){return i.value;});
-    prev.innerHTML='';
-    var files=input.files;
-    if(hint) hint.style.display = files.length ? '' : 'none';
-    Array.prototype.forEach.call(files,function(f,i){
-      var url=URL.createObjectURL(f),el;
-      if(f.type.indexOf('video')===0){el=document.createElement('video');el.src=url;el.muted=true;}
-      else{el=document.createElement('img');el.src=url;}
-      el.className='ja-media-thumb';
+<div class="pw-prev" id="pwPreview" role="dialog" aria-modal="true" aria-labelledby="pwPrevT">
+  <div class="pw-sheet">
+    <div class="pw-sheet-head"><strong id="pwPrevT">Preview</strong><span class="pc-muted">This is how readers will see it.</span>
+      <button type="button" class="pc-act" id="pwPrevX" aria-label="Close preview"><?= pc_icon('close', 16) ?></button></div>
+    <div class="pw-sheet-body" id="pwPrevBody"></div>
+    <div class="pw-sheet-foot">
+      <p id="pwPrevVis"></p>
+      <button type="button" class="ja-btn ja-btn-ghost" id="pwPrevBack">Keep editing</button>
+      <button type="button" class="ja-btn ja-btn-primary" id="pwPrevSave">Save journal</button>
+    </div>
+  </div>
+</div>
 
-      var cap=document.createElement('input');
-      cap.type='text';
-      cap.className='ja-input ja-media-cap-input';
-      cap.name='media_caption[]';
-      cap.placeholder='Caption #tags';
-      cap.value=prevCaptions[i]||'';
-      cap.title=f.name;
-
-      var item=document.createElement('div');
-      item.className='ja-media-item';
-      item.appendChild(el);
-      item.appendChild(cap);
-      prev.appendChild(item);
-    });
-  }
-})();
-</script>
+<script>window.PC_WRITE = { csrf: <?= json_encode(ja_csrf()) ?>, uid: <?= json_encode(substr(sha1(strtolower($em)), 0, 10)) ?> };</script>
+<script src="js/media-drop.js?v=<?= (int)@filemtime(__DIR__ . '/js/media-drop.js') ?>"></script>
+<script src="js/journal-writer.js?v=<?= (int)@filemtime(__DIR__ . '/js/journal-writer.js') ?>"></script>
 
 <?php include 'ja-footer.php'; ?>

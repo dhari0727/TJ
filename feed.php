@@ -14,6 +14,7 @@ require 'connection.php';
 require_once 'ja-media.php';
 require_once 'ja-icons.php';
 require_once 'ja-lib.php';
+require_once 'ja-community-ui.php';
 
 $eml = $_SESSION['eml'] ?? null;
 
@@ -126,25 +127,92 @@ function ja_feed_initials($label) {
     return $ini;
 }
 
+
+function pc_feed_card($m, $i, $ownerNames, $ownerHandles, $tagsByMedia, $commentCounts) {
+    $label = ja_feed_owner_label($m['eml'], $ownerNames);
+    $tags  = $tagsByMedia[$m['media_id']] ?? [];
+    $liked = !empty($m['liked']);
+    $mid   = (int)$m['media_id'];
+    $cc    = (int)($commentCounts[$mid] ?? 0);
+    $handle = $ownerHandles[$m['eml']] ?? null;
+    $isVideo = $m['kind'] === 'video';
+    $ar = $isVideo ? '4 / 5' : pc_ratio($m['filepath']);
+    $post = htmlspecialchars(json_encode([
+        'id' => $mid, 'src' => $m['filepath'], 'kind' => $m['kind'], 'caption' => $m['caption'],
+        'destination' => $m['destination'], 'owner' => $label, 'likes' => (int)$m['likes'], 'liked' => $liked,
+        'tags' => $tags, 'created' => $m['created_at'], 'handle' => $handle, 'comments' => $cc,
+    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG), ENT_QUOTES, 'UTF-8');
+    $alt = trim((string)$m['caption']) !== '' ? mb_strimwidth($m['caption'], 0, 120, '…') : 'Photo shared by ' . $label;
+    ob_start(); ?>
+    <article class="pc-card" data-post="<?= $post ?>">
+      <div style="position:relative">
+        <button type="button" class="pc-media" style="--ar:<?= htmlspecialchars($ar) ?>" data-open aria-label="Open <?= $isVideo ? 'video' : 'photo' ?>: <?= htmlspecialchars($alt) ?>">
+          <?php if ($isVideo): ?>
+            <video src="<?= htmlspecialchars($m['filepath']) ?>" muted loop playsinline preload="metadata"></video>
+            <span class="pc-play"><?= pc_icon('play', 14) ?></span>
+          <?php else: ?>
+            <img src="<?= htmlspecialchars($m['filepath']) ?>" alt="<?= htmlspecialchars($alt) ?>" loading="lazy" decoding="async">
+          <?php endif; ?>
+        </button>
+        <?php if ($m['destination']): ?>
+          <a class="pc-dest" href="feed.php?dest=<?= urlencode($m['destination']) ?>"><?= ja_icon('map-pin', 12) ?> <?= htmlspecialchars(explode(',', $m['destination'])[0]) ?></a>
+        <?php endif; ?>
+      </div>
+      <div class="pc-body">
+        <div class="pc-owner">
+          <span class="pc-av" aria-hidden="true"><?= htmlspecialchars(ja_feed_initials($label)) ?></span>
+          <?php if ($handle): ?><a href="traveller.php?h=<?= urlencode($handle) ?>"><?= htmlspecialchars($label) ?></a>
+          <?php else: ?><span class="nm"><?= htmlspecialchars($label) ?></span><?php endif; ?>
+          <span class="pc-date"><?= htmlspecialchars(date('M j', strtotime($m['created_at']))) ?></span>
+        </div>
+        <?php if (trim((string)$m['caption']) !== ''): ?><p class="pc-cap"><?= htmlspecialchars($m['caption']) ?></p><?php endif; ?>
+        <?php if ($tags): ?><div class="pc-tags"><?php foreach ($tags as $t): ?><a href="feed.php?tag=<?= urlencode($t) ?>">#<?= htmlspecialchars($t) ?></a><?php endforeach; ?></div><?php endif; ?>
+        <div class="pc-actions">
+          <button type="button" class="pc-act" data-like data-media-id="<?= $mid ?>" aria-pressed="<?= $liked ? 'true' : 'false' ?>" aria-label="Like this post">
+            <?= ja_icon('heart', 17) ?><span class="n"><?= (int)$m['likes'] ?></span>
+          </button>
+          <button type="button" class="pc-act" data-comment aria-label="Comments">
+            <?= pc_icon('chat', 17) ?><span class="n" data-cmt-for="<?= $mid ?>"><?= $cc ?></span>
+          </button>
+        </div>
+      </div>
+    </article>
+    <?php
+    return ob_get_clean();
+}
+
+// partial response for "Load more" and chip filtering
+if (($_GET['partial'] ?? '') === '1') {
+    header('Content-Type: application/json; charset=utf-8');
+    $html = '';
+    foreach ($posts as $i => $m) $html .= pc_feed_card($m, $i, $ownerNames, $ownerHandles, $tagsByMedia, $commentCounts);
+    echo json_encode(['html' => $html, 'more' => count($posts) === $perPage, 'page' => $page, 'count' => count($posts)]);
+    exit;
+}
+
 // trending hashtags
 $trend = mysqli_query($conn, "SELECT tag, uses FROM hashtags ORDER BY uses DESC LIMIT 10");
 $trending = $trend ? mysqli_fetch_all($trend, MYSQLI_ASSOC) : [];
 
 $hasMore = count($posts) === $perPage;
+$qs = function ($extra = []) use ($tagFilter, $destFilter) {
+    $q = array_filter(['tag' => $tagFilter, 'dest' => $destFilter], function ($v) { return $v !== ''; });
+    foreach ($extra as $k => $v) { if ($v === null) unset($q[$k]); else $q[$k] = $v; }
+    return 'feed.php' . ($q ? '?' . http_build_query($q) : '');
+};
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <?php include 'ja-head.php'; ?>
-<link rel="stylesheet" href="css/journeyai-feed.css">
+<link rel="stylesheet" href="css/pages-community.css?v=<?= (int)@filemtime(__DIR__ . '/css/pages-community.css') ?>">
 </head>
 <body class="ja">
 
-<div class="ja-pagehead">
+<div class="ja-pagehead pc-head">
   <div class="ja-container">
-    <div class="ja-eyebrow"><?= ja_icon('sparkle',14) ?> From real travelers</div>
     <h1>Community</h1>
-    <p class="sub">Photos and moments shared by travellers<?= $tagFilter ? ' · tagged #' . htmlspecialchars($tagFilter) : '' ?><?= $destFilter ? ' · in ' . htmlspecialchars($destFilter) : '' ?>.</p>
+    <p class="sub">Photos and moments from people who have just been there.</p>
     <?php $ja_ctab = 'feed'; include 'ja-community-tabs.php'; ?>
   </div>
 </div>
@@ -152,288 +220,90 @@ $hasMore = count($posts) === $perPage;
 <main class="ja-main">
   <div class="ja-container">
 
-    <form method="get" action="feed.php" class="ja-feed-searchbar">
-      <?= ja_icon('search',18) ?>
-      <input type="text" name="tag" placeholder="Search by hashtag, e.g. beach" value="<?= htmlspecialchars($tagFilter) ?>">
-      <button type="submit" class="ja-btn ja-btn-primary">Search</button>
-      <?php if ($tagFilter || $destFilter): ?>
-        <a href="feed.php" class="ja-btn ja-btn-ghost">Clear</a>
-      <?php endif; ?>
-    </form>
-
-    <?php if ($trending): ?>
-    <div class="ja-feed-trending">
-      <span class="ja-feed-trending-label"><?= ja_icon('chart',14) ?> Trending:</span>
-      <?php foreach ($trending as $t): ?>
-        <a href="feed.php?tag=<?= urlencode($t['tag']) ?>"
-           class="ja-chip ja-feed-tagchip <?= ($tagFilter === $t['tag']) ? 'on' : '' ?>">#<?= htmlspecialchars($t['tag']) ?> <small><?= (int)$t['uses'] ?></small></a>
-      <?php endforeach; ?>
-    </div>
-    <?php endif; ?>
-
-    <?php if (!$posts): ?>
-      <div class="ja-empty" style="padding:60px 30px">
-        <div style="color:var(--ja-aqua);margin-bottom:12px"><?= ja_icon('sparkle',40) ?></div>
-        <p style="font-size:1.1rem;color:var(--text-dim)">No posts yet<?= ($tagFilter||$destFilter) ? ' for this filter' : '' ?>.</p>
-        <?php if ($eml): ?><a href="new-entry.php" class="ja-btn ja-btn-primary" style="margin-top:14px">Share a photo</a><?php endif; ?>
-      </div>
-    <?php else: ?>
-      <div class="ja-feed-grid" id="jaFeedGrid">
-        <?php foreach ($posts as $i => $m):
-            $label = ja_feed_owner_label($m['eml'], $ownerNames);
-            $tags  = $tagsByMedia[$m['media_id']] ?? [];
-            $liked = !empty($m['liked']);
-            $capJson = htmlspecialchars(json_encode([
-                'id' => (int)$m['media_id'],
-                'src' => $m['filepath'],
-                'kind' => $m['kind'],
-                'caption' => $m['caption'],
-                'destination' => $m['destination'],
-                'owner' => $label,
-                'likes' => (int)$m['likes'],
-                'liked' => $liked,
-                'tags' => $tags,
-                'created' => $m['created_at'],
-                'handle' => $ownerHandles[$m['eml']] ?? null,
-                'comments' => $commentCounts[(int)$m['media_id']] ?? 0,
-            ]), ENT_QUOTES);
+    <div class="pc-filters">
+      <form method="get" action="feed.php" class="pc-search" role="search">
+        <?= ja_icon('search', 18) ?>
+        <label class="pc-sr" for="pcTagInput">Search by hashtag</label>
+        <input id="pcTagInput" type="text" name="tag" placeholder="Search a hashtag, like beach" value="<?= htmlspecialchars($tagFilter) ?>" autocomplete="off">
+        <?php if ($destFilter !== ''): ?><input type="hidden" name="dest" value="<?= htmlspecialchars($destFilter) ?>"><?php endif; ?>
+        <button type="submit" class="ja-btn ja-btn-primary pc-btn-sm">Search</button>
+      </form>
+      <nav class="pc-chips" id="pcChips" aria-label="Filter by hashtag">
+        <a class="pc-chip" href="feed.php" <?= ($tagFilter === '' && $destFilter === '') ? 'aria-current="true"' : '' ?>>All posts</a>
+        <?php if ($destFilter !== ''): ?>
+          <a class="pc-chip" aria-current="true" href="<?= htmlspecialchars($qs(['dest' => null])) ?>" title="Remove this place filter"><?= ja_icon('map-pin', 14) ?> <?= htmlspecialchars(explode(',', $destFilter)[0]) ?> <span class="x"><?= pc_icon('close', 14) ?></span></a>
+        <?php endif; ?>
+        <?php
+          $shown = [];
+          foreach ($trending as $t) {
+              $shown[] = strtolower($t['tag']);
+              $on = ($tagFilter !== '' && strtolower($tagFilter) === strtolower($t['tag']));
+              $href = $on ? $qs(['tag' => null]) : $qs(['tag' => $t['tag']]);
         ?>
-        <article class="ja-feed-card reveal" data-tilt style="transition-delay:<?= min($i,12)*0.05 ?>s"
-                 data-post="<?= $capJson ?>" data-idx="<?= $i ?>">
-          <div class="ja-feed-media">
-            <?php if ($m['kind'] === 'video'): ?>
-              <video src="<?= htmlspecialchars($m['filepath']) ?>" muted loop playsinline preload="metadata"
-                     class="ja-feed-video" onmouseenter="this.play().catch(()=>{})" onmouseleave="this.pause();this.currentTime=0;"></video>
-              <div class="ja-feed-playicon"><?= ja_icon('arrow',18) ?></div>
-              <span class="ja-feed-kindbadge">Video</span>
-            <?php else: ?>
-              <img src="<?= htmlspecialchars($m['filepath']) ?>" alt="<?= htmlspecialchars($m['caption'] ?? '') ?>" loading="lazy">
-            <?php endif; ?>
-            <?php if ($m['destination']): ?>
-              <a class="ja-feed-desttag" href="feed.php?dest=<?= urlencode($m['destination']) ?>"><?= ja_icon('map-pin',12) ?> <?= htmlspecialchars(explode(',', $m['destination'])[0]) ?></a>
-            <?php endif; ?>
-          </div>
-          <div class="ja-feed-body">
-            <div class="ja-feed-owner">
-              <span class="ja-feed-avatar"><?= htmlspecialchars(ja_feed_initials($label)) ?></span>
-              <?php if (!empty($ownerHandles[$m['eml']])): ?><a class="ja-feed-ownername" href="traveller.php?h=<?= urlencode($ownerHandles[$m['eml']]) ?>" onclick="event.stopPropagation()"><?= htmlspecialchars($label) ?></a>
-              <?php else: ?><span class="ja-feed-ownername"><?= htmlspecialchars($label) ?></span><?php endif; ?>
-              <span class="ja-feed-date"><?= htmlspecialchars(date('M j', strtotime($m['created_at']))) ?></span>
-            </div>
-            <?php if ($m['caption']): ?><p class="ja-feed-caption"><?= htmlspecialchars($m['caption']) ?></p><?php endif; ?>
-            <?php if ($tags): ?>
-            <div class="ja-feed-tags">
-              <?php foreach ($tags as $t): ?><a href="feed.php?tag=<?= urlencode($t) ?>" class="ja-feed-tagchip-sm">#<?= htmlspecialchars($t) ?></a><?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-            <button type="button" class="ja-feed-likebtn <?= $liked ? 'liked' : '' ?>" data-media-id="<?= (int)$m['media_id'] ?>" onclick="jaFeedToggleLike(event,this)">
-              <?= ja_icon('heart',17) ?> <span class="ja-feed-likecount"><?= (int)$m['likes'] ?></span>
-            </button>
-            <button type="button" class="ja-feed-likebtn ja-feed-cmtbtn" onclick="event.stopPropagation();jaFeedOpenLightbox(<?= (int)$i ?>,true)" title="Comments">
-              &#128172; <span class="ja-feed-cmtcount" data-cmt-for="<?= (int)$m['media_id'] ?>"><?= (int)($commentCounts[(int)$m['media_id']] ?? 0) ?></span>
-            </button>
-          </div>
-        </article>
-        <?php endforeach; ?>
-      </div>
+          <a class="pc-chip" href="<?= htmlspecialchars($href) ?>" <?= $on ? 'aria-current="true" title="Remove this filter"' : '' ?>>#<?= htmlspecialchars($t['tag']) ?> <small><?= (int)$t['uses'] ?></small><?php if ($on): ?><span class="x"><?= pc_icon('close', 14) ?></span><?php endif; ?></a>
+        <?php } ?>
+        <?php if ($tagFilter !== '' && !in_array(strtolower($tagFilter), $shown, true)): ?>
+          <a class="pc-chip" aria-current="true" href="<?= htmlspecialchars($qs(['tag' => null])) ?>" title="Remove this filter">#<?= htmlspecialchars($tagFilter) ?> <span class="x"><?= pc_icon('close', 14) ?></span></a>
+        <?php endif; ?>
+      </nav>
+    </div>
 
-      <div class="ja-feed-pagination">
-        <?php if ($page > 1): ?>
-          <a class="ja-btn ja-btn-ghost" href="feed.php?<?= http_build_query(array_filter(['tag'=>$tagFilter,'dest'=>$destFilter,'page'=>$page-1])) ?>">← Newer</a>
-        <?php endif; ?>
-        <?php if ($hasMore): ?>
-          <a class="ja-btn ja-btn-primary" href="feed.php?<?= http_build_query(array_filter(['tag'=>$tagFilter,'dest'=>$destFilter,'page'=>$page+1])) ?>">Load more</a>
-        <?php endif; ?>
+    <div id="pcFeedRoot" data-tag="<?= htmlspecialchars($tagFilter) ?>" data-dest="<?= htmlspecialchars($destFilter) ?>" data-page="<?= (int)$page ?>" data-more="<?= $hasMore ? '1' : '0' ?>">
+      <div id="pcEmpty" <?= $posts ? 'hidden' : '' ?>>
+        <?php
+          $filtered = ($tagFilter !== '' || $destFilter !== '');
+          if ($filtered) echo pc_empty('Nothing here yet', 'No public posts match this filter. Clear it to see everything, or be the first to post with it.', $eml ? ['Share a photo', 'share.php'] : ['Log in to share a photo', 'login.php']);
+          else echo pc_empty('No posts yet', 'Photos and short videos that travellers share will show up here. Add the first one from your trip.', $eml ? ['Share a photo', 'share.php'] : ['Log in to share a photo', 'login.php']);
+        ?>
       </div>
-    <?php endif; ?>
+      <div class="pc-masonry" id="pcGrid" aria-live="polite">
+        <?php foreach ($posts as $i => $m) echo pc_feed_card($m, $i, $ownerNames, $ownerHandles, $tagsByMedia, $commentCounts); ?>
+      </div>
+      <div class="pc-skels" id="pcSkels" hidden aria-hidden="true">
+        <?php for ($k = 0; $k < 6; $k++): ?><div class="pc-skel"><i class="m<?= $k % 2 ? ' w' : '' ?>"></i><i class="l"></i><i class="l2"></i></div><?php endfor; ?>
+      </div>
+      <div class="pc-more" id="pcMore" <?= $hasMore ? '' : 'hidden' ?>>
+        <a class="ja-btn ja-btn-ghost" id="pcMoreBtn" href="<?= htmlspecialchars($qs(['page' => $page + 1])) ?>">Load more</a>
+        <p id="pcMoreMsg" role="status"></p>
+      </div>
+      <p class="pc-end" id="pcEnd" <?= (!$hasMore && $posts) ? '' : 'hidden' ?>>You have reached the end.</p>
+    </div>
 
   </div>
 </main>
 
-<!-- reel-style lightbox viewer -->
-<div class="ja-feed-lightbox" id="jaFeedLightbox" aria-hidden="true">
-  <div class="ja-feed-lightbox-inner">
-    <button type="button" class="ja-feed-lb-close" onclick="jaFeedCloseLightbox()">&times;</button>
-    <button type="button" class="ja-feed-lb-nav prev" onclick="jaFeedNav(-1)">&#8249;</button>
-    <div class="ja-feed-lb-media" id="jaFeedLbMedia"></div>
-    <button type="button" class="ja-feed-lb-nav next" onclick="jaFeedNav(1)">&#8250;</button>
-    <div class="ja-feed-lb-info">
-      <div class="ja-feed-owner">
-        <span class="ja-feed-avatar" id="jaFeedLbAvatar"></span>
-        <span class="ja-feed-ownername" id="jaFeedLbOwner"></span>
-        <span class="ja-feed-date" id="jaFeedLbDate"></span>
-      </div>
-      <p class="ja-feed-caption" id="jaFeedLbCaption"></p>
-      <div class="ja-feed-tags" id="jaFeedLbTags"></div>
-      <button type="button" class="ja-feed-likebtn" id="jaFeedLbLike" onclick="jaFeedToggleLike(event,this)">
-        <?= ja_icon('heart',18) ?> <span class="ja-feed-likecount" id="jaFeedLbLikeCount">0</span>
-      </button>
-      <?php if ($eml): ?><select id="jaFeedReport" class="ja-report-select" aria-label="Report this post"><option value="">Report this post...</option><option value="fake">Fake or misleading</option><option value="spam">Spam</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Not their photo</option></select><span id="jaFeedReportMsg" class="ja-muted" style="font-size:.78rem"></span><?php endif; ?>
-      <div class="ja-cmts" id="jaFeedCmts">
-        <div class="ja-cmts-list" id="jaFeedCmtList"></div>
-        <?php if ($eml): ?>
-        <form class="ja-cmts-form" id="jaFeedCmtForm"><input type="text" id="jaFeedCmtInput" maxlength="600" placeholder="Add a comment" autocomplete="off"><button type="submit">Post</button></form>
-        <?php else: ?><a href="login.php" class="ja-muted" style="font-size:.85rem">Log in to comment</a><?php endif; ?>
-      </div>
+<!-- post viewer -->
+<div class="pc-lb pc-lb-post" id="pcLb" role="dialog" aria-modal="true" aria-label="Post viewer">
+  <button type="button" class="pc-lb-close" data-close aria-label="Close viewer"><?= pc_icon('close', 20) ?></button>
+  <button type="button" class="pc-lb-nav prev" data-nav="-1" aria-label="Previous post"><?= pc_icon('left', 22) ?></button>
+  <figure class="pc-lb-stage" id="pcLbStage"></figure>
+  <button type="button" class="pc-lb-nav next" data-nav="1" aria-label="Next post"><?= pc_icon('right', 22) ?></button>
+  <aside class="pc-lb-panel">
+    <div class="pc-owner">
+      <span class="pc-av" id="pcLbAv" aria-hidden="true"></span>
+      <span class="nm" id="pcLbOwner"></span>
+      <span class="pc-date" id="pcLbDate"></span>
     </div>
-  </div>
+    <p class="pc-cap" id="pcLbCap"></p>
+    <div class="pc-tags" id="pcLbTags"></div>
+    <div class="pc-actions">
+      <button type="button" class="pc-act" id="pcLbLike" data-like aria-pressed="false" aria-label="Like this post"><?= ja_icon('heart', 17) ?><span class="n">0</span></button>
+    </div>
+    <?php if ($eml): ?>
+    <div class="pc-report"><label class="pc-sr" for="pcLbReport">Report this post</label><select id="pcLbReport" class="ja-report-select"><option value="">Report this post</option><option value="fake">Fake or misleading</option><option value="spam">Spam</option><option value="unsafe">Unsafe or offensive</option><option value="copyright">Not their photo</option></select><span id="pcLbReportMsg" class="pc-muted" role="status"></span></div>
+    <?php endif; ?>
+    <div class="pc-cmts">
+      <div class="pc-cmts-list" id="pcCmtList"></div>
+      <?php if ($eml): ?>
+      <form class="pc-cmts-form" id="pcCmtForm"><label class="pc-sr" for="pcCmtInput">Add a comment</label><input type="text" id="pcCmtInput" maxlength="600" placeholder="Add a comment" autocomplete="off"><button type="submit">Post</button></form>
+      <?php else: ?><a href="login.php" class="pc-link">Log in to like and comment</a><?php endif; ?>
+    </div>
+  </aside>
+  <div class="pc-lb-count" id="pcLbCount" aria-live="polite"></div>
 </div>
 
-<script>
-var JA_FEED_LOGGED_IN = <?= $eml ? 'true' : 'false' ?>;
-var JA_CSRF = <?= json_encode(ja_csrf()) ?>;
-var jaFeedPosts = [];
-var jaFeedIdx = 0;
-
-document.addEventListener('DOMContentLoaded', function () {
-  var cards = document.querySelectorAll('.ja-feed-card[data-post]');
-  cards.forEach(function (card, i) {
-    try { jaFeedPosts[i] = JSON.parse(card.getAttribute('data-post')); } catch (e) {}
-    card.querySelector('.ja-feed-media').addEventListener('click', function () {
-      jaFeedOpenLightbox(i);
-    });
-  });
-});
-
-function jaFeedInitials(label) {
-  label = (label || '').trim();
-  if (!label) return '?';
-  var parts = label.split(/\s+/);
-  if (parts.length > 1) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return label.substring(0, 2).toUpperCase();
-}
-
-function jaFeedRenderLightbox() {
-  var p = jaFeedPosts[jaFeedIdx];
-  if (!p) return;
-  var mediaEl = document.getElementById('jaFeedLbMedia');
-  if (p.kind === 'video') {
-    mediaEl.innerHTML = '<video src="' + p.src + '" controls autoplay loop playsinline></video>';
-  } else {
-    mediaEl.innerHTML = '<img src="' + p.src + '" alt="">';
-  }
-  document.getElementById('jaFeedLbAvatar').textContent = jaFeedInitials(p.owner);
-  document.getElementById('jaFeedLbOwner').textContent = p.owner;
-  document.getElementById('jaFeedLbDate').textContent = p.created ? new Date(p.created.replace(' ', 'T')).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
-  document.getElementById('jaFeedLbCaption').textContent = p.caption || '';
-  var tagsEl = document.getElementById('jaFeedLbTags');
-  tagsEl.innerHTML = '';
-  (p.tags || []).forEach(function (t) {
-    var a = document.createElement('a');
-    a.href = 'feed.php?tag=' + encodeURIComponent(t);
-    a.className = 'ja-feed-tagchip-sm';
-    a.textContent = '#' + t;
-    tagsEl.appendChild(a);
-  });
-  var likeBtn = document.getElementById('jaFeedLbLike');
-  likeBtn.dataset.mediaId = p.id;
-  likeBtn.classList.toggle('liked', !!p.liked);
-  document.getElementById('jaFeedLbLikeCount').textContent = p.likes;
-  jaFeedLoadComments(p.id);
-}
-
-function jaFeedOpenLightbox(i, focusComments) {
-  jaFeedIdx = i;
-  jaFeedRenderLightbox();
-  var lb = document.getElementById('jaFeedLightbox');
-  lb.classList.add('open');
-  lb.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-  if (focusComments) { var ci = document.getElementById('jaFeedCmtInput'); if (ci) ci.focus(); }
-}
-function jaFeedCloseLightbox() {
-  var lb = document.getElementById('jaFeedLightbox');
-  lb.classList.remove('open');
-  lb.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
-  var v = lb.querySelector('video');
-  if (v) v.pause();
-}
-function jaFeedNav(dir) {
-  jaFeedIdx = (jaFeedIdx + dir + jaFeedPosts.length) % jaFeedPosts.length;
-  jaFeedRenderLightbox();
-}
-document.addEventListener('keydown', function (e) {
-  var lb = document.getElementById('jaFeedLightbox');
-  if (!lb.classList.contains('open')) return;
-  if (e.key === 'Escape') jaFeedCloseLightbox();
-  if (e.key === 'ArrowRight') jaFeedNav(1);
-  if (e.key === 'ArrowLeft') jaFeedNav(-1);
-});
-document.getElementById('jaFeedLightbox').addEventListener('click', function (e) {
-  if (e.target === this) jaFeedCloseLightbox();
-});
-
-function jaEsc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
-function jaFeedCmtHtml(c) {
-  var who = c.handle ? '<a href="traveller.php?h=' + encodeURIComponent(c.handle) + '">' + jaEsc(c.name) + '</a>' : jaEsc(c.name);
-  return '<div class="ja-cmt" data-cid="' + c.id + '"><b>' + who + '</b> ' + jaEsc(c.body) +
-    (c.can_delete ? ' <button type="button" class="ja-cmt-del" title="Delete">&times;</button>' : '') + '</div>';
-}
-function jaFeedSetCount(id, n) {
-  document.querySelectorAll('[data-cmt-for="' + id + '"]').forEach(function (el) { el.textContent = n; });
-  jaFeedPosts.forEach(function (p) { if (String(p.id) === String(id)) p.comments = n; });
-}
-function jaFeedLoadComments(id) {
-  var box = document.getElementById('jaFeedCmtList');
-  box.innerHTML = '<span class="ja-muted">Loading...</span>';
-  fetch('engage.php?action=comments&kind=media&id=' + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (d) {
-    if (String(jaFeedPosts[jaFeedIdx].id) !== String(id)) return;   // user already moved to another post
-    box.innerHTML = (d.comments && d.comments.length) ? d.comments.map(jaFeedCmtHtml).join('') : '<span class="ja-muted">No comments yet. Start the conversation.</span>';
-    jaFeedSetCount(id, d.count || 0);
-  }).catch(function () { box.innerHTML = ''; });
-}
-document.addEventListener('submit', function (e) {
-  if (e.target.id !== 'jaFeedCmtForm') return;
-  e.preventDefault();
-  var input = document.getElementById('jaFeedCmtInput'), id = jaFeedPosts[jaFeedIdx].id;
-  var fd = new FormData(); fd.append('action', 'comment_add'); fd.append('kind', 'media'); fd.append('id', id); fd.append('body', input.value); fd.append('csrf', JA_CSRF);
-  fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
-    if (d.error) { alert(d.error); return; }
-    input.value = ''; jaFeedLoadComments(id);
-  });
-});
-document.addEventListener('click', function (e) {
-  if (!e.target.classList.contains('ja-cmt-del')) return;
-  var row = e.target.closest('.ja-cmt'), id = jaFeedPosts[jaFeedIdx].id;
-  var fd = new FormData(); fd.append('action', 'comment_delete'); fd.append('kind', 'media'); fd.append('comment_id', row.dataset.cid); fd.append('csrf', JA_CSRF);
-  fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) { if (d.ok) jaFeedLoadComments(id); });
-});
-
-document.addEventListener('change', function (e) {
-  if (e.target.id !== 'jaFeedReport' || !e.target.value) return;
-  var fd = new FormData(); fd.append('action', 'report'); fd.append('kind', 'media'); fd.append('id', jaFeedPosts[jaFeedIdx].id);
-  fd.append('reason', e.target.value); fd.append('csrf', JA_CSRF);
-  fetch('engage.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
-    document.getElementById('jaFeedReportMsg').textContent = d.message || d.error || ''; e.target.value = '';
-  });
-});
-
-function jaFeedToggleLike(evt, btn) {
-  evt.stopPropagation();
-  if (!JA_FEED_LOGGED_IN) {
-    window.location.href = 'login.php';
-    return;
-  }
-  var mediaId = btn.dataset.mediaId;
-  fetch('media-like.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'media_id=' + encodeURIComponent(mediaId)
-  }).then(function (r) { return r.json(); }).then(function (data) {
-    if (data.error) { if (data.error.toLowerCase().indexOf('log in') !== -1) window.location.href = 'login.php'; return; }
-    // update every button/card referencing this media id (grid + lightbox)
-    document.querySelectorAll('[data-media-id="' + mediaId + '"]').forEach(function (el) {
-      el.classList.toggle('liked', !!data.liked);
-      var c = el.querySelector('.ja-feed-likecount');
-      if (c) c.textContent = data.likes;
-    });
-    jaFeedPosts.forEach(function (p) {
-      if (String(p.id) === String(mediaId)) { p.liked = data.liked; p.likes = data.likes; }
-    });
-  }).catch(function () {});
-}
-</script>
+<script>window.PC_FEED = { loggedIn: <?= $eml ? 'true' : 'false' ?>, csrf: <?= json_encode(ja_csrf()) ?> };</script>
+<script src="js/feed.js?v=<?= (int)@filemtime(__DIR__ . '/js/feed.js') ?>" defer></script>
 
 <?php include 'ja-footer.php'; ?>
 </body>
